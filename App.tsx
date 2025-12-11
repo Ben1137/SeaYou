@@ -24,7 +24,44 @@ const App: React.FC = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    loadWeatherData(DEFAULT_LOC);
+    // Try to get user's location automatically on first load
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          let cityName = "Current Location";
+
+          try {
+            const resolvedName = await reverseGeocode(latitude, longitude);
+            if (resolvedName) {
+              cityName = resolvedName;
+            }
+          } catch (e) {
+            console.error("Failed to reverse geocode", e);
+          }
+
+          const newLoc: Location = {
+            id: -1,
+            name: cityName,
+            lat: latitude,
+            lng: longitude,
+          };
+          
+          setLocations([newLoc]);
+          setCurrentLocation(newLoc);
+          loadWeatherData(newLoc);
+        },
+        (err) => {
+          // If geolocation fails or is denied, fall back to default location
+          console.warn("Geolocation failed, using default location", err);
+          loadWeatherData(DEFAULT_LOC);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    } else {
+      // Browser doesn't support geolocation, use default
+      loadWeatherData(DEFAULT_LOC);
+    }
   }, []);
 
   const handleLocateMe = () => {
