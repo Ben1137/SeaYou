@@ -1,6 +1,14 @@
 # SeaMe - Marine Weather Dashboard 🌊
 
+[![Deploy to GitHub Pages](https://github.com/Ben1137/SeaMe/actions/workflows/deploy.yml/badge.svg)](https://github.com/Ben1137/SeaMe/actions/workflows/deploy.yml)
+
 SeaMe is a comprehensive, real-time marine weather dashboard designed for sailors, surfers, kite surfers, and beachgoers. It leverages the Open-Meteo API to provide high-resolution marine and atmospheric data, presented through a beautiful, interactive, and responsive UI.
+
+## 🌐 Live Demo
+
+**Try it now:** [https://ben1137.github.io/SeaMe/](https://ben1137.github.io/SeaMe/)
+
+The app is deployed on GitHub Pages and updates automatically with every push to the main branch.
 
 ## 🚀 Features
 
@@ -47,8 +55,15 @@ SeaMe is a comprehensive, real-time marine weather dashboard designed for sailor
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Data Source**: [Open-Meteo API](https://open-meteo.com/) (Marine & Forecast APIs)
 - **Date Handling**: [date-fns](https://date-fns.org/)
+- **Deployment**: GitHub Actions → GitHub Pages
 
-## 📦 Installation & Setup
+## 📦 Local Development
+
+### Prerequisites
+
+- Node.js 18+ and npm
+
+### Setup
 
 1.  **Clone the repository:**
 
@@ -72,15 +87,72 @@ SeaMe is a comprehensive, real-time marine weather dashboard designed for sailor
 4.  **Open in Browser:**
     Navigate to `http://localhost:3000` (or the port shown in your terminal).
 
+### Build for Production
+
+```bash
+npm run build
+```
+
+The optimized production build will be in the `dist/` directory.
+
+## 🚀 Deployment
+
+This project uses **GitHub Actions** for automatic deployment to GitHub Pages.
+
+### How It Works
+
+1. Push changes to the `main` branch
+2. GitHub Actions automatically builds the app
+3. Deploys to GitHub Pages (usually takes 2-3 minutes)
+4. Live site updates at: https://ben1137.github.io/SeaMe/
+
+### Deployment Configuration
+
+- **Workflow**: `.github/workflows/deploy.yml`
+- **Build Tool**: Vite with base path `/SeaMe/`
+- **Hosting**: GitHub Pages (free, HTTPS enabled)
+
+### Manual Deployment
+
+You can also trigger a deployment manually:
+
+1. Go to the [Actions tab](https://github.com/Ben1137/SeaMe/actions)
+2. Select "Deploy to GitHub Pages"
+3. Click "Run workflow"
+
 ## 🌍 Configuration
 
-No API keys are required for the default Open-Meteo integration.
-To modify the location, update the coordinates in `App.tsx` or passed to the `Dashboard` component.
+### API Integration
+
+No API keys are required for the default Open-Meteo integration. The app makes client-side requests to:
+
+- `https://marine-api.open-meteo.com/v1/marine`
+- `https://api.open-meteo.com/v1/forecast`
+
+### Location Settings
+
+To modify the default location, update the coordinates in `App.tsx` or passed to the `Dashboard` component.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please fork the repository and submit a pull request for any enhancements or bug fixes.
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is open source and available for personal and educational use.
+
+## 🙏 Acknowledgments
+
+- Marine and weather data provided by [Open-Meteo](https://open-meteo.com/)
+- Icons by [Lucide](https://lucide.dev/)
+- Charts powered by [Recharts](https://recharts.org/)
 
 ---
 
-_Powered by [Open-Meteo](https://open-meteo.com/) data._
+**Live Demo:** [https://ben1137.github.io/SeaMe/](https://ben1137.github.io/SeaMe/) 🌊⛵
