@@ -2,24 +2,27 @@
   "name": "seame",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://Ben1137.github.io/SeaMe",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "preview": "vite preview"
   },
   "dependencies": {
-    "recharts": "^3.5.1",
+    "date-fns": "^4.1.0",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.555.0",
-
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
-    "date-fns": "^4.1.0",
-    "leaflet": "^1.9.4"
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "gh-pages": "^6.3.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
