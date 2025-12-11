@@ -1,0 +1,118 @@
+Here is the comprehensive technical documentation for the SeaMe application. This document is designed to onboard a new engineer, covering architecture, data flow, component logic, and external integrations.
+SeaMe - Technical Documentation
+1. Project Overview
+SeaMe is a React-based Single Page Application (SPA) designed for real-time marine weather monitoring, maritime route planning, and atmospheric analysis. It aggregates complex meteorological data into user-friendly visualizations for specific personas (Mariners, Surfers, Kite Surfers, and Beachgoers).
+Core Features
+Dashboard: Real-time conditions, 24h charts, tide schedules, and persona-based forecasts.
+Interactive Map: Route plotting with waypoints, wind/wave overlays, and specific point forecasting.
+Atmosphere: Solar/Lunar cycle tracking and detailed atmospheric metrics (pressure, visibility).
+AI Integration: (Component available) Image processing capabilities using Google Gemini.
+2. Tech Stack
+Category	Technology	Usage
+Framework	React 19	Core UI library.
+Language	TypeScript	Type safety and interfaces.
+Styling	Tailwind CSS	Utility-first styling, Dark Mode theme (slate-950).
+Maps	Leaflet / React-Leaflet	Map rendering, markers, polylines.
+Charts	Recharts	Area charts for waves, tides, and wind.
+Icons	Lucide-React	SVG iconography.
+Date Handling	date-fns	Date parsing, formatting, and manipulation.
+Data Source	Open-Meteo API	Marine and General Forecast data.
+AI	Google GenAI SDK	Image processing (Gemini 2.5 Flash).
+3. Architecture & File Structure
+The project follows a standard flat React architecture suitable for medium-complexity dashboards.
+code
+Text
+/
+├── index.html            # Entry point, imports Tailwind & Leaflet CSS
+├── index.tsx             # React Root, mounts App
+├── App.tsx               # Main Controller (State Holder, Navigation, Geolocation)
+├── types.ts              # Global TypeScript interfaces
+├── metadata.json         # Project permissions (Geo, Camera)
+├── services/
+│   ├── weatherService.ts # API abstraction layer for Open-Meteo
+│   └── geminiService.ts  # Wrapper for Google Gemini API
+└── components/
+    ├── Dashboard.tsx     # Main weather view, alerts, and charts
+    ├── MapComponent.tsx  # Leaflet map logic, routing, and grid overlays
+    ├── Atmosphere.tsx    # Sun/Moon cycles and atmospheric gauges
+    └── PhotoEditor.tsx   # Standalone component for AI image editing
+Data Flow Pattern
+Initialization: App.tsx initializes. It attempts to fetch navigator.geolocation.
+State Lifting: The MarineWeatherData state resides in App.tsx.
+Service Call: weatherService.ts fetches data, merges responses from multiple endpoints, and normalizes it.
+Prop Drilling: Formatted data is passed down to Dashboard, MapComponent, etc.
+Local State: Components manage UI-specific state (e.g., Map Zoom, Route Legs, Dashboard Tabs).
+4. Data Processing (weatherService.ts)
+This is the "brain" of the application. It handles the complexity of the Open-Meteo API.
+APIs Used
+Marine API: https://marine-api.open-meteo.com/v1/marine (Waves, Swell, Sea Temp).
+Forecast API: https://api.open-meteo.com/v1/forecast (Wind, Pressure, Visibility, UV).
+Geocoding API: https://geocoding-api.open-meteo.com/v1/search (City search).
+Key Functions
+fetchMarineWeather(lat, lng):
+Strategy: Performs Promise.all to fetch Marine and General weather simultaneously.
+Merging: Combines arrays (e.g., Wave Height from Marine API + Wind Speed from General API) into a unified hourly object.
+Tide Calculation: Uses a simple harmonic motion approximation logic (generateTideData) based on longitude phases, as Open-Meteo does not provide free global tide data. Note: This is a simulation for demo purposes.
+Astronomy: Calculates Moon Phase and illumination manually based on the date.
+fetchPointForecast & fetchHourlyPointForecast:
+Used specifically by the MapComponent.
+fetchPointForecast: Lightweight call for generating the grid overlay markers.
+fetchHourlyPointForecast: Heavy call used when a user clicks a specific point on the map for details.
+5. Component Deep Dive
+A. Dashboard (Dashboard.tsx)
+Logic:
+Calculates currentHourIndex to show live data relative to the data arrays.
+Alert System: Compares current conditions against AlertConfig (User adjustable settings) to trigger "Storm Warnings" or "Tsunami Alerts".
+Persona Logic: The forecastTableBlocks use a switch case logic to render different table columns based on the selected tab (Mariner vs. Surfer vs. Kite).
+B. MapComponent (MapComponent.tsx)
+This is the most complex UI component.
+Routing Logic:
+Users click to add markers (markersRef).
+Math: Calculates distance (Nautical Miles) and Bearing (Degrees) between points using Haversine-like formulas (calculateBearing, distanceTo).
+Estimates travel time based on a user-adjustable speed slider.
+Visual Overlays:
+Uses L.DivIcon to render custom HTML markers (rotating arrows for wind, colored badges for waves).
+Grid System: Calculates a coordinate grid based on the current map view bounds (getBounds) to request point forecasts dynamically.
+Animation: Uses CSS keyframes injected via JavaScript for the "pulsing" wave markers and "flowing" wind arrows.
+C. Atmosphere (Atmosphere.tsx)
+Visualizations:
+Sun/Moon Arcs: Uses CSS positioning (bottom, left) calculated via Math.sin() to place the icons along a semicircular path based on the time of day.
+Wind Compass: Rotates an SVG arrow based on windDirection degrees.
+6. External Integrations
+Google Gemini (geminiService.ts)
+Model: gemini-2.5-flash-image.
+Functionality: Takes a base64 image and a text prompt.
+Usage: It is implemented in PhotoEditor.tsx.
+Note: The PhotoEditor component is fully functional but currently not linked in the main App.tsx navigation bar. To enable it, add a navigation button in App.tsx setting the view to ViewState.PHOTO.
+Open-Meteo
+Free, non-commercial use allowed.
+No API Key required (rate limited).
+7. Interfaces & Types (types.ts)
+The application relies heavily on strict typing. The core interface is MarineWeatherData.
+code
+TypeScript
+export interface MarineWeatherData {
+  latitude: number;
+  longitude: number;
+  hourly: MarineWeatherHourly; // Aligned arrays of 24h+ data
+  daily: MarineWeatherDaily;
+  current?: {
+    windSpeed: number;
+    windGusts: number;
+    windDirection: number;
+    seaTemperature?: number; 
+  };
+  tides?: TideData;
+  general?: GeneralWeather; // Astronomy & Atmospheric
+}
+8. Known Limitations & Future Work
+Tide Data: currently simulated using math approximations. For production, integrate a specific Tidal API.
+Map Performance: The "Grid" overlay fetches individual point forecasts. Optimization is needed (caching or vector tiles) if the grid density is increased.
+Photo Editor: Currently orphaned in the UI. Needs to be integrated into the navigation.
+Error Handling: While try/catch blocks exist in services, network failures on the Map Grid (404s for land coordinates) are logged to the console.
+9. How to Run
+Environment: Ensure process.env.API_KEY is available for Gemini features.
+Permissions: The app requests geolocation on startup. If denied, it defaults to Tel Aviv.
+Dependencies:
+npm install react react-dom leaflet recharts lucide-react date-fns @google/genai
+(Or use the provided Import Map in index.html).
