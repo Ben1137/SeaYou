@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { ViewState, Coordinate, MarineWeatherData, Location } from './types';
+import { ViewState, Location } from './types';
 import Dashboard from './components/Dashboard';
 import MapComponent from './components/MapComponent';
 import Atmosphere from './components/Atmosphere';
 import { LayoutDashboard, Map as MapIcon, Cloud, Anchor, MapPin, Plus, Search, X, Check } from 'lucide-react';
-import { fetchMarineWeather, searchLocations, reverseGeocode } from './services/weatherService';
+import { searchLocations, reverseGeocode } from './services/weatherService';
+import { useMarineData } from './hooks/useMarineData';
 
 // Default to a coastal location (Tel Aviv) if geo fails
 const DEFAULT_LOC: Location = { id: 0, name: "Tel Aviv", lat: 32.0853, lng: 34.7818, country: "Israel" };
@@ -13,15 +14,18 @@ const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.DASHBOARD);
   const [locations, setLocations] = useState<Location[]>([DEFAULT_LOC]);
   const [currentLocation, setCurrentLocation] = useState<Location>(DEFAULT_LOC);
-  const [weatherData, setWeatherData] = useState<MarineWeatherData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   
   // Search State
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Use React Query hook for marine data
+  const { data: weatherData, isLoading, error, refetch } = useMarineData(
+    currentLocation.lat,
+    currentLocation.lng
+  );
 
   useEffect(() => {
     // Try to get user's location automatically on first load
@@ -49,24 +53,18 @@ const App: React.FC = () => {
           
           setLocations([newLoc]);
           setCurrentLocation(newLoc);
-          loadWeatherData(newLoc);
         },
         (err) => {
           // If geolocation fails or is denied, fall back to default location
           console.warn("Geolocation failed, using default location", err);
-          loadWeatherData(DEFAULT_LOC);
         },
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
-    } else {
-      // Browser doesn't support geolocation, use default
-      loadWeatherData(DEFAULT_LOC);
     }
   }, []);
 
   const handleLocateMe = () => {
     if (navigator.geolocation) {
-      setLoading(true);
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
@@ -93,31 +91,13 @@ const App: React.FC = () => {
               return [newLoc, ...filtered];
           });
           setCurrentLocation(newLoc);
-          loadWeatherData(newLoc);
           setShowLocationModal(false);
         },
         (err) => {
           console.warn("Geolocation failed", err);
-          setError("Could not retrieve location. Please check permissions.");
-          setLoading(false);
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
-    } else {
-      setError("Geolocation is not supported by your browser.");
-    }
-  };
-
-  const loadWeatherData = async (loc: Location) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchMarineWeather(loc.lat, loc.lng);
-      setWeatherData(data);
-    } catch (e) {
-      setError("Unable to retrieve marine forecast. Check connection.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -135,7 +115,6 @@ const App: React.FC = () => {
           setLocations([...locations, loc]);
       }
       setCurrentLocation(loc);
-      loadWeatherData(loc);
       setShowLocationModal(false);
       setSearchQuery('');
       setSearchResults([]);
@@ -143,7 +122,6 @@ const App: React.FC = () => {
 
   const switchLocation = (loc: Location) => {
       setCurrentLocation(loc);
-      loadWeatherData(loc);
       setShowLocationModal(false);
   };
 
@@ -254,7 +232,7 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative scroll-smooth">
         {view === ViewState.DASHBOARD && (
-          <Dashboard weatherData={weatherData} loading={loading} error={error} locationName={currentLocation.name} />
+          <Dashboard weatherData={weatherData} loading={isLoading} error={error} locationName={currentLocation.name} />
         )}
         {view === ViewState.MAP && (
           <MapComponent currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} />
