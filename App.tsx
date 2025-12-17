@@ -234,7 +234,7 @@ const App: React.FC = () => {
       {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto relative scroll-smooth">
         {view === ViewState.DASHBOARD && (
-          <Dashboard weatherData={weatherData} loading={isLoading} error={error} locationName={currentLocation.name} />
+          <Dashboard weatherData={weatherData} loading={isLoading} error={error} locationName={currentLocation.name} onRetry={refetch} />
         )}
         {view === ViewState.MAP && (
           <MapComponent currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} />
@@ -264,16 +264,6 @@ const App: React.FC = () => {
           </button>
           
           <button
-            onClick={() => setView(ViewState.MAP)}
-            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
-              view === ViewState.MAP ? 'text-blue-400 bg-blue-500/10' : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            <MapIcon size={22} />
-            <span className="text-xs font-medium">Map</span>
-          </button>
-
-          <button
             onClick={() => setView(ViewState.ATMOSPHERE)}
             className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
               view === ViewState.ATMOSPHERE ? 'text-purple-400 bg-purple-500/10' : 'text-slate-500 hover:text-slate-300'
@@ -281,6 +271,16 @@ const App: React.FC = () => {
           >
             <Cloud size={22} />
             <span className="text-xs font-medium">Atmosphere</span>
+          </button>
+
+          <button
+            onClick={() => setView(ViewState.MAP)}
+            className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
+              view === ViewState.MAP ? 'text-blue-400 bg-blue-500/10' : 'text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <MapIcon size={22} />
+            <span className="text-xs font-medium">Map</span>
           </button>
 
           <button

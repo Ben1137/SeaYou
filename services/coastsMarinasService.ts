@@ -104,9 +104,13 @@ const buildOverpassQuery = (
       node["leisure"="marina"](around:${radiusMeters},${lat},${lon});
       node["harbour"="yes"](around:${radiusMeters},${lat},${lon});
       node["natural"="beach"](around:${radiusMeters},${lat},${lon});
+      node["natural"="bay"](around:${radiusMeters},${lat},${lon});
+      node["place"="bay"](around:${radiusMeters},${lat},${lon});
       way["leisure"="marina"](around:${radiusMeters},${lat},${lon});
+      way["natural"="beach"](around:${radiusMeters},${lat},${lon});
+      way["natural"="bay"](around:${radiusMeters},${lat},${lon});
     );
-    out body;
+    out center;
     >;
     out skel qt;
   `;
@@ -125,7 +129,11 @@ const parseOverpassResults = (
   if (!data.elements) return marinas;
 
   data.elements.forEach((element: any) => {
-    if (element.type === 'node' && element.lat && element.lon) {
+    // Overpass "out center" returns 'center' for ways/relations, and lat/lon for nodes
+    const lat = element.lat || element.center?.lat;
+    const lon = element.lon || element.center?.lon;
+
+    if (lat && lon) {
       const tags = element.tags || {};
 
       // Skip if no name
@@ -298,41 +306,63 @@ export const searchMarinasByName = async (
   currentLon?: number
 ): Promise<Marina[]> => {
   try {
-    // Use Nominatim for name search
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?` +
-        `q=${encodeURIComponent(query + ' marina')}&` +
-        `format=json&` +
-        `limit=20&` +
-        `addressdetails=1`
+    // Use Nominatim to search for marinas, beaches, coasts and harbours and merge results
+    const typesToSearch = ['marina', 'beach', 'coast', 'harbour'];
+
+    // run the searches in parallel
+    const fetches = typesToSearch.map((t) =>
+      fetch(
+        `https://nominatim.openstreetmap.org/search?` +
+          `q=${encodeURIComponent(query + ' ' + t)}&` +
+          `format=json&` +
+          `limit=20&` +
+          `addressdetails=1`
+      )
     );
 
-    if (!response.ok) return [];
+    const responses = await Promise.all(fetches);
+    const datas = await Promise.all(responses.map((r) => (r.ok ? r.json() : [])));
 
-    const data = await response.json();
+    const results: Marina[] = [];
 
-    const marinas: Marina[] = data
-      .filter((item: any) => item.lat && item.lon)
-      .map((item: any) => {
-        const distance =
-          currentLat && currentLon
-            ? calculateDistance(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon))
-            : 0;
+    datas.forEach((data: any[], idx: number) => {
+      (data || [])
+        .filter((item: any) => item.lat && item.lon)
+        .forEach((item: any) => {
+          const id = `nominatim-${item.place_id}`;
+          // avoid duplicates
+          if (results.find((r) => r.id === id)) return;
 
-        return {
-          id: `nominatim-${item.place_id}`,
-          name: item.display_name,
-          lat: parseFloat(item.lat),
-          lon: parseFloat(item.lon),
-          type: 'marina' as const,
-          distance,
-          bearing: 0,
-          amenities: [],
-          facilities: {},
-        };
-      });
+          const distance =
+            currentLat && currentLon
+              ? calculateDistance(currentLat, currentLon, parseFloat(item.lat), parseFloat(item.lon))
+              : 0;
 
-    return marinas;
+          results.push({
+            id,
+            name: item.display_name,
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon),
+            type:
+              typesToSearch[idx] === 'beach'
+                ? 'beach'
+                : typesToSearch[idx] === 'harbour'
+                ? 'harbor'
+                : typesToSearch[idx] === 'coast'
+                ? 'beach'
+                : 'marina',
+            distance,
+            bearing: 0,
+            amenities: [],
+            facilities: {},
+          });
+        });
+    });
+
+    // sort by distance if possible
+    results.sort((a, b) => a.distance - b.distance);
+
+    return results;
   } catch (error) {
     console.error('Error searching marinas:', error);
     return [];

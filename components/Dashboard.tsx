@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { MarineWeatherData, AlertConfig } from '../types';
 import {
@@ -18,7 +17,8 @@ interface DashboardProps {
   weatherData: MarineWeatherData | null | undefined;
   loading: boolean;
   error: Error | null;
-  locationName: string; 
+  locationName: string;
+  onRetry?: () => void;
 }
 
 const DEFAULT_ALERT_CONFIG: AlertConfig = {
@@ -80,14 +80,14 @@ const getSeaStateFull = (minM: number, maxM: number): string => {
     return `${minTerm} to ${maxTerm} (${rangeText})`;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName }) => {
+const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, onRetry }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [alertConfig, setAlertConfig] = useState<AlertConfig>(DEFAULT_ALERT_CONFIG);
   const [forecastTab, setForecastTab] = useState<'mariner' | 'surfer' | 'kite' | 'beach'>('mariner');
   const [dismissedAlert, setDismissedAlert] = useState(false);
   
   // Graph Tab State
-  const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('tide');
+  const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
 
   // All hooks must be called before any conditional returns
   const currentHourIndex = useMemo(() => {
@@ -149,7 +149,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       swellPeriod: weatherData.current.swellPeriod,
       pressure: weatherData.current.pressure,
       visibility: weatherData.current.visibility,
-      seaTemp: weatherData.current.seaTemp,
+      seaTemp: weatherData.current.seaTemperature,
       seaLevel: weatherData.current.seaLevel,
       currentUV: weatherData.current.uvIndex
     };
@@ -333,9 +333,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     setForecastTab(tabs[(idx - 1 + tabs.length) % tabs.length]);
   };
 
-  if (loading) return <div className="flex items-center justify-center h-full text-cyan-400 animate-pulse">Fetching atmospheric & marine data...</div>;
-  if (error) return <div className="flex items-center justify-center h-full text-red-400"><AlertTriangle className="mr-2" /> {error}</div>;
-  if (!weatherData || !currentConditions) return null;
+  if (loading) return <DashboardSkeleton />;
+  if (error) return <ErrorState error={error} onRetry={onRetry} />;
+  
+  if (!weatherData || !currentConditions) {
+      if (!loading && !error) return <div className="p-8 text-center text-slate-400">No weather data available.</div>;
+      return null;
+  }
 
   return (
     <div className="p-4 space-y-8 pb-24 max-w-7xl mx-auto relative">
@@ -582,12 +586,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
              {/* Tab Switcher */}
              <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
                  <button 
-                   onClick={() => setActiveGraph('tide')}
-                   className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeGraph === 'tide' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
-                 >
-                   Tides
-                 </button>
-                 <button 
                    onClick={() => setActiveGraph('wave')}
                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeGraph === 'wave' ? 'bg-blue-600/20 text-blue-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                  >
@@ -598,6 +596,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeGraph === 'swell' ? 'bg-teal-600/20 text-teal-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
                  >
                    Swell
+                 </button>
+                 <button 
+                   onClick={() => setActiveGraph('tide')}
+                   className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${activeGraph === 'tide' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                 >
+                   Tides
                  </button>
              </div>
           </div>

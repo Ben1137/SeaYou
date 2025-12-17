@@ -35,6 +35,13 @@ import {
 import {
   offlineNavigation,
 } from '../services/offlineNavigationService';
+import {
+  analyzeRouteHazards,
+  suggestHazardAvoidance,
+  RouteAnalysis,
+} from '../services/nauticalChartService';
+import { VesselSettingsModal, VesselSettings } from './VesselSettingsModal';
+import { HazardAlert } from './HazardAlert';
 
 export const RoutePlanningView: React.FC = () => {
   const [route, setRoute] = useState<Route | null>(null);
@@ -54,9 +61,28 @@ export const RoutePlanningView: React.FC = () => {
   const [destLon, setDestLon] = useState('');
   const [averageSpeed, setAverageSpeed] = useState(5);
 
+  // Hazard analysis state
+  const [hazardAnalysis, setHazardAnalysis] = useState<RouteAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showVesselSettings, setShowVesselSettings] = useState(false);
+  const [vesselSettings, setVesselSettings] = useState<VesselSettings>({
+    draft: 2.0,
+    name: 'My Vessel',
+    type: 'sail',
+  });
+
   useEffect(() => {
+    const savedSettings = localStorage.getItem('vesselSettings');
+    if (savedSettings) {
+      setVesselSettings(JSON.parse(savedSettings));
+    }
     loadSavedRoutes();
     setupNavigationListeners();
+
+    // Auto-init start location if empty
+    if (!startLocation && !startLat && 'geolocation' in navigator) {
+      handleUseCurrentLocation('start');
+    }
 
     return () => {
       offlineNavigation.off('navigationUpdate');
@@ -90,7 +116,77 @@ export const RoutePlanningView: React.FC = () => {
     setSavedRoutes(getSavedRoutes());
   };
 
-  const handleCreateRoute = () => {
+  const handleSaveVesselSettings = (settings: VesselSettings) => {
+    setVesselSettings(settings);
+    localStorage.setItem('vesselSettings', JSON.stringify(settings));
+    setShowVesselSettings(false);
+    
+    // Re-analyze route if exists
+    if (route) {
+      analyzeRoute(route);
+    }
+  };
+
+  const analyzeRoute = async (routeToAnalyze: Route) => {
+    if (!vesselSettings) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const analysis = await analyzeRouteHazards(
+        routeToAnalyze.waypoints,
+        vesselSettings.draft,
+        500 // 500m safety margin
+      );
+      
+      setHazardAnalysis(analysis);
+    } catch (error) {
+      console.error('Error analyzing route:', error);
+      alert('Failed to analyze route for hazards. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleFixRoute = () => {
+    if (!route || !hazardAnalysis) return;
+    
+    const criticalHazards = hazardAnalysis.hazards.filter(
+      (h) => h.hazard.severity === 'critical'
+    );
+    
+    if (criticalHazards.length === 0) return;
+    
+    let updatedRoute = { ...route };
+    let hasUpdates = false;
+    
+    criticalHazards.forEach((hazardInfo) => {
+      const segmentIndex = hazardInfo.waypointSegment;
+      const start = route.waypoints[segmentIndex];
+      const end = route.waypoints[segmentIndex + 1];
+      
+      const avoidanceWaypoint = suggestHazardAvoidance(
+        hazardInfo.hazard,
+        start,
+        end,
+        500
+      );
+      
+      if (avoidanceWaypoint) {
+        updatedRoute = addWaypoint(updatedRoute, avoidanceWaypoint, segmentIndex + 1);
+        hasUpdates = true;
+      }
+    });
+    
+    if (hasUpdates) {
+      setRoute(updatedRoute);
+      analyzeRoute(updatedRoute);
+      alert('Route updated with avoidance waypoints. Please verify with official charts.');
+    } else {
+      alert('Could not automatically find safe avoidance path. Manual rerouting required.');
+    }
+  };
+
+  const handleCreateRoute = async () => {
     const sLat = parseFloat(startLat);
     const sLon = parseFloat(startLon);
     const dLat = parseFloat(destLat);
@@ -112,6 +208,7 @@ export const RoutePlanningView: React.FC = () => {
     }
 
     setRoute(newRoute);
+    await analyzeRoute(newRoute);
   };
 
   const handleSaveRoute = () => {
@@ -199,6 +296,15 @@ export const RoutePlanningView: React.FC = () => {
             className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 border border-slate-700"
           >
             {showSavedRoutes ? 'Hide' : 'View'} Saved Routes
+          </button>
+        </div>
+        
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={() => setShowVesselSettings(true)}
+            className="text-sm text-blue-400 hover:text-white underline flex items-center gap-1"
+          >
+            Vessel Settings: {vesselSettings.name} ({vesselSettings.draft}m draft)
           </button>
         </div>
 
@@ -402,6 +508,17 @@ export const RoutePlanningView: React.FC = () => {
       {/* Route Display */}
       {route && (
         <div className="bg-slate-900 rounded-lg shadow-lg p-6 mb-4 border border-slate-800">
+          
+          {/* Hazard Analysis */}
+          {isAnalyzing ? (
+            <div className="p-4 mb-4 text-center text-slate-400">
+              <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mb-2"></div>
+              <p>Analyzing route hazards...</p>
+            </div>
+          ) : hazardAnalysis && (
+            <HazardAlert analysis={hazardAnalysis} onFixRoute={handleFixRoute} />
+          )}
+
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-white">{route.name}</h2>
             {!isNavigating && (
@@ -458,6 +575,14 @@ export const RoutePlanningView: React.FC = () => {
             )}
           </div>
         </div>
+      )}
+
+      {showVesselSettings && (
+        <VesselSettingsModal
+          settings={vesselSettings}
+          onSave={handleSaveVesselSettings}
+          onClose={() => setShowVesselSettings(false)}
+        />
       )}
 
       {/* Navigation Display */}

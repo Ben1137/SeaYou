@@ -39,11 +39,13 @@ import {
   searchMarinasByName,
 } from '../services/coastsMarinasService';
 import { formatDistance, formatTime } from '../services/routePlanningService';
+import { ErrorState } from './ErrorState';
 
 export const CoastsMarinasView: React.FC = () => {
   const [marinas, setMarinas] = useState<Marina[]>([]);
   const [favorites, setFavorites] = useState<Marina[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
@@ -89,6 +91,7 @@ export const CoastsMarinasView: React.FC = () => {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       const results = await searchNearbyCoasts(location.lat, location.lon, {
         radius,
@@ -98,6 +101,7 @@ export const CoastsMarinasView: React.FC = () => {
       setMarinas(results);
     } catch (error) {
       console.error('Search error:', error);
+      setError(error as Error);
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +114,7 @@ export const CoastsMarinasView: React.FC = () => {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       const results = await searchMarinasByName(
         searchQuery,
@@ -119,6 +124,7 @@ export const CoastsMarinasView: React.FC = () => {
       setMarinas(results);
     } catch (error) {
       console.error('Search error:', error);
+      setError(error as Error);
     } finally {
       setIsLoading(false);
     }
@@ -288,7 +294,9 @@ export const CoastsMarinasView: React.FC = () => {
 
       {/* Marina List */}
       <div className="space-y-4">
-        {isLoading ? (
+        {error ? (
+          <ErrorState error={error} onRetry={handleRefresh} />
+        ) : isLoading ? (
           <div className="text-center py-12">
             <Loader className="inline-block animate-spin h-12 w-12 text-blue-400" />
             <p className="mt-4 text-slate-400">Searching for marinas...</p>
