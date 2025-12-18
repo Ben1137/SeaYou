@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/SeaYou/dev-sw.js?dev-sw', { scope: '/SeaYou/', type: 'classic' })

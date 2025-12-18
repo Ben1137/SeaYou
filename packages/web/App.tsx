@@ -5,9 +5,11 @@ import MapComponent from './components/MapComponent';
 import Atmosphere from './components/Atmosphere';
 import { RoutePlanningView } from './components/RoutePlanningView';
 import { CoastsMarinasView } from './components/CoastsMarinasView';
+import { CacheStatusIndicator } from './src/components/CacheStatusIndicator';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check } from 'lucide-react';
 import { searchLocations, reverseGeocode } from '@seame/core';
-import { useMarineData } from './hooks/useMarineData';
+import { useCachedWeather } from './src/hooks/useCachedWeather';
+import './src/pwa'; // Register PWA service worker
 
 // Default to a coastal location (Tel Aviv) if geo fails
 const DEFAULT_LOC: Location = { id: 0, name: "Tel Aviv", lat: 32.0853, lng: 34.7818, country: "Israel" };
@@ -23,11 +25,20 @@ const App: React.FC = () => {
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Use React Query hook for marine data
-  const { data: weatherData, isLoading, error, refetch } = useMarineData(
-    currentLocation.lat,
-    currentLocation.lng
-  );
+  // Use cached weather data with stale-while-revalidate pattern
+  const { 
+    data: weatherData, 
+    isLoading, 
+    error, 
+    refetch,
+    isStale,
+    lastUpdated 
+  } = useCachedWeather({
+    lat: currentLocation.lat,
+    lon: currentLocation.lng,
+    refetchInterval: 15 * 60 * 1000 // Auto-refresh every 15 minutes
+  });
+
 
   useEffect(() => {
     // Try to get user's location automatically on first load
@@ -304,6 +315,9 @@ const App: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Cache Status Indicator (bottom-right) */}
+      <CacheStatusIndicator />
     </div>
   );
 };
