@@ -46,18 +46,8 @@ The app is deployed on GitHub Pages and updates automatically with every push to
   - **Rough Weather Advisory**: High winds/seas.
   - **Tsunami Simulation**: Experimental alert mode for high-impact wave events.
 
-## 🛠️ Architecture
-
-This project is a **Monorepo** managed with `pnpm` workspaces and `TurboRepo`.
-
-- **packages/core**: Shared business logic, services, utilities, and TypeScript interfaces.
-- **packages/web**: The main React web application (Vite).
-- **packages/mobile**: (Upcoming) React Native mobile app.
-- **packages/watch**: (Upcoming) Smartwatch companion app.
-
 ## 🛠️ Tech Stack
 
-- **Monorepo Tools**: [pnpm](https://pnpm.io/), [TurboRepo](https://turbo.build/)
 - **Frontend Framework**: [React](https://react.dev/) with [Vite](https://vitejs.dev/)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
@@ -71,8 +61,7 @@ This project is a **Monorepo** managed with `pnpm` workspaces and `TurboRepo`.
 
 ### Prerequisites
 
-- Node.js 18+
-- pnpm (`npm install -g pnpm`)
+- Node.js 18+ and npm
 
 ### Setup
 
@@ -86,22 +75,22 @@ This project is a **Monorepo** managed with `pnpm` workspaces and `TurboRepo`.
 2.  **Install dependencies:**
 
     ```bash
-    pnpm install
+    npm install
     ```
 
 3.  **Run the development server:**
 
     ```bash
-    pnpm dev
+    npm run dev
     ```
 
 4.  **Open in Browser:**
-    Navigate to `http://localhost:5173/SeaYou/`
+    Navigate to `http://localhost:3000` (or the port shown in your terminal).
 
 ### Build for Production
 
 ```bash
-pnpm build
+npm run build
 ```
 
 The optimized production build will be in the `dist/` directory.

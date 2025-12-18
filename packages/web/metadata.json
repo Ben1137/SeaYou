@@ -1,0 +1,8 @@
+{
+  "name": "SeaYou",
+  "description": "Real-time marine weather monitoring, route planning, and AI-powered logbook using Gemini.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}
