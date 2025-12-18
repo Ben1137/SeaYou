@@ -10,11 +10,12 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@seame/core": "workspace:*",
     "expo": "~54.0.30",
+    "expo-modules-core": "^3.0.29",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
-    "react-native": "0.81.5",
-    "@seame/core": "workspace:*"
+    "react-native": "0.81.5"
   },
   "devDependencies": {
     "@types/react": "~19.0.10",

@@ -1,6 +1,11 @@
 {
-  "extends": "../../node_modules/expo/tsconfig.base",
+  "extends": "./node_modules/expo/tsconfig.base.json",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    "jsx": "react-native",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ES2015",
+    "moduleResolution": "bundler"
   }
 }
