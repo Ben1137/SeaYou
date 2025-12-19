@@ -10,6 +10,9 @@ coverage
 dist
 build
 
+# TurboRepo
+.turbo
+
 # Misc
 .DS_Store
 .env
