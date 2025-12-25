@@ -109,7 +109,7 @@ export const LanguageSelector: React.FC = () => {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute top-full right-0 mt-2 w-64 bg-card rounded-lg border border-subtle shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
+          className="absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-64 sm:w-64 max-w-[calc(100vw-2rem)] bg-card rounded-lg border border-subtle shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
           role="listbox"
           aria-label="Language options"
         >
