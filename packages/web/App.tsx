@@ -25,7 +25,7 @@ const DEFAULT_LOC: Location = {
 };
 
 const App: React.FC = () => {
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
   const { t } = useTranslation();
 
   const [view, setView] = useState<ViewState>(ViewState.DASHBOARD);
@@ -51,6 +51,15 @@ const App: React.FC = () => {
     lon: currentLocation.lng,
     refetchInterval: UI_CONSTANTS.AUTO_REFRESH_INTERVAL_MS
   });
+
+  // Update auto theme data when weather data changes
+  useEffect(() => {
+    if (weatherData?.general?.sunrise && weatherData?.general?.sunset) {
+      setAutoThemeData(weatherData.general.sunrise, weatherData.general.sunset);
+    } else if (weatherData?.daily?.sunrise?.[0] && weatherData?.daily?.sunset?.[0]) {
+      setAutoThemeData(weatherData.daily.sunrise[0], weatherData.daily.sunset[0]);
+    }
+  }, [weatherData, setAutoThemeData]);
 
 
   useEffect(() => {

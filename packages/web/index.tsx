@@ -35,7 +35,7 @@ root.render(
       onReset={() => window.location.reload()}
     >
       <I18nextProvider i18n={i18n}>
-        <ThemeProvider defaultTheme="dark">
+        <ThemeProvider defaultTheme="light">
           <QueryClientProvider client={queryClient}>
             <App />
           </QueryClientProvider>

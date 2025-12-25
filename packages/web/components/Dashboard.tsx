@@ -405,7 +405,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             <span className="relative flex h-8 w-8 items-center justify-center mr-2">
                 <WeatherAnimation code={weatherData.general?.weatherCode || 0} />
             </span>
-            {weatherData.general?.weatherDescription || t('common.marineWeather')}
+            {getWeatherConditionTranslated(weatherData.general?.weatherCode || 0)}
           </h1>
           <p className="text-secondary text-sm mt-1 flex items-center gap-1">
              <span className="font-semibold text-primary">{locationName}</span>
@@ -518,7 +518,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* WAVE */}
         <div className="bg-card border border-app p-4 rounded-xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Activity size={64} /></div>
+           <div className="absolute top-0 right-0 rtl:left-0 rtl:right-auto p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Activity size={64} /></div>
            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Activity size={16} className="text-accent"/>
               <span className="text-xs font-bold uppercase">{t('weather.waveHeight')}</span>
@@ -532,7 +532,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
         {/* WIND */}
         <div className="bg-card border border-app p-4 rounded-xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Wind size={64} /></div>
+           <div className="absolute top-0 right-0 rtl:left-0 rtl:right-auto p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Wind size={64} /></div>
            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Wind size={16} className="text-cyan-400"/>
               <span className="text-xs font-bold uppercase">{t('weather.windSpeed')}</span>
@@ -549,7 +549,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
         {/* SWELL - Updated Icon to Waves */}
         <div className="bg-card border border-app p-4 rounded-xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Waves size={64} /></div>
+           <div className="absolute top-0 right-0 rtl:left-0 rtl:right-auto p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Waves size={64} /></div>
            <div className="flex items-center gap-2 mb-2 text-secondary">
               <Waves size={16} className="text-teal-400"/>
               <span className="text-xs font-bold uppercase">{t('weather.swell')}</span>
@@ -569,7 +569,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
         {/* TEMP (AIR + SEA) - Updated Icon to Thermometer */}
         <div className="bg-card border border-app p-4 rounded-xl relative overflow-hidden group">
-           <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Thermometer size={64} /></div>
+           <div className="absolute top-0 right-0 rtl:left-0 rtl:right-auto p-2 opacity-10 group-hover:opacity-20 transition-opacity"><Thermometer size={64} /></div>
            <div className="flex justify-between h-full">
                {/* Air Temp */}
                <div className="flex flex-col justify-between">
@@ -670,8 +670,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
              )}
           </div>
 
-          <div className="h-64 w-full min-h-[256px]">
-            <ResponsiveContainer width="99%" height="100%">
+          <div className="w-full" style={{ height: '256px', minHeight: '256px' }}>
+            <ResponsiveContainer width="100%" height={256}>
                {activeGraph === 'tide' ? (
                   <AreaChart data={tideChartData}>
                     <defs>
