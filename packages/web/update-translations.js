@@ -1,5 +1,9 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // List of all translation files to update
 const localesPath = path.join(__dirname, 'src', 'i18n', 'locales');
@@ -36,15 +40,15 @@ const translations = {
     sailing: { label: "Vela", hazardous: "Pericoloso", hazardousDesc: "Rimanere in porto. Condizioni estreme.", challenging: "Impegnativo", challengingDesc: "Solo marinai esperti. Mare mosso.", calm: "Calmo", calmDesc: "Venti leggeri. Potrebbe essere necessario il motore.", good: "Buono", goodDesc: "Condizioni di navigazione ideali. Venti favorevoli.", moderate: "Moderato", moderateDesc: "Condizioni costiere standard." },
     surf: { label: "Surf", poor: "Scarso", fair: "Discreto", good: "Buono", epic: "Epico" },
     kite: { label: "Kite", optimal: "Ottimale", light: "Leggero" },
-    beach: { label: "Giornata in spiaggia", perfect: "Perfetto", perfectDesc: "Condizioni ideali per prendere il sole e rilassarsi.", poor: "Scarso", poorDesc: "Precipitazioni probabili. Rimanere asciutti.", windy: "Ventoso", windyDesc: "Venti forti che soffiano sabbia.", chilly: "Fresco", chillyDesc: "Portare un maglione. Non è tempo per nuotare.", scorching: "Scottante", scorchingDesc: "Caldo estremo. Rimanere idratati.", roughSurf: "Surf mosso", roughSurfDesc: "Nuoto non raccomandato.", poorRain: "Scarso (Pioggia)", coolCloudy: "Fresco e nuvoloso", cloudy: "Nuvoloso", cold: "Freddo", cool: "Fresco", great: "Fantastico" },
+    beach: { label: "Giornata in spiaggia", perfect: "Perfetto", perfectDesc: "Condizioni ideali per abbronzarsi e rilassarsi.", poor: "Scarso", poorDesc: "Precipitazioni probabili. Rimanere asciutti.", windy: "Ventoso", windyDesc: "Forti venti che sollevano sabbia.", chilly: "Fresco", chillyDesc: "Portare un maglione. Non tempo per nuotare.", scorching: "Rovente", scorchingDesc: "Caldo estremo. Rimanere idratati.", roughSurf: "Surf mosso", roughSurfDesc: "Nuoto sconsigliato.", poorRain: "Scarso (Pioggia)", coolCloudy: "Fresco e nuvoloso", cloudy: "Nuvoloso", cold: "Freddo", cool: "Fresco", great: "Ottimo" },
     to: "a"
   },
   'ru.json': {
-    report: "Отчет о деятельности",
-    sailing: { label: "Парусный спорт", hazardous: "Опасно", hazardousDesc: "Оставайтесь в порту. Экстремальные условия.", challenging: "Сложно", challengingDesc: "Только для опытных моряков. Неспокойное море.", calm: "Спокойно", calmDesc: "Легкие ветры. Может потребоваться мотор.", good: "Хорошо", goodDesc: "Идеальные условия для плавания. Попутный ветер.", moderate: "Умеренно", moderateDesc: "Стандартные прибрежные условия." },
-    surf: { label: "Серфинг", poor: "Плохо", fair: "Удовлетворительно", good: "Хорошо", epic: "Эпично" },
-    kite: { label: "Кайт", optimal: "Оптимально", light: "Легкий" },
-    beach: { label: "Пляжный день", perfect: "Идеально", perfectDesc: "Идеальные условия для загара и отдыха.", poor: "Плохо", poorDesc: "Возможны осадки. Оставайтесь сухими.", windy: "Ветрено", windyDesc: "Сильные ветры поднимают песок.", chilly: "Прохладно", chillyDesc: "Возьмите свитер. Не время для купания.", scorching: "Жарко", scorchingDesc: "Экстремальная жара. Пейте воду.", roughSurf: "Неспокойный прибой", roughSurfDesc: "Купание не рекомендуется.", poorRain: "Плохо (Дождь)", coolCloudy: "Прохладно и облачно", cloudy: "Облачно", cold: "Холодно", cool: "Прохладно", great: "Отлично" },
+    report: "Отчет об активности",
+    sailing: { label: "Парусный спорт", hazardous: "Опасно", hazardousDesc: "Оставайтесь в порту. Экстремальные условия.", challenging: "Сложно", challengingDesc: "Только для опытных моряков. Штормовое море.", calm: "Спокойно", calmDesc: "Слабые ветры. Может потребоваться мотор.", good: "Хорошо", goodDesc: "Идеальные условия для плавания. Попутный ветер.", moderate: "Умеренно", moderateDesc: "Стандартные прибрежные условия." },
+    surf: { label: "Сёрфинг", poor: "Плохо", fair: "Удовлетворительно", good: "Хорошо", epic: "Эпично" },
+    kite: { label: "Кайт", optimal: "Оптимально", light: "Лёгкий" },
+    beach: { label: "Пляжный день", perfect: "Отлично", perfectDesc: "Идеальные условия для загара и отдыха.", poor: "Плохо", poorDesc: "Вероятны осадки. Оставайтесь сухими.", windy: "Ветрено", windyDesc: "Сильные ветры поднимают песок.", chilly: "Прохладно", chillyDesc: "Возьмите свитер. Не для купания.", scorching: "Жарко", scorchingDesc: "Экстремальная жара. Поддерживайте гидратацию.", roughSurf: "Бурный прибой", roughSurfDesc: "Плавание не рекомендуется.", poorRain: "Плохо (Дождь)", coolCloudy: "Прохладно и облачно", cloudy: "Облачно", cold: "Холодно", cool: "Прохладно", great: "Отлично" },
     to: "до"
   }
 };

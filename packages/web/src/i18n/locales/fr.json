@@ -68,9 +68,9 @@
     "sailing": {
       "label": "Voile",
       "hazardous": "Dangereux",
-      "hazardousDesc": "Restez au port. Conditions extrêmes.",
+      "hazardousDesc": "Rester au port. Conditions extrêmes.",
       "challenging": "Difficile",
-      "challengingDesc": "Marins expérimentés uniquement. Mer agitée.",
+      "challengingDesc": "Marins expérimentés seulement. Mer agitée.",
       "calm": "Calme",
       "calmDesc": "Vents légers. Moteur peut être nécessaire.",
       "good": "Bon",
@@ -81,7 +81,7 @@
     "surf": {
       "label": "Surf",
       "poor": "Mauvais",
-      "fair": "Passable",
+      "fair": "Correct",
       "good": "Bon",
       "epic": "Épique"
     },
@@ -91,7 +91,7 @@
       "light": "Léger"
     },
     "beach": {
-      "label": "Journée plage",
+      "label": "Plage",
       "perfect": "Parfait",
       "perfectDesc": "Conditions idéales pour bronzer et se détendre.",
       "poor": "Mauvais",
@@ -99,17 +99,17 @@
       "windy": "Venteux",
       "windyDesc": "Vents forts soufflant du sable.",
       "chilly": "Frais",
-      "chillyDesc": "Apportez un pull. Pas un temps pour se baigner.",
+      "chillyDesc": "Apportez un pull. Pas de temps pour nager.",
       "scorching": "Brûlant",
       "scorchingDesc": "Chaleur extrême. Restez hydraté.",
       "roughSurf": "Surf agité",
-      "roughSurfDesc": "Baignade déconseillée.",
+      "roughSurfDesc": "Baignade non recommandée.",
       "poorRain": "Mauvais (Pluie)",
-      "coolCloudy": "Frais & Nuageux",
+      "coolCloudy": "Frais et nuageux",
       "cloudy": "Nuageux",
       "cold": "Froid",
       "cool": "Frais",
-      "great": "Excellent"
+      "great": "Super"
     }
   },
   "forecast": {
@@ -178,6 +178,31 @@
     "high": "Haute",
     "phenomenal": "Phénoménale",
     "to": "à"
+  },
+  "weatherConditions": {
+    "clearSky": "Ciel dégagé",
+    "mainlyClear": "Principalement dégagé",
+    "partlyCloudy": "Partiellement nuageux",
+    "overcast": "Couvert",
+    "fog": "Brouillard",
+    "depositingRimeFog": "Brouillard givrant",
+    "lightDrizzle": "Bruine légère",
+    "moderateDrizzle": "Bruine modérée",
+    "denseDrizzle": "Bruine dense",
+    "slightRain": "Pluie légère",
+    "moderateRain": "Pluie modérée",
+    "heavyRain": "Forte pluie",
+    "slightSnow": "Neige légère",
+    "moderateSnow": "Neige modérée",
+    "heavySnow": "Forte neige",
+    "snowGrains": "Grains de neige",
+    "slightRainShowers": "Averses légères",
+    "moderateRainShowers": "Averses modérées",
+    "violentRainShowers": "Averses violentes",
+    "thunderstorm": "Orage",
+    "thunderstormWithHail": "Orage avec grêle",
+    "heavyHailThunderstorm": "Orage avec forte grêle",
+    "unknown": "Inconnu"
   },
   "atmosphere": {
     "title": "Atmosphère",
@@ -250,8 +275,7 @@
     "add": "Ajouter",
     "marineWeather": "Météo marine",
     "noData": "Aucune donnée météo disponible."
-  }
-  ,
+  },
   "ui": {
     "confirm_new_content_reload": "Nouveau contenu disponible. Recharger pour mettre à jour ?",
     "confirm_clear_cache": "Effacer toutes les données météo en cache ? Vous devrez retélécharger les données.",
