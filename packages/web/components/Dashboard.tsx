@@ -147,17 +147,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   const chartData = useMemo(() => {
     if (!weatherData?.hourly?.time) {
-      console.log('No weather data or hourly data available');
       return [];
     }
     const start = currentHourIndex;
     const end = Math.min(start + 24, weatherData.hourly.time.length);
-    
-    console.log('Chart data generation:', { start, end, totalHours: weatherData.hourly.time.length, sampleData: {
-      waveHeight: weatherData.hourly.wave_height?.slice(start, start + 3),
-      windSpeed: weatherData.hourly.wind_speed_10m?.slice(start, start + 3),
-      swellHeight: weatherData.hourly.swell_wave_height?.slice(start, start + 3)
-    }});
 
     const data = weatherData.hourly.time.slice(start, end).map((time, i) => {
       const globalIndex = start + i;
@@ -171,13 +164,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         swellPeriod: weatherData.hourly.swell_wave_period?.[globalIndex] || 0,
       };
     });
-    
-    console.log('Generated chart data sample:', data.slice(0, 3).map(d => ({
-      time: d.displayTime,
-      waveHeight: d.waveHeight,
-      windSpeed: d.windSpeed,
-      swellHeight: d.swellHeight
-    })));
+
     return data;
   }, [weatherData, currentHourIndex]);
 
@@ -193,10 +180,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   // Use the coherent 'current' object from API directly
   const currentConditions = useMemo(() => {
     if (!weatherData?.current) {
-      console.log('No current weather data available');
       return null;
     }
-    console.log('Current conditions data:', weatherData.current);
     return {
       wave: weatherData.current.waveHeight,
       wavePeriod: weatherData.current.wavePeriod,
@@ -248,10 +233,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const sailingCondition = useMemo(() => {
     if (!currentConditions) return null;
     const { wind, wave } = currentConditions;
-    if (wind > 55 || wave > 3.5) return { label: t('activity.sailing.hazardous'), description: t('activity.sailing.hazardousDesc'), color: 'text-red-500', bg: 'bg-red-500/10', icon: Skull };
-    if (wind > 40 || wave > 2.5) return { label: t('activity.sailing.challenging'), description: t('activity.sailing.challengingDesc'), color: 'text-orange-500', bg: 'bg-orange-500/10', icon: AlertTriangle };
-    if (wind < 10) return { label: t('activity.sailing.calm'), description: t('activity.sailing.calmDesc'), color: 'text-secondary', bg: 'bg-elevated', icon: Wind };
-    if (wind >= 10 && wave < 2.0) return { label: t('activity.sailing.good'), description: t('activity.sailing.goodDesc'), color: 'text-green-400', bg: 'bg-green-500/10', icon: ThumbsUp };
+
+    const windSpeed = wind || 0;
+    const waveHeight = wave || 0;
+
+    if (windSpeed > 55 || waveHeight > 3.5) return { label: t('activity.sailing.hazardous'), description: t('activity.sailing.hazardousDesc'), color: 'text-red-500', bg: 'bg-red-500/10', icon: Skull };
+    if (windSpeed > 40 || waveHeight > 2.5) return { label: t('activity.sailing.challenging'), description: t('activity.sailing.challengingDesc'), color: 'text-orange-500', bg: 'bg-orange-500/10', icon: AlertTriangle };
+    if (windSpeed < 10) return { label: t('activity.sailing.calm'), description: t('activity.sailing.calmDesc'), color: 'text-secondary', bg: 'bg-elevated', icon: Wind };
+    if (windSpeed >= 10 && waveHeight < 2.0) return { label: t('activity.sailing.good'), description: t('activity.sailing.goodDesc'), color: 'text-green-400', bg: 'bg-green-500/10', icon: ThumbsUp };
     return { label: t('activity.sailing.moderate'), description: t('activity.sailing.moderateDesc'), color: 'text-accent', bg: 'bg-blue-500/10', icon: Flag };
   }, [currentConditions, t]);
 
@@ -261,9 +250,28 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
     let surfRating = t('activity.surf.poor');
     let surfColor = 'text-secondary';
-    if (swell > 0.5 && swellPeriod && swellPeriod > 8) { surfRating = t('activity.surf.fair'); surfColor = 'text-accent'; }
-    if (swell > 1.0 && swellPeriod && swellPeriod > 10) { surfRating = t('activity.surf.good'); surfColor = 'text-green-400'; }
-    if (swell > 1.5 && swellPeriod && swellPeriod > 12) { surfRating = t('activity.surf.epic'); surfColor = 'text-purple-400'; }
+
+    // More realistic surf conditions for Mediterranean and similar seas
+    // Use default value of 0 if undefined
+    const swellHeight = swell || 0;
+    const swellPeriodValue = swellPeriod || 0;
+
+    // Adjusted thresholds for more realistic ratings
+    // Fair: Small swells with decent period (beginner-friendly)
+    if (swellHeight >= 0.5 && swellPeriodValue >= 4) {
+      surfRating = t('activity.surf.fair');
+      surfColor = 'text-accent';
+    }
+    // Good: Medium swells with good period (intermediate)
+    if (swellHeight >= 1.0 && swellPeriodValue >= 6) {
+      surfRating = t('activity.surf.good');
+      surfColor = 'text-green-400';
+    }
+    // Epic: Large swells with long period (advanced)
+    if (swellHeight >= 1.5 && swellPeriodValue >= 8) {
+      surfRating = t('activity.surf.epic');
+      surfColor = 'text-purple-400';
+    }
 
     return {
       surf: { rating: surfRating, color: surfColor },
@@ -276,23 +284,29 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     const { wind, wave, currentUV } = currentConditions;
     const { temperature, weatherCode } = weatherData.general;
 
+    const windSpeed = wind || 0;
+    const waveHeight = wave || 0;
+    const uvIndex = currentUV || 0;
+    const temp = temperature || 20;
+    const code = weatherCode || 0;
+
     let status = t('activity.beach.perfect');
     let color = "text-green-400";
     let message = t('activity.beach.perfectDesc');
 
-    if (weatherCode > 50) {
+    if (code > 50) {
         status = t('activity.beach.poor'); color = "text-muted"; message = t('activity.beach.poorDesc');
-    } else if (wind > 30) {
+    } else if (windSpeed > 30) {
         status = t('activity.beach.windy'); color = "text-orange-400"; message = t('activity.beach.windyDesc');
-    } else if (temperature < 20) {
+    } else if (temp < 20) {
         status = t('activity.beach.chilly'); color = "text-blue-300"; message = t('activity.beach.chillyDesc');
-    } else if (temperature > 35) {
+    } else if (temp > 35) {
         status = t('activity.beach.scorching'); color = "text-red-400"; message = t('activity.beach.scorchingDesc');
-    } else if (wave > 1.5) {
+    } else if (waveHeight > 1.5) {
         status = t('activity.beach.roughSurf'); color = "text-yellow-400"; message = t('activity.beach.roughSurfDesc');
     }
 
-    return { status, color, message, uvIndex: currentUV };
+    return { status, color, message, uvIndex };
   }, [currentConditions, weatherData?.general, t]);
 
   const forecastTableBlocks = useMemo(() => {
@@ -507,11 +521,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                        {/* Updated Kite Card to show only wind data */}
                        <div className="flex flex-col items-center">
                           <div className="font-bold text-lg text-primary font-mono flex items-center gap-1">
-                             {currentConditions.wind.toFixed(0)} <span className="text-xs text-secondary font-sans">km/h</span>
+                             {(currentConditions?.wind || 0).toFixed(0)} <span className="text-xs text-secondary font-sans">km/h</span>
                           </div>
                           <div className="flex items-center gap-1 text-[10px] text-secondary mt-1">
-                             <Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} className="text-cyan-400" />
-                             <span>{getCardinalDirection(currentConditions.windDirection)}</span>
+                             <Navigation size={10} style={{ transform: `rotate(${currentConditions?.windDirection || 0}deg)` }} className="text-cyan-400" />
+                             <span>{getCardinalDirection(currentConditions?.windDirection || 0)}</span>
                           </div>
                        </div>
                     </div>
@@ -843,7 +857,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                                     <td className="p-3 border-r border-subtle">{row.swellPeriod}s</td>
                                     <td className="p-3 border-r border-subtle">{row.swell}</td>
                                     <td className="p-3">
-                                        {parseFloat(row.wavePeriod) > 9 ? <span className="text-green-400 font-bold">{t('activity.surf.good')}</span> : <span className="text-muted">{t('activity.surf.poor')}</span>}
+                                        {(() => {
+                                            const swellH = parseFloat(row.swellHeight);
+                                            const swellP = parseFloat(row.swellPeriod);
+                                            if (swellH >= 1.5 && swellP >= 8) return <span className="text-purple-400 font-bold">{t('activity.surf.epic')}</span>;
+                                            if (swellH >= 1.0 && swellP >= 6) return <span className="text-green-400 font-bold">{t('activity.surf.good')}</span>;
+                                            if (swellH >= 0.5 && swellP >= 4) return <span className="text-accent">{t('activity.surf.fair')}</span>;
+                                            return <span className="text-muted">{t('activity.surf.poor')}</span>;
+                                        })()}
                                     </td>
                                 </>
                             )}
