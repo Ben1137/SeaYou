@@ -10,7 +10,7 @@
  * Now includes exponential backoff retry strategy for transient failures:
  * - Configurable timeout with AbortController
  * - Exponential backoff with jitter
- * - Retry on network errors, timeouts, and 5xx/429 status codes
+ * - Retry on network errors, timeouts, and 5xx status codes (429 handled by rate limiter)
  * - Debug logging for monitoring retry attempts
  *
  * Strategy:
@@ -238,11 +238,10 @@ class RequestDeduplicationService {
   private shouldRetryStatus(status: number): boolean {
     // Retry on server errors (5xx)
     if (status >= 500) return true;
-    // Retry on rate limit (429)
-    if (status === 429) return true;
+    // DO NOT retry on rate limit (429) - let the global rate limiter handle backoff
     // Retry on timeout (408)
     if (status === 408) return true;
-    // Don't retry on client errors (4xx except 408 and 429)
+    // Don't retry on client errors (4xx except 408)
     return false;
   }
 
@@ -316,10 +315,12 @@ class RequestDeduplicationService {
     // Handle cleanup after request completes
     requestPromise
       .then(() => {
-        // Success! Keep in cache for a bit to catch duplicates
+        // Keep completed request in cache for the full TTL duration so that
+        // subsequent calls within the TTL window get the same promise and
+        // avoid firing duplicate network requests.
         setTimeout(() => {
           this.removeInFlightRequest(key);
-        }, Math.min(ttl, 1000)); // Max 1 second delay
+        }, ttl);
       })
       .catch(() => {
         // IMPORTANT: Remove failed requests immediately so they can be retried
@@ -377,6 +378,24 @@ class RequestDeduplicationService {
 
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
+
+        // GUARD: Never retry 429 (Too Many Requests). The global rate limiter in
+        // apiRateLimiter.ts is responsible for backoff after rate-limit responses.
+        // Retrying here would amplify the problem and accelerate the ban.
+        // Check both the error message (thrown path) and lastResponse.status (set
+        // only for 5xx retryable paths — kept for belt-and-suspenders coverage).
+        const is429 =
+          lastError.message.includes('429') ||
+          lastResponse?.status === 429;
+        if (is429) {
+          if (logRetries) {
+            console.warn(
+              `[RequestDeduplication] 429 rate-limit detected for ${url}. ` +
+              `Aborting retries immediately — let apiRateLimiter handle backoff.`
+            );
+          }
+          throw lastError;
+        }
 
         // Determine if we should retry
         const isTimeoutError = lastError.message === ERROR_MESSAGES.TIMEOUT || lastError.name === 'AbortError';

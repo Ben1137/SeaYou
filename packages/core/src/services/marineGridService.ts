@@ -10,13 +10,15 @@
  * at a single point, enabling interactive maps with vector fields and heatmaps.
  */
 
-import { API_ENDPOINTS, WEATHER_CONSTANTS } from '../constants';
+import { API_ENDPOINTS, WEATHER_CONSTANTS, REQUEST_CONFIG } from '../constants';
 import { deduplicatedFetch } from '../utils/requestDeduplication';
 import {
   getPrimaryWeatherModel,
   getPrimaryMarineModel,
-  getOptimalModels
+  getOptimalModels,
+  getModelForLocation as _getModelForLocation
 } from '../utils/openMeteoConfig';
+import { globalRateLimiter } from './apiRateLimiter';
 
 /**
  * Maximum coordinates per model before hitting API limits
@@ -29,17 +31,8 @@ const MAX_COORDINATES_BY_MODEL: Record<string, number> = {
   'default': 256        // Fallback
 };
 
-/**
- * Get the optimal model for a given location
- * Uses geolocation-based selection when PREFER_HIGH_RESOLUTION is enabled
- */
 function getModelForLocation(lat: number, lng: number, isMarine: boolean = false): string {
-  if (WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION) {
-    return isMarine
-      ? getPrimaryMarineModel(lat, lng, true)
-      : getPrimaryWeatherModel(lat, lng, true);
-  }
-  return WEATHER_CONSTANTS.MODEL;
+  return _getModelForLocation(lat, lng, isMarine, WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION, WEATHER_CONSTANTS.MODEL);
 }
 
 /**
@@ -119,6 +112,8 @@ export interface MarineGridPoint {
   waveDirection?: number;     // degrees
   wavePeriod?: number;        // seconds - mean wave period
   wavePeakPeriod?: number;    // seconds - peak wave period (most energy)
+  waveU?: number;             // U component (east-west) — derived from waveHeight × direction
+  waveV?: number;             // V component (north-south) — derived from waveHeight × direction
 
   // Swell data (long-period waves from distant storms)
   swellHeight?: number;       // meters
@@ -132,7 +127,15 @@ export interface MarineGridPoint {
 
   // Sea level and temperature
   seaLevelHeight?: number;    // meters - sea level height MSL (tidal)
-  seaTemperature?: number;    // Celsius
+  seaTemperature?: number;    // Celsius — undefined for land coordinates
+
+  /**
+   * True when Open-Meteo returned valid marine data for this coordinate.
+   * The marine API returns null for all marine variables at land coordinates
+   * (cell_selection:'sea'). Used by layer components to preserve null vs zero
+   * so the DataEncoder can set alpha=0, triggering shader discard on land.
+   */
+  isOcean?: boolean;
 }
 
 /**
@@ -337,9 +340,36 @@ export async function fetchMarineGridData(
   resolution: GridResolution = { latPoints: 5, lngPoints: 5 }
 ): Promise<MarineGridData> {
   try {
+    // URL length budget: each "lat,lng" pair consumes ~14 chars in the query string.
+    // At 200 points that's ~2800 chars of coordinate data. With the rest of the URL
+    // (endpoint + params), total stays well under 8000 chars (modern browser limit).
+    // Open-Meteo itself supports up to ~256+ coordinates per request with no issues.
+    // Previous cap of 64 was artificially destroying wind-field resolution — removed.
+    const maxPoints = REQUEST_CONFIG.GRID_LIMITS?.MAX_TOTAL_GRID_POINTS ?? 256;
+    const maxPerAxis = Math.floor(Math.sqrt(maxPoints));
+    const clampedResolution: GridResolution = {
+      latPoints: Math.min(resolution.latPoints, maxPerAxis),
+      lngPoints: Math.min(resolution.lngPoints, maxPerAxis),
+    };
+
     // Generate grid coordinates
-    const coordinates = generateGridCoordinates(bounds, resolution);
-    const coordinateCount = coordinates.length;
+    const coordinates = generateGridCoordinates(bounds, clampedResolution);
+    let coordinateCount = coordinates.length;
+
+    // Hard ceiling: never exceed 200 coordinates per request.
+    // This keeps URLs under ~5500 chars even on slow connections, while still
+    // allowing up to a 14x14 = 196-point grid (vs. the old crippling 64-point cap).
+    const maxCoordinatesPerRequest = Math.min(
+      REQUEST_CONFIG.GRID_LIMITS?.MAX_COORDINATES_PER_REQUEST ?? 256,
+      200
+    );
+    if (coordinateCount > maxCoordinatesPerRequest) {
+      console.warn(`[MarineGridService] Grid has ${coordinateCount} points, capping to ${maxCoordinatesPerRequest} (URL budget)`);
+      coordinates.length = maxCoordinatesPerRequest;
+      coordinateCount = coordinates.length;
+    } else {
+      console.log(`[MarineGridService] Grid using ${coordinateCount} points (ceiling: ${maxCoordinatesPerRequest})`);
+    }
 
     // Open-Meteo supports comma-separated lists for bulk queries
     const lats = coordinates.map(c => c.lat.toFixed(4)).join(',');
@@ -392,7 +422,7 @@ export async function fetchMarineGridData(
         return await deduplicatedFetch<any>(
           `${API_ENDPOINTS.MARINE}?${marineParams.toString()}`,
           undefined,
-          { ttl: 3000 }
+          { ttl: 300000 }
         );
       } catch (error: any) {
         // If this model failed with 400 and we have a fallback, try it
@@ -404,7 +434,7 @@ export async function fetchMarineGridData(
             return await deduplicatedFetch<any>(
               `${API_ENDPOINTS.MARINE}?${marineParams.toString()}`,
               undefined,
-              { ttl: 3000 }
+              { ttl: 300000 }
             );
           }
         }
@@ -423,11 +453,25 @@ export async function fetchMarineGridData(
       cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    // Use deduplicatedFetch to prevent duplicate API calls
-    const [marineResponses, forecastResponses] = await Promise.all([
-      fetchMarineWithFallback(marineModel),
-      deduplicatedFetch<any>(`${API_ENDPOINTS.FORECAST}?${forecastParams.toString()}`, undefined, { ttl: 3000 })
-    ]);
+    // Use deduplicatedFetch + global rate limiter to prevent duplicate API calls and 429 errors
+    // The global rate limiter ensures ALL API requests (across all layers) are serialized
+    let marineResponses: any;
+    let forecastResponses: any;
+
+    try {
+      // Wrap both API calls in the global rate limiter queue
+      // They will execute sequentially with proper spacing to prevent 429
+      marineResponses = await globalRateLimiter.enqueue(() =>
+        fetchMarineWithFallback(marineModel)
+      );
+
+      forecastResponses = await globalRateLimiter.enqueue(() =>
+        deduplicatedFetch<any>(`${API_ENDPOINTS.FORECAST}?${forecastParams.toString()}`, undefined, { ttl: 300000 })
+      );
+    } catch (error: any) {
+      // Error handling is done inside the rate limiter, but we still need to propagate
+      throw error;
+    }
 
     // Open-Meteo returns an array for multiple coordinates, or single object for one coordinate
     const marineArray = Array.isArray(marineResponses) ? marineResponses : [marineResponses];
@@ -449,6 +493,19 @@ export async function fetchMarineGridData(
       const currentDirection = marine.current?.ocean_current_direction || 0;
       const currentUV = directionSpeedToUV(currentSpeed, currentDirection);
 
+      // Wave UV — uses waveHeight as magnitude, waveDirection as FROM direction
+      // (Open-Meteo wave_direction is "direction waves are coming FROM", same convention as wind)
+      const waveH = marine.current?.wave_height || 0;
+      const waveDir = marine.current?.wave_direction || 0;
+      const waveUV = directionSpeedToUV(waveH, waveDir);
+
+      // Determine if this coordinate is ocean.
+      // Open-Meteo marine API returns null for ALL marine variables at land coordinates
+      // when using cell_selection:'sea'. sea_surface_temperature is the most reliable
+      // discriminator because it is never 0°C for valid sea data in tropical/temperate regions.
+      const rawSeaTemp = marine.current?.sea_surface_temperature;
+      const isOcean = rawSeaTemp !== null && rawSeaTemp !== undefined;
+
       return {
         lat: coord.lat,
         lng: coord.lng,
@@ -467,8 +524,10 @@ export async function fetchMarineGridData(
         currentV: currentUV.v,
 
         // Significant Wave (combined wind waves + swell)
-        waveHeight: marine.current?.wave_height || 0,
-        waveDirection: marine.current?.wave_direction || 0,
+        waveHeight: waveH,
+        waveDirection: waveDir,
+        waveU: waveUV.u,
+        waveV: waveUV.v,
         wavePeriod: marine.current?.wave_period || 0,
         wavePeakPeriod: marine.current?.wave_peak_period || 0,
 
@@ -484,7 +543,11 @@ export async function fetchMarineGridData(
 
         // Sea Level & Temperature
         seaLevelHeight: marine.current?.sea_level_height_msl || 0,
-        seaTemperature: marine.current?.sea_surface_temperature || 0
+        // seaTemperature stays undefined for land coordinates (do NOT use || 0)
+        // so DataEncoder can set alpha=0 and shaders can discard land pixels.
+        seaTemperature: isOcean ? rawSeaTemp! : undefined,
+
+        isOcean,
       };
     });
 

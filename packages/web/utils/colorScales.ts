@@ -308,14 +308,126 @@ function generateMarineAreasColorScale(): ColorScalePoint[] {
 }
 
 /**
- * Get all color scales for reference/legend display
+ * Wind particle color scale matching the WIND_COLORS WebGL ramp exactly.
+ * ColorRamps.ts WIND_COLORS:
+ *   0 m/s  → transparent
+ *   1 m/s  → pale icy blue  (≈ 4 kt / 7 km/h)
+ *   4 m/s  → vivid cyan     (≈ 8 kt / 14 km/h)
+ *   6 m/s  → cyan-green     (≈ 12 kt / 22 km/h)
+ *   8 m/s  → aqua-green     (≈ 16 kt / 29 km/h)
+ *  10 m/s  → neon yellow    (≈ 19 kt / 36 km/h)
+ *  12 m/s  → golden yellow  (≈ 23 kt / 43 km/h)
+ *  15 m/s  → vivid orange   (≈ 29 kt / 54 km/h)
+ *  18 m/s  → bright red     (≈ 35 kt / 65 km/h)
+ *  22+ m/s → hot magenta    (≈ 43+ kt / 79+ km/h)
+ * Labels use km/h for consistency with the existing wind UI.
+ * Note: the GPGPU encoder normalises by maxSpeed found in the viewport,
+ * so these absolute values are representative, not exact.
+ */
+function generateWindParticlesColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgba(0,0,0,0)',       label: '0 km/h' }, // calm — transparent
+    { value: 10,  color: 'rgb(170,230,255)',     label: '10'     }, // ≈1 m/s  pale icy blue
+    { value: 25,  color: 'rgb(100,215,255)',     label: '25'     }, // ≈2.5 m/s bright ice blue
+    { value: 40,  color: 'rgb(40,195,240)',      label: '40'     }, // ≈4 m/s  vivid cyan
+    { value: 55,  color: 'rgb(40,210,170)',      label: '55'     }, // ≈6 m/s  cyan-green
+    { value: 70,  color: 'rgb(60,225,100)',      label: '70'     }, // ≈8 m/s  aqua-green
+    { value: 90,  color: 'rgb(170,245,45)',      label: '90'     }, // ≈10 m/s neon yellow-green
+    { value: 110, color: 'rgb(255,140,0)',       label: '110'    }, // ≈15 m/s vivid orange
+    { value: 130, color: 'rgb(255,40,40)',       label: '130'    }, // ≈18 m/s bright red
+    { value: 160, color: 'rgb(230,0,120)',       label: '160+'   }, // ≈22+ m/s hot magenta
+  ];
+}
+
+/**
+ * Wave heatmap color scale matching the WAVE_COLORS WebGL ramp exactly.
+ * ColorRamps.ts WAVE_COLORS (deep blue → purple → fuchsia → pink → white):
+ *   0m   → transparent deep blue
+ *   0.5m → deep purple
+ *   1.5m → Purple-600 (#9333EA)
+ *   2m   → Purple-500 (#A855F7)
+ *   3m   → Purple-400 (#C084FC)
+ *   4m   → Fuchsia-400 (#E879F9)
+ *   5m   → Fuchsia-300 (#F0ABFC)
+ *   5.5m → Pink-200 (#FBCFE8)
+ *   6m+  → white
+ */
+function generateWaveHeatmapColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgba(20,20,80,0)',     label: '0 m'   }, // transparent (calm)
+    { value: 0.5, color: 'rgb(60,30,140)',        label: '0.5'   }, // deep purple
+    { value: 1,   color: 'rgb(147,51,234)',       label: '1'     }, // purple-600
+    { value: 1.5, color: 'rgb(168,85,247)',       label: '1.5'   }, // purple-500
+    { value: 2.5, color: 'rgb(192,132,252)',      label: '2.5'   }, // purple-400
+    { value: 3.5, color: 'rgb(232,121,249)',      label: '3.5'   }, // fuchsia-400
+    { value: 4.5, color: 'rgb(240,171,252)',      label: '4.5'   }, // fuchsia-300
+    { value: 5.5, color: 'rgb(251,207,232)',      label: '5.5'   }, // pink-200
+    { value: 6,   color: 'rgb(255,255,255)',      label: '6+ m'  }, // white (extreme)
+  ];
+}
+
+/**
+ * Sea temperature color scale matching the TEMPERATURE_COLORS WebGL ramp, 0–35 °C.
+ * ColorRamps.ts TEMPERATURE_COLORS:
+ *   cold  → deep blue [20,30,100] → Blue-500 → Cyan-400
+ *   warm  → Green-400 → Yellow-400 → Orange-400
+ *   hot   → Red-500 → Red-600 → White (extreme)
+ */
+function generateSeaTemperatureColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,  color: 'rgb(20,30,100)',        label: '0°C'  }, // deep blue (freezing)
+    { value: 5,  color: 'rgb(30,60,150)',         label: '5'    }, // dark blue (very cold)
+    { value: 10, color: 'rgb(59,130,246)',        label: '10'   }, // Blue-500
+    { value: 15, color: 'rgb(34,211,238)',        label: '15'   }, // Cyan-400
+    { value: 20, color: 'rgb(74,222,128)',        label: '20'   }, // Green-400
+    { value: 25, color: 'rgb(250,204,21)',        label: '25'   }, // Yellow-400
+    { value: 30, color: 'rgb(251,146,60)',        label: '30'   }, // Orange-400
+    { value: 35, color: 'rgb(239,68,68)',         label: '35+'  }, // Red-500 (very hot)
+  ];
+}
+
+/**
+ * Current particle color scale matching the CURRENT_COLORS WebGL ramp exactly.
+ * Deep sapphire blue → ocean blue → teal → near-white cyan glow (0 – 3+ m/s).
+ * Note: the GPGPU encoder normalises by maxSpeed, so labels are representative.
+ */
+function generateCurrentParticlesColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0.0, color: 'rgba(0,0,0,0)',    label: '0 m/s' },  // transparent (still)
+    { value: 0.2, color: '#0064C8',           label: '0.2'   },  // deep sapphire
+    { value: 0.5, color: '#00A0DC',           label: '0.5'   },  // ocean blue
+    { value: 0.8, color: '#14E1C8',           label: '0.8'   },  // vivid teal
+    { value: 1.0, color: '#3CF0D7',           label: '1.0'   },  // bright teal
+    { value: 1.5, color: '#78FAEB',           label: '1.5'   },  // light teal
+    { value: 2.0, color: '#BEFFFE',           label: '2.0'   },  // near-white cyan
+    { value: 3.0, color: '#E6FFFF',           label: '3.0+'  },  // white-cyan glow
+  ];
+}
+
+/**
+ * Get all color scales for reference/legend display.
+ *
+ * Naming convention:
+ *   *.wind / *.wave / *.current / *.temp  — chroma-js marker/icon scales
+ *   *.windParticles   — matches WIND_COLORS WebGL ramp  (GPGPU wind layer legend)
+ *   *.currentParticles — matches CURRENT_COLORS WebGL ramp (GPGPU current layer legend)
+ *   *.waveHeatmap     — matches WAVE_COLORS WebGL ramp   (wave heatmap + particles legend)
+ *   *.seaTemperature  — matches TEMPERATURE_COLORS WebGL ramp (sea temp layer legend)
+ *   *.windyWave       — legacy Windy-style scale (kept for backwards compatibility)
  */
 export const COLOR_SCALES = {
+  // Marker / icon scales (chroma-js, approximate)
   wind: generateColorScale('wind'),
   wave: generateColorScale('wave'),
   windyWave: generateWindyWaveColorScale(),
   current: generateColorScale('current'),
   temp: generateColorScale('temp'),
+  // WebGL layer legends — colours match the actual shader ramps
+  windParticles: generateWindParticlesColorScale(),
+  currentParticles: generateCurrentParticlesColorScale(),
+  waveHeatmap: generateWaveHeatmapColorScale(),
+  seaTemperature: generateSeaTemperatureColorScale(),
+  // Other
   bathymetry: generateBathymetryColorScale(),
   marineAreas: generateMarineAreasColorScale(),
 } as const;

@@ -98,13 +98,12 @@ function defaultShouldRetry(error: Error, response?: Response): boolean {
   // Retry on server errors (5xx)
   if (response.status >= 500) return true;
 
-  // Retry on rate limit (429)
-  if (response.status === 429) return true;
+  // DO NOT retry on rate limit (429) - the global rate limiter handles backoff
 
   // Retry on timeout (408)
   if (response.status === 408) return true;
 
-  // Don't retry on client errors (4xx except 408 and 429)
+  // Don't retry on client errors (4xx except 408)
   return false;
 }
 

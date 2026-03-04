@@ -15,25 +15,18 @@ import { generateTideData, getMoonData } from '../utils/calculations';
 import { getWeatherDescription } from '../utils/formatting';
 import { API_ENDPOINTS, WEATHER_CONSTANTS } from '../constants';
 import { deduplicatedFetch } from '../utils/requestDeduplication';
+import { globalRateLimiter } from './apiRateLimiter';
 import {
   getPrimaryWeatherModel,
   getPrimaryMarineModel,
-  getOptimalModels
+  getOptimalModels,
+  getModelForLocation as _getModelForLocation
 } from '../utils/openMeteoConfig';
 
 // Local definitions removed - imported from utils
 
-/**
- * Get the optimal model for a given location
- * Uses geolocation-based selection when PREFER_HIGH_RESOLUTION is enabled
- */
 function getModelForLocation(lat: number, lng: number, isMarine: boolean = false): string {
-  if (WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION) {
-    return isMarine
-      ? getPrimaryMarineModel(lat, lng, true)
-      : getPrimaryWeatherModel(lat, lng, true);
-  }
-  return WEATHER_CONSTANTS.MODEL;
+  return _getModelForLocation(lat, lng, isMarine, WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION, WEATHER_CONSTANTS.MODEL);
 }
 
 export const fetchMarineWeather = async (lat: number, lng: number): Promise<MarineWeatherData> => {
@@ -94,12 +87,13 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
       cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    // Use deduplicatedFetch to prevent duplicate API calls
-    // TTL of 3 seconds is enough to catch duplicate requests from simultaneous component mounts
-    const [marineData, generalDataRaw] = await Promise.all([
-      deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 3000 }),
-      deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${generalParams.toString()}`, undefined, { ttl: 3000 })
-    ]);
+    // Use rate limiter + deduplicatedFetch to prevent 429s and duplicate API calls
+    const marineData = await globalRateLimiter.enqueue(() =>
+      deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 300000 })
+    );
+    const generalDataRaw = await globalRateLimiter.enqueue(() =>
+      deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${generalParams.toString()}`, undefined, { ttl: 300000 })
+    );
 
     const current = generalDataRaw.current;
     const daily = generalDataRaw.daily;
@@ -292,14 +286,13 @@ export const fetchPointForecast = async (lat: number, lng: number): Promise<Poin
         cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    // Use deduplicatedFetch to prevent duplicate API calls
-    // Parallel requests with error handling
-    const [data, tempData] = await Promise.all([
-      deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${params.toString()}`, undefined, { ttl: 3000 })
-        .catch((): Partial<MarineApiResponse> => ({ latitude: lat, longitude: lng, current: {} })),
-      deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${tempParams.toString()}`, undefined, { ttl: 3000 })
-        .catch((): Partial<ForecastApiResponse> => ({ latitude: lat, longitude: lng, current: {} }))
-    ]);
+    // Use rate limiter + deduplicatedFetch to prevent 429s
+    const data = await globalRateLimiter.enqueue(() =>
+      deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${params.toString()}`, undefined, { ttl: 300000 })
+    ).catch((): Partial<MarineApiResponse> => ({ latitude: lat, longitude: lng, current: {} }));
+    const tempData = await globalRateLimiter.enqueue(() =>
+      deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${tempParams.toString()}`, undefined, { ttl: 300000 })
+    ).catch((): Partial<ForecastApiResponse> => ({ latitude: lat, longitude: lng, current: {} }));
 
     return {
       lat,
@@ -383,11 +376,13 @@ export const fetchHourlyPointForecast = async (lat: number, lng: number): Promis
       cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    // Use deduplicatedFetch to prevent duplicate API calls
-    const [marineData, forecastData] = await Promise.all([
-        deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 3000 }),
-        deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${forecastParams.toString()}`, undefined, { ttl: 3000 })
-    ]);
+    // Use rate limiter + deduplicatedFetch to prevent 429s
+    const marineData = await globalRateLimiter.enqueue(() =>
+      deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 300000 })
+    );
+    const forecastData = await globalRateLimiter.enqueue(() =>
+      deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${forecastParams.toString()}`, undefined, { ttl: 300000 })
+    );
 
     // Validate required data
     if (!marineData.hourly || !forecastData.hourly) {
@@ -430,18 +425,50 @@ export const fetchHourlyPointForecast = async (lat: number, lng: number): Promis
 export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: number}[]): Promise<PointForecast[]> => {
   if (coordinates.length === 0) return [];
 
+  // Limit coordinates to avoid HTTP 400/414 errors from Open-Meteo API
+  // API has limits on number of coordinates per request
+  const MAX_COORDINATES = 50; // Safe limit for bulk requests
+  const limitedCoords = coordinates.slice(0, MAX_COORDINATES);
+
+  if (coordinates.length > MAX_COORDINATES) {
+    console.warn(`[WeatherService] Bulk forecast limited from ${coordinates.length} to ${MAX_COORDINATES} coordinates`);
+  }
+
   // Open-Meteo allows comma separated lists for bulk queries
   // This is an optimization to reduce API calls
-  const lats = coordinates.map(c => c.lat.toFixed(4)).join(',');
-  const lngs = coordinates.map(c => c.lng.toFixed(4)).join(',');
+  const lats = limitedCoords.map(c => c.lat.toFixed(4)).join(',');
+  const lngs = limitedCoords.map(c => c.lng.toFixed(4)).join(',');
 
   // For bulk requests, use the model based on the center of the bounding box
-  const centerLat = coordinates.reduce((sum, c) => sum + c.lat, 0) / coordinates.length;
-  const centerLng = coordinates.reduce((sum, c) => sum + c.lng, 0) / coordinates.length;
+  const centerLat = limitedCoords.reduce((sum, c) => sum + c.lat, 0) / limitedCoords.length;
+  const centerLng = limitedCoords.reduce((sum, c) => sum + c.lng, 0) / limitedCoords.length;
   const marineModel = getModelForLocation(centerLat, centerLng, true);
   const weatherModel = getModelForLocation(centerLat, centerLng, false);
 
   try {
+    // Helper function to fetch with fallback to best_match on 400 errors
+    const fetchWithFallback = async <T>(
+      baseUrl: string,
+      params: URLSearchParams,
+      primaryModel: string
+    ): Promise<T> => {
+      try {
+        return await globalRateLimiter.enqueue(() =>
+          deduplicatedFetch<T>(`${baseUrl}?${params.toString()}`, undefined, { ttl: 300000 })
+        );
+      } catch (error: any) {
+        // If primary model fails with 400, try fallback to best_match
+        if (error?.message?.includes('400') && primaryModel !== 'best_match') {
+          console.warn(`[WeatherService] ${primaryModel} failed with 400, trying fallback: best_match`);
+          params.set('models', 'best_match');
+          return await globalRateLimiter.enqueue(() =>
+            deduplicatedFetch<T>(`${baseUrl}?${params.toString()}`, undefined, { ttl: 300000 })
+          );
+        }
+        throw error;
+      }
+    };
+
     // Marine data with cell_selection: 'sea' for accurate ocean data
     const marineParams = new URLSearchParams({
       latitude: lats,
@@ -462,10 +489,10 @@ export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: num
         cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    // Use deduplicatedFetch to prevent duplicate API calls for bulk requests
+    // Use deduplicatedFetch with fallback for bulk requests
     const [marineData, forecastData] = await Promise.all([
-        deduplicatedFetch<MarineApiResponse | MarineApiResponse[]>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 3000 }),
-        deduplicatedFetch<ForecastApiResponse | ForecastApiResponse[]>(`${API_ENDPOINTS.FORECAST}?${forecastParams.toString()}`, undefined, { ttl: 3000 })
+        fetchWithFallback<MarineApiResponse | MarineApiResponse[]>(API_ENDPOINTS.MARINE, marineParams, marineModel),
+        fetchWithFallback<ForecastApiResponse | ForecastApiResponse[]>(API_ENDPOINTS.FORECAST, forecastParams, weatherModel)
     ]);
 
     // Handle single vs array response
@@ -529,24 +556,47 @@ export const searchLocations = async (query: string): Promise<Location[]> => {
 
 export const reverseGeocode = async (lat: number, lng: number): Promise<Location | null> => {
     try {
-        // Use deduplicatedFetch for reverse geocoding
-        // TTL of 5 seconds to handle map panning scenarios
-        const data: ReverseGeocodingApiResponse = await deduplicatedFetch<ReverseGeocodingApiResponse>(
-          `${API_ENDPOINTS.REVERSE_GEOCODING}?latitude=${lat}&longitude=${lng}&language=en&format=json`,
-          undefined,
-          { ttl: 5000 }
+        // Nominatim reverse geocoding (Open-Meteo has no /v1/reverse endpoint).
+        // Nominatim returns { place_id, display_name, address: { city/town/village, country, ... }, lat, lon }
+        const nominatimReverseUrl = API_ENDPOINTS.NOMINATIM.replace('/search', '/reverse');
+        const data = await deduplicatedFetch<{
+          place_id?: number;
+          display_name?: string;
+          lat?: string;
+          lon?: string;
+          address?: {
+            city?: string;
+            town?: string;
+            village?: string;
+            municipality?: string;
+            county?: string;
+            state?: string;
+            country?: string;
+          };
+        }>(
+          `${nominatimReverseUrl}?lat=${lat}&lon=${lng}&format=json`,
+          { headers: { 'User-Agent': 'SeaYou-MarineWeather/1.0' } },
+          { ttl: 300000 } // Stable result - cache 5 minutes
         );
 
-        if (!data.results || data.results.length === 0) return null;
+        if (!data?.address) return null;
 
-        const item = data.results[0];
+        // Prefer city > town > village > municipality > county as the display name
+        const name = data.address.city
+          || data.address.town
+          || data.address.village
+          || data.address.municipality
+          || data.address.county
+          || data.display_name?.split(',')[0]
+          || `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+
         return {
-             id: item.id,
-             name: item.name,
-             country: item.country,
-             lat: item.latitude,
-             lng: item.longitude,
-             admin1: item.admin1
+          id: data.place_id ?? -1,
+          name,
+          country: data.address.country,
+          lat: parseFloat(data.lat ?? String(lat)),
+          lng: parseFloat(data.lon ?? String(lng)),
+          admin1: data.address.state,
         };
 
     } catch (e) {

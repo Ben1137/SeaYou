@@ -6,3 +6,4 @@ export * from './routePlanningService';
 export * from './cacheService';
 export * from './marineGridService';
 export * from './geojsonService';
+export * from './apiRateLimiter';

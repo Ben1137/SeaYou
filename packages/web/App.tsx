@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { ViewState, Location, UI_CONSTANTS, NAVIGATION_CONSTANTS } from '@seame/core';
 import Dashboard from './components/Dashboard';
-import MapComponent from './components/MapComponent';
+// MapLibre GL JS implementation (WebGL migration Phase 0)
+import { MapProvider } from './components/map/MapProvider';
+import { MapContainerML } from './components/map/MapContainerML';
 import Atmosphere from './components/Atmosphere';
 import { RoutePlanningView } from './components/RoutePlanningView';
 import { CoastsMarinasView } from './components/CoastsMarinasView';
@@ -23,6 +25,8 @@ const DEFAULT_LOC: Location = {
   country: NAVIGATION_CONSTANTS.DEFAULT_LOCATION.country
 };
 
+const GEO_PROMPT_KEY = 'seayou_geo_prompt_dismissed';
+
 const App: React.FC = () => {
   const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
   const { t } = useTranslation();
@@ -36,6 +40,11 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  // Geolocation prompt — shown once until dismissed (replaces auto-request on mount)
+  const [showGeoPrompt, setShowGeoPrompt] = useState<boolean>(
+    () => navigator.geolocation != null && localStorage.getItem(GEO_PROMPT_KEY) !== '1'
+  );
 
   // Use cached weather data with stale-while-revalidate pattern
   const {
@@ -61,46 +70,9 @@ const App: React.FC = () => {
   }, [weatherData, setAutoThemeData]);
 
 
-  useEffect(() => {
-    // Try to get user's location automatically on first load
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          let newLoc: Location = {
-            id: -1,
-            name: t('app.currentLocation'),
-            lat: latitude,
-            lng: longitude,
-          };
-
-          try {
-            const resolvedLocation = await reverseGeocode(latitude, longitude);
-            if (resolvedLocation) {
-              // Use the resolved location data
-              newLoc = {
-                ...resolvedLocation,
-                id: -1, // Keep -1 as ID for current location
-              };
-            }
-          } catch (e) {
-            console.error("Failed to reverse geocode", e);
-          }
-
-          setLocations([newLoc]);
-          setCurrentLocation(newLoc);
-        },
-        (err) => {
-          // If geolocation fails or is denied, fall back to default location
-          console.warn("Geolocation failed, using default location", err);
-          if (err.code === 1) {
-            console.info("Location permission denied. Please enable location services in your browser settings or use HTTPS.");
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
-    }
-  }, [t]);
+  // Geolocation is intentionally NOT auto-requested on mount.
+  // Browsers require geolocation calls to be in response to a user gesture
+  // (clicking "Use My Location"). The showGeoPrompt banner handles this.
 
   const handleLocateMe = () => {
     if (navigator.geolocation) {
@@ -147,6 +119,16 @@ const App: React.FC = () => {
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
     }
+  };
+
+  const dismissGeoPrompt = () => {
+    setShowGeoPrompt(false);
+    localStorage.setItem(GEO_PROMPT_KEY, '1');
+  };
+
+  const handleGeoPromptAccept = () => {
+    dismissGeoPrompt();
+    handleLocateMe();
   };
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -222,6 +204,31 @@ const App: React.FC = () => {
             </button>
           </div>
         </nav>
+
+      {/* Geolocation permission prompt banner */}
+      {showGeoPrompt && (
+        <div className="bg-elevated border-b border-accent/30 px-4 py-2 flex items-center justify-between gap-3 text-sm z-10">
+          <div className="flex items-center gap-2 text-secondary">
+            <MapPin size={16} className="text-accent shrink-0" />
+            <span>{t('location.geoPrompt', 'Use your location for accurate local forecasts?')}</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleGeoPromptAccept}
+              className="bg-button hover:bg-button-hover text-white text-xs px-3 py-1.5 rounded-lg font-bold transition-colors"
+            >
+              {t('location.allow', 'Allow')}
+            </button>
+            <button
+              onClick={dismissGeoPrompt}
+              className="text-muted hover:text-white transition-colors"
+              aria-label="Dismiss"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Location Modal */}
       {showLocationModal && (
@@ -301,7 +308,7 @@ const App: React.FC = () => {
       )}
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto relative scroll-smooth">
+        <main className={`flex-1 relative ${view === ViewState.MAP ? 'overflow-hidden' : 'overflow-y-auto scroll-smooth'}`}>
           {view === ViewState.DASHBOARD && (
             <ErrorBoundary
               resetKeys={[currentLocation.id, 'dashboard']}
@@ -314,14 +321,18 @@ const App: React.FC = () => {
             </ErrorBoundary>
           )}
           {view === ViewState.MAP && (
-            <ErrorBoundary
-              resetKeys={[currentLocation.id, 'map']}
-              onError={(error, errorInfo) => {
-                console.error('Map error:', error, errorInfo);
-              }}
-            >
-              <MapComponent currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} />
-            </ErrorBoundary>
+            <div className="absolute inset-0 w-full h-full">
+              <ErrorBoundary
+                resetKeys={[currentLocation.id, 'map']}
+                onError={(error, errorInfo) => {
+                  console.error('Map error:', error, errorInfo);
+                }}
+              >
+                <MapProvider>
+                  <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} />
+                </MapProvider>
+              </ErrorBoundary>
+            </div>
           )}
           {view === ViewState.ATMOSPHERE && (
             <ErrorBoundary

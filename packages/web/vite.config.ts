@@ -32,6 +32,19 @@ export default defineConfig({
     },
   },
   plugins: [
+    // GLSL shader loader - must run BEFORE react plugin with enforce: 'pre'
+    {
+      name: 'glsl-loader',
+      enforce: 'pre' as const,
+      transform(code, id) {
+        if (id.endsWith('.glsl') || id.endsWith('.vert') || id.endsWith('.frag')) {
+          return {
+            code: `export default ${JSON.stringify(code)};`,
+            map: null,
+          };
+        }
+      },
+    },
     react(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -67,6 +80,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB to accommodate WebGL shaders
         runtimeCaching: [
           {
             // Cache Open-Meteo API calls
@@ -134,8 +148,28 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: true,
+    // Target modern browsers that support ES class fields natively
+    target: 'es2022',
+    rollupOptions: {
+      output: {
+        // Prevent code splitting issues with maplibre-gl
+        manualChunks: {
+          maplibre: ['maplibre-gl'],
+        },
+      },
+    },
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
+    esbuildOptions: {
+      // Target modern browsers - ES2022 supports class fields natively
+      // This prevents __publicField helper issues
+      target: 'es2022',
+    },
+  },
+  // Fix __publicField error: esbuild should NOT transform class fields
+  // By targeting ES2022+, class fields are kept as-is (native browser support)
+  esbuild: {
+    target: 'es2022',
   },
 })

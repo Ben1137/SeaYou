@@ -105,6 +105,19 @@ export const REQUEST_CONFIG = {
   RATE_LIMIT: {
     MAX_REQUESTS_PER_MINUTE: 60,
     DEBOUNCE_MS: 500,             // Map movement debounce
+    MAX_CONCURRENT_REQUESTS: 2,   // Throttle queue: max simultaneous API calls
+    COOLDOWN_AFTER_429_MS: 30000, // Global cooldown after any 429 response
+    NEGATIVE_CACHE_TTL_MS: 15000, // Cache 429'd URLs to prevent retry cascade
+  },
+
+  /** Grid request limits to avoid HTTP 414 (URL too large) */
+  GRID_LIMITS: {
+    /** Maximum coordinates per API request (keeps URL under ~8000 chars for modern browsers) */
+    MAX_COORDINATES_PER_REQUEST: 256,
+    /** Maximum grid points to request total (allows up to 16x16 grids for full viewport coverage) */
+    MAX_TOTAL_GRID_POINTS: 256,
+    /** Chunk size for batched requests */
+    CHUNK_SIZE: 25,
   },
 } as const;
 

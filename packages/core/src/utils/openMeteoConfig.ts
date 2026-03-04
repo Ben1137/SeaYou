@@ -420,6 +420,31 @@ export function getPrimaryMarineModel(
   return selection.marineModels[0] || 'best_match';
 }
 
+/**
+ * Get the optimal model for a given location.
+ * Shared utility used by both weatherService and marineGridService.
+ *
+ * @param lat - Latitude
+ * @param lng - Longitude
+ * @param isMarine - True for marine model, false for weather model
+ * @param preferHighResolution - Value of WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION
+ * @param fallbackModel - Value of WEATHER_CONSTANTS.MODEL
+ */
+export function getModelForLocation(
+  lat: number,
+  lng: number,
+  isMarine: boolean = false,
+  preferHighResolution: boolean = true,
+  fallbackModel: string = 'best_match'
+): string {
+  if (preferHighResolution) {
+    return isMarine
+      ? getPrimaryMarineModel(lat, lng, true)
+      : getPrimaryWeatherModel(lat, lng, true);
+  }
+  return fallbackModel;
+}
+
 // ============================================
 // API PARAMETER HELPERS
 // ============================================
