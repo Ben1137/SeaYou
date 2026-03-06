@@ -405,15 +405,68 @@ function generateCurrentParticlesColorScale(): ColorScalePoint[] {
 }
 
 /**
+ * Air temperature color scale matching AIR_TEMPERATURE_COLORS WebGL ramp (-20°C → 50°C)
+ * ColorRamps.ts stops: arctic deep blue → cold blue → freezing → cyan → green → yellow → orange → red
+ */
+function generateAirTemperatureColorScale(): ColorScalePoint[] {
+  return [
+    { value: -20, color: 'rgb(0,0,120)',      label: '-20°C' },
+    { value: -10, color: 'rgb(30,60,200)',    label: '-10'   },
+    { value:   0, color: 'rgb(80,160,220)',   label: '0'     },
+    { value:  10, color: 'rgb(0,200,220)',    label: '10'    },
+    { value:  20, color: 'rgb(80,210,100)',   label: '20'    },
+    { value:  30, color: 'rgb(220,210,40)',   label: '30'    },
+    { value:  40, color: 'rgb(255,130,20)',   label: '40'    },
+    { value:  50, color: 'rgb(255,50,20)',    label: '50+°C' },
+  ];
+}
+
+/**
+ * Precipitation color scale matching PRECIPITATION_COLORS WebGL ramp (0 → 15 mm/h)
+ * Dry (transparent) → green (drizzle) → yellow → orange → red → magenta (extreme)
+ */
+function generatePrecipitationColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgba(0,0,0,0)',       label: '0 mm/h' },
+    { value: 0.1, color: 'rgb(100,230,80)',     label: '0.1'    },
+    { value: 0.5, color: 'rgb(150,230,50)',     label: '0.5'    },
+    { value: 1,   color: 'rgb(220,220,20)',     label: '1'      },
+    { value: 2,   color: 'rgb(255,155,20)',     label: '2'      },
+    { value: 4,   color: 'rgb(255,60,20)',      label: '4'      },
+    { value: 7,   color: 'rgb(200,20,80)',      label: '7'      },
+    { value: 10,  color: 'rgb(200,20,200)',     label: '10'     },
+    { value: 15,  color: 'rgb(255,255,255)',    label: '15+'    },
+  ];
+}
+
+/**
+ * Cloud cover color scale matching CLOUD_COVER_COLORS WebGL ramp (0 → 100%)
+ * Transparent (clear) → light gray-blue → gray → white (overcast)
+ */
+function generateCloudCoverColorScale(): ColorScalePoint[] {
+  return [
+    { value:   0, color: 'rgba(0,0,0,0)',        label: '0%'   },
+    { value:  20, color: 'rgb(200,215,235)',      label: '20'   },
+    { value:  40, color: 'rgb(170,185,215)',      label: '40'   },
+    { value:  60, color: 'rgb(130,150,185)',      label: '60'   },
+    { value:  80, color: 'rgb(100,120,160)',      label: '80'   },
+    { value: 100, color: 'rgb(185,190,200)',      label: '100%' },
+  ];
+}
+
+/**
  * Get all color scales for reference/legend display.
  *
  * Naming convention:
  *   *.wind / *.wave / *.current / *.temp  — chroma-js marker/icon scales
- *   *.windParticles   — matches WIND_COLORS WebGL ramp  (GPGPU wind layer legend)
+ *   *.windParticles    — matches WIND_COLORS WebGL ramp  (GPGPU wind layer legend)
  *   *.currentParticles — matches CURRENT_COLORS WebGL ramp (GPGPU current layer legend)
- *   *.waveHeatmap     — matches WAVE_COLORS WebGL ramp   (wave heatmap + particles legend)
- *   *.seaTemperature  — matches TEMPERATURE_COLORS WebGL ramp (sea temp layer legend)
- *   *.windyWave       — legacy Windy-style scale (kept for backwards compatibility)
+ *   *.waveHeatmap      — matches WAVE_COLORS WebGL ramp   (wave heatmap + particles legend)
+ *   *.seaTemperature   — matches TEMPERATURE_COLORS WebGL ramp (sea temp layer legend)
+ *   *.airTemperature   — matches AIR_TEMPERATURE_COLORS WebGL ramp (Phase 6B)
+ *   *.precipitation    — matches PRECIPITATION_COLORS WebGL ramp (Phase 6B)
+ *   *.cloudCover       — matches CLOUD_COVER_COLORS WebGL ramp (Phase 6B)
+ *   *.windyWave        — legacy Windy-style scale (kept for backwards compatibility)
  */
 export const COLOR_SCALES = {
   // Marker / icon scales (chroma-js, approximate)
@@ -427,6 +480,10 @@ export const COLOR_SCALES = {
   currentParticles: generateCurrentParticlesColorScale(),
   waveHeatmap: generateWaveHeatmapColorScale(),
   seaTemperature: generateSeaTemperatureColorScale(),
+  // Phase 6B forecast layers
+  airTemperature: generateAirTemperatureColorScale(),
+  precipitation: generatePrecipitationColorScale(),
+  cloudCover: generateCloudCoverColorScale(),
   // Other
   bathymetry: generateBathymetryColorScale(),
   marineAreas: generateMarineAreasColorScale(),

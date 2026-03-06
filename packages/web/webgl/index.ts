@@ -32,14 +32,19 @@ export {
   WIND_COLORS,
   CURRENT_COLORS,
   TEMPERATURE_COLORS,
+  AIR_TEMPERATURE_COLORS,
+  PRECIPITATION_COLORS,
+  CLOUD_COVER_COLORS,
 } from './ColorRamps';
 
-// Wave Heatmap Engine (Phase 2)
+// Generic Heatmap Engine (Phase 6A — replaces WaveHeatmapEngine + SeaTemperatureEngine)
 export {
-  createWaveHeatmapLayer,
-  type WaveHeatmapConfig,
-  type WaveHeatmapLayer,
-} from './WaveHeatmapEngine';
+  createGenericHeatmapLayer,
+  type HeatmapLayerConfig,
+  type GenericHeatmapLayer,
+  type HeatmapMode,
+  type NormalizationMode,
+} from './GenericHeatmapEngine';
 
 // Particle Engine (Phase 3)
 export {
@@ -47,13 +52,6 @@ export {
   type ParticleEngineConfig,
   type ParticleLayer,
 } from './ParticleEngine';
-
-// Sea Temperature Engine (Phase 5)
-export {
-  createSeaTemperatureLayer,
-  type SeaTemperatureConfig,
-  type SeaTemperatureLayer,
-} from './SeaTemperatureEngine';
 
 // Device Capabilities (Phase 5)
 export {

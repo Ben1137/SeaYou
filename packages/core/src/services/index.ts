@@ -5,5 +5,6 @@ export * from './offlineNavigationService';
 export * from './routePlanningService';
 export * from './cacheService';
 export * from './marineGridService';
+export * from './forecastGridService';
 export * from './geojsonService';
 export * from './apiRateLimiter';

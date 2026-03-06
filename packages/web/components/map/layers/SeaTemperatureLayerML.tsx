@@ -1,11 +1,12 @@
 /**
  * SeaTemperatureLayerML - React component wrapper for WebGL Sea Temperature
- * Phase 5: Sea surface temperature visualization
+ * Phase 5 → Phase 6A: Migrated to GenericHeatmapEngine
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useMap } from '../useMap';
-import { createSeaTemperatureLayer, type SeaTemperatureLayer } from '../../../webgl/SeaTemperatureEngine';
+import { createGenericHeatmapLayer, type GenericHeatmapLayer } from '../../../webgl/GenericHeatmapEngine';
+import { TEMPERATURE_COLORS } from '../../../webgl/ColorRamps';
 import { getSafeBeforeId } from '../../../utils/mapLayerUtils';
 import type { MarineGridData } from '@seame/core';
 
@@ -25,7 +26,7 @@ export function SeaTemperatureLayerML({
   sharedGridData,
 }: SeaTemperatureLayerMLProps) {
   const map = useMap();
-  const layerRef = useRef<SeaTemperatureLayer | null>(null);
+  const layerRef = useRef<GenericHeatmapLayer | null>(null);
   const layerAddedRef = useRef(false);
 
   // Process grid data and update the WebGL layer
@@ -81,10 +82,15 @@ export function SeaTemperatureLayerML({
       if (layerAddedRef.current) return;
 
       try {
-        const tempLayer = createSeaTemperatureLayer('sea-temperature-webgl', {
+        const tempLayer = createGenericHeatmapLayer('sea-temperature-webgl', {
+          logPrefix: '[SeaTemperature]',
+          colorRamp: TEMPERATURE_COLORS,
+          normalization: 'range',
+          minValue: minTemp,
+          maxValue: maxTemp,
+          validRange: [-2, 40],  // Matches original shader guard: discard temp < -2 || temp > 40
           opacity,
-          minTemp,
-          maxTemp,
+          useLandMask: true,
         });
 
         layerRef.current = tempLayer;

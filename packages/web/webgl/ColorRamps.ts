@@ -112,3 +112,41 @@ export const TEMPERATURE_COLORS: [number, number, number, number][] = [
   [220,  38,  38, 245],   // Red-600
   [255, 255, 255, 255],   // White (extreme)
 ];
+
+// Air temperature color ramp (-20°C → 50°C) — Windy-style meteorological palette
+// Deep blue/purple (arctic) → blue (cold) → cyan (cool) → green (mild) → yellow → orange → red (hot)
+export const AIR_TEMPERATURE_COLORS: [number, number, number, number][] = [
+  [  0,   0, 120, 210],   // -20°C — Arctic deep blue
+  [ 30,  60, 200, 215],   // -10°C — Cold blue
+  [ 80, 160, 220, 220],   // 0°C   — Blue-white (freezing)
+  [  0, 200, 220, 220],   // 10°C  — Cyan (cool)
+  [ 80, 210, 100, 225],   // 20°C  — Green (mild)
+  [220, 210,  40, 230],   // 30°C  — Yellow (warm)
+  [255, 130,  20, 240],   // 40°C  — Orange (hot)
+  [255,  50,  20, 248],   // 50°C  — Bright red (extreme heat)
+];
+
+// Precipitation color ramp (0 → 15 mm/h) — standard radar convention
+// Transparent (dry) → green (drizzle) → yellow (moderate) → orange-red (heavy) → magenta (extreme)
+export const PRECIPITATION_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],   // 0.0 mm/h  — Fully transparent (dry)
+  [100, 230,  80, 100],   // 0.1 mm/h  — Light green (drizzle)
+  [150, 230,  50, 150],   // 0.5 mm/h  — Green (light rain)
+  [220, 220,  20, 185],   // 1.0 mm/h  — Yellow (moderate rain)
+  [255, 155,  20, 210],   // 2.0 mm/h  — Orange (heavy rain)
+  [255,  60,  20, 225],   // 4.0 mm/h  — Orange-red (very heavy)
+  [200,  20,  80, 240],   // 7.0 mm/h  — Red-magenta (intense)
+  [200,  20, 200, 250],   // 10.0 mm/h — Magenta (extreme)
+  [255, 255, 255, 255],   // 15.0+ mm/h — White (extreme+)
+];
+
+// Cloud cover color ramp (0% → 100%) — transparent sky → opaque white overcast
+// Transparent (clear) → light blue-gray (few clouds) → gray (broken) → white (overcast)
+export const CLOUD_COVER_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],   //   0% — Fully transparent (clear sky)
+  [200, 215, 235,  50],   //  20% — Very light gray-blue (few clouds)
+  [170, 185, 215, 100],   //  40% — Light gray-blue (scattered)
+  [130, 150, 185, 150],   //  60% — Gray-blue (broken)
+  [100, 120, 160, 195],   //  80% — Gray (overcast)
+  [185, 190, 200, 235],   // 100% — Light gray-white (full overcast)
+];
