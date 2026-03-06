@@ -42,6 +42,7 @@ yarn-error.log*
 .claude
 tmpclaude-*
 nul
+skills/
 
 # VS Code Extensions (Claude plugins)
 .agent/
