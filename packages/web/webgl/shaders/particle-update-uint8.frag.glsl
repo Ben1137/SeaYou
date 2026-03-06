@@ -86,8 +86,9 @@ vec2 lookupWind(vec2 uv) {
   vec2 clamped = clamp(uv, vec2(0.0), vec2(1.0));
   vec4 sample_val = texture2D(u_wind, clamped);
 
-  // Alpha < 0.5 means invalid/no data
-  if (sample_val.a < 0.5) return vec2(0.0);
+  // Strict alpha threshold — kills border-interpolated texels (gl.LINEAR smear).
+  // 0.85 ensures particles never read smeared velocity near coastlines.
+  if (sample_val.a < 0.85) return vec2(0.0);
 
   // Decode Uint8 normalized values back to velocity
   // R channel: normalized U (0.5 = 0, 0 = -maxSpeed, 1 = +maxSpeed)
@@ -112,6 +113,16 @@ void main() {
   // Look up wind at current position
   vec2 velocity = lookupWind(vec2(x, y));
   float currentSpeed = length(velocity);
+
+  // ── LAND KILL: if velocity lookup returned zero (alpha < 0.85 = land/invalid),
+  // force an immediate respawn so particles never slide or stall on land.
+  if (currentSpeed < 0.001) {
+    vec2 resetSeed = v_texcoord + vec2(u_rand_seed);
+    float rx = rand(resetSeed);
+    float ry = rand(resetSeed + vec2(1.3, 2.7));
+    gl_FragColor = encodeParticle(vec2(rx, ry), 0.0, 0.0);
+    return;
+  }
 
   // Apply movement — match float shader scale (0.0003) for consistent visual speed
   vec2 offset = velocity * u_speed_factor * 0.0003;

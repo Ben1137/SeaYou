@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast } from '@seame/core';
-import { Trash2, Navigation, MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, Navigation, MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,8 @@ import { PortsLayerML } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
 import { RainRadarLayerML } from './layers/RainRadarLayerML';
+import { CoastlineLayerML } from './layers/CoastlineLayerML';
+import { MarineAreasLayerML } from './layers/MarineAreasLayerML';
 
 // Custom WebGL Layers (Phase 2)
 import { WaveHeatmapLayerML } from './layers/WaveHeatmapLayerML';
@@ -28,12 +30,27 @@ import { WaveParticleLayerML } from './layers/WaveParticleLayerML';
 // Sea Temperature Layer (Phase 5)
 import { SeaTemperatureLayerML } from './layers/SeaTemperatureLayerML';
 
-// Shared marine data hook (single fetch for all layers)
+// Atmospheric Forecast Layers (Phase 6B)
+import { AirTemperatureLayerML } from './layers/AirTemperatureLayerML';
+import { PrecipitationLayerML } from './layers/PrecipitationLayerML';
+import { CloudCoverLayerML } from './layers/CloudCoverLayerML';
+
+// Shared data hooks
 import { useSharedMarineData } from '../../hooks/useSharedMarineData';
+import { useSharedForecastGridData } from '../../hooks/useSharedForecastGridData';
 
 // Types
 type MapLayer = 'NONE' | 'WIND' | 'WAVE' | 'SWELL' | 'CURRENTS' | 'WIND_WAVE' | 'SIGNIFICANT_WAVE';
-type AdvancedLayer = 'NONE' | 'WIND_PARTICLES' | 'CURRENT_PARTICLES' | 'WAVE_HEATMAP' | 'SEA_TEMP';
+type AdvancedLayer =
+  | 'NONE'
+  | 'WIND_PARTICLES'
+  | 'CURRENT_PARTICLES'
+  | 'WAVE_HEATMAP'
+  | 'SEA_TEMP'
+  // Phase 6B — atmospheric forecast layers
+  | 'AIR_TEMP'
+  | 'PRECIPITATION'
+  | 'CLOUD_COVER';
 
 interface MapContainerMLProps {
   currentLocation: Coordinate;
@@ -126,9 +143,22 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
   const [loadingAdvancedLayer, setLoadingAdvancedLayer] = useState(false);
   const [gridForecasts, setGridForecasts] = useState<PointForecast[]>([]);
 
-  // Shared marine data - single fetch for all advanced layers
-  const isAdvancedLayerActive = advancedLayer !== 'NONE';
-  const sharedMarineData = useSharedMarineData(mapRef.current, isAdvancedLayerActive);
+  // Shared marine data — single fetch for ocean/wave/current layers
+  const isMarineLayerActive = (
+    advancedLayer === 'WIND_PARTICLES' ||
+    advancedLayer === 'CURRENT_PARTICLES' ||
+    advancedLayer === 'WAVE_HEATMAP' ||
+    advancedLayer === 'SEA_TEMP'
+  );
+  const sharedMarineData = useSharedMarineData(mapRef.current, isMarineLayerActive);
+
+  // Shared forecast data — single fetch for atmospheric layers (Phase 6B)
+  const isForecastLayerActive = (
+    advancedLayer === 'AIR_TEMP' ||
+    advancedLayer === 'PRECIPITATION' ||
+    advancedLayer === 'CLOUD_COVER'
+  );
+  const sharedForecastData = useSharedForecastGridData(mapRef.current, isForecastLayerActive);
 
   // GeoJSON overlay state
   const [geoJSONLayers, setGeoJSONLayers] = useState({
@@ -162,19 +192,9 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
       attributionControl: { compact: true },
     });
 
-    // Debug: Log map events to help diagnose issues
+    // Keep error logging — useful in all environments
     map.on('error', (e) => {
       console.error('[MapContainerML] Map error:', e.error);
-    });
-
-    map.on('styledata', () => {
-      console.log('[MapContainerML] Style data loaded');
-    });
-
-    map.on('sourcedata', (e) => {
-      if (e.isSourceLoaded) {
-        console.log('[MapContainerML] Source loaded:', e.sourceId);
-      }
     });
 
     // Add navigation controls
@@ -189,13 +209,8 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     map.addControl(new maplibregl.ScaleControl({ maxWidth: 100 }), 'bottom-left');
 
     map.on('load', () => {
-      console.log('[MapContainerML] Map loaded successfully');
-
       // Force a resize to ensure the canvas fills the container
       map.resize();
-
-      const canvas = map.getCanvas();
-      console.log('[MapContainerML] Canvas dimensions:', canvas.width, 'x', canvas.height);
 
       mapRef.current = map;
       setMap(map);
@@ -235,7 +250,6 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     const resizeObserver = new ResizeObserver(() => {
       if (mapRef.current) {
         mapRef.current.resize();
-        console.log('[MapContainerML] Resized map');
       }
     });
 
@@ -686,6 +700,24 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
             >
               <Droplets size={12} /> Sea Temperature
             </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'AIR_TEMP' ? 'NONE' : 'AIR_TEMP')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-red-500 text-primary' : 'text-muted hover:bg-hover'}`}
+            >
+              <Thermometer size={12} /> Air Temperature
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'PRECIPITATION' ? 'NONE' : 'PRECIPITATION')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-sky-600 text-primary' : 'text-muted hover:bg-hover'}`}
+            >
+              <CloudRain size={12} /> Precipitation
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'CLOUD_COVER' ? 'NONE' : 'CLOUD_COVER')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-slate-500 text-primary' : 'text-muted hover:bg-hover'}`}
+            >
+              <Cloud size={12} /> Cloud Cover
+            </button>
 
             {/* GeoJSON Overlay Layers Divider */}
             <div className="border-t border-subtle my-2 pt-2">
@@ -729,7 +761,7 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
               <Droplets size={12} /> {t('map.rainRadar') || 'Rain Radar'}
             </button>
           </div>
-          {(loadingGrid || loadingAdvancedLayer) && (
+          {(loadingGrid || sharedMarineData.loading || sharedForecastData.loading) && (
             <div className="pb-2 px-2 text-[10px] text-center text-blue-300 animate-pulse">{t('map.updatingForecast')}</div>
           )}
         </div>
@@ -963,6 +995,33 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         />
       )}
 
+      {advancedLayer === 'AIR_TEMP' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.airTemperature}
+          unit="°C"
+          title="Air Temperature"
+          position="bottomright"
+        />
+      )}
+
+      {advancedLayer === 'PRECIPITATION' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.precipitation}
+          unit="mm/h"
+          title="Precipitation"
+          position="bottomright"
+        />
+      )}
+
+      {advancedLayer === 'CLOUD_COVER' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.cloudCover}
+          unit="%"
+          title="Cloud Cover"
+          position="bottomright"
+        />
+      )}
+
       {geoJSONLayers.bathymetry && (
         <ColorScaleLegend
           scale={COLOR_SCALES.bathymetry}
@@ -982,6 +1041,14 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
       <ReefLayerML
         visible={geoJSONLayers.reefs}
         opacity={0.7}
+      />
+      <CoastlineLayerML
+        visible={geoJSONLayers.coastline}
+        opacity={0.8}
+      />
+      <MarineAreasLayerML
+        visible={geoJSONLayers.marineAreas}
+        opacity={0.5}
       />
       <BathymetryLayerML
         visible={geoJSONLayers.bathymetry}
@@ -1037,6 +1104,27 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         maxTemp={35}  /* Extended from 30 → 35°C to match legend + tropical regions */
         sharedGridData={sharedMarineData.gridData}
       />
+
+      {/* Atmospheric Forecast Layers (Phase 6B) — use sharedForecastData, not marine */}
+      <AirTemperatureLayerML
+        visible={advancedLayer === 'AIR_TEMP'}
+        opacity={0.6}
+        minTemp={-20}
+        maxTemp={50}
+        sharedGridData={sharedForecastData.gridData}
+      />
+      <PrecipitationLayerML
+        visible={advancedLayer === 'PRECIPITATION'}
+        opacity={0.7}
+        maxPrecip={15}
+        sharedGridData={sharedForecastData.gridData}
+      />
+      <CloudCoverLayerML
+        visible={advancedLayer === 'CLOUD_COVER'}
+        opacity={0.55}
+        sharedGridData={sharedForecastData.gridData}
+      />
+
     </div>
   );
 }

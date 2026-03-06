@@ -7,6 +7,8 @@ export { PortsLayerML, type PortFeature, type PortsLayerMLProps } from './PortsL
 export { ReefLayerML, type ReefFeature, type ReefLayerMLProps } from './ReefLayerML';
 export { BathymetryLayerML, type BathymetryLayerMLProps } from './BathymetryLayerML';
 export { RainRadarLayerML, type RainRadarLayerMLProps } from './RainRadarLayerML';
+export { CoastlineLayerML, type CoastlineLayerMLProps } from './CoastlineLayerML';
+export { MarineAreasLayerML, type MarineAreasLayerMLProps } from './MarineAreasLayerML';
 
 /**
  * Custom WebGL Layers
@@ -31,3 +33,11 @@ export { CurrentParticleLayerML, type CurrentParticleLayerMLProps } from './Curr
  * Phase 5: Sea surface temperature visualization
  */
 export { SeaTemperatureLayerML, type SeaTemperatureLayerMLProps } from './SeaTemperatureLayerML';
+
+/**
+ * Atmospheric Forecast Layers
+ * Phase 6B: Air temperature, precipitation, cloud cover using GenericHeatmapEngine
+ */
+export { AirTemperatureLayerML, type AirTemperatureLayerMLProps } from './AirTemperatureLayerML';
+export { PrecipitationLayerML, type PrecipitationLayerMLProps } from './PrecipitationLayerML';
+export { CloudCoverLayerML, type CloudCoverLayerMLProps } from './CloudCoverLayerML';

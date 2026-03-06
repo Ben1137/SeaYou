@@ -1,11 +1,12 @@
 /**
  * WaveHeatmapLayerML - React component wrapper for WebGL Wave Heatmap
- * Phase 2: Custom WebGL Layer for wave height visualization
+ * Phase 2 → Phase 6A: Migrated to GenericHeatmapEngine
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useMap } from '../useMap';
-import { createWaveHeatmapLayer, type WaveHeatmapLayer } from '../../../webgl/WaveHeatmapEngine';
+import { createGenericHeatmapLayer, type GenericHeatmapLayer } from '../../../webgl/GenericHeatmapEngine';
+import { WAVE_COLORS } from '../../../webgl/ColorRamps';
 import { getSafeBeforeId } from '../../../utils/mapLayerUtils';
 import type { MarineGridData } from '@seame/core';
 
@@ -21,7 +22,7 @@ export function WaveHeatmapLayerML({
   sharedGridData,
 }: WaveHeatmapLayerMLProps) {
   const map = useMap();
-  const layerRef = useRef<WaveHeatmapLayer | null>(null);
+  const layerRef = useRef<GenericHeatmapLayer | null>(null);
   const layerAddedRef = useRef(false);
 
   // Process grid data and update the WebGL layer
@@ -77,7 +78,13 @@ export function WaveHeatmapLayerML({
       if (layerAddedRef.current) return;
 
       try {
-        const heatmapLayer = createWaveHeatmapLayer('wave-heatmap-webgl', {
+        const heatmapLayer = createGenericHeatmapLayer('wave-heatmap-webgl', {
+          logPrefix: '[WaveHeatmap]',
+          colorRamp: WAVE_COLORS,
+          normalization: 'max-value',
+          maxValue: 10,
+          discardBelow: 0.05,
+          fadeRange: 0.25,       // Exact match: smoothstep(0.05, 0.30, value)
           opacity,
           useLandMask: false,
         });

@@ -26,8 +26,10 @@ vec2 lookupWind(vec2 uv) {
   vec2 clamped = clamp(uv, vec2(0.0), vec2(1.0));
   vec4 sample_val = texture2D(u_wind, clamped);
 
-  // If alpha < 0.5, this is a no-data pixel (e.g. land in the wind grid)
-  if (sample_val.a < 0.5) return vec2(0.0);
+  // Strict alpha threshold — kills border-interpolated texels (gl.LINEAR smear).
+  // bilinear filtering between ocean (a=1) and land (a=0) creates 0.1-0.8 fringe;
+  // 0.85 ensures particles never read smeared velocity near coastlines.
+  if (sample_val.a < 0.85) return vec2(0.0);
 
   return vec2(sample_val.r, sample_val.g); // U, V components
 }
@@ -43,6 +45,18 @@ void main() {
   // Look up wind at current position
   vec2 velocity = lookupWind(vec2(x, y));
   float currentSpeed = length(velocity);
+
+  // ── LAND KILL: if velocity lookup returned zero (alpha < 0.85 = land/invalid),
+  // force an immediate respawn so particles never slide or stall on land.
+  // The strict 0.85 threshold in lookupWind already rejects border-interpolated
+  // texels; here we catch the zero-velocity result and trigger a reset.
+  if (currentSpeed < 0.001) {
+    vec2 resetSeed = v_texcoord + vec2(u_rand_seed);
+    float rx = rand(resetSeed);
+    float ry = rand(resetSeed + vec2(1.3, 2.7));
+    gl_FragColor = vec4(rx, ry, 0.0, 0.0);
+    return;
+  }
 
   // Normalize velocity and apply speed factor.
   // The velocity from the texture is in m/s (raw float).
