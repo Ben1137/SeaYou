@@ -31,6 +31,8 @@ export function AirTemperatureLayerML({
   sharedGridData,
 }: AirTemperatureLayerMLProps) {
   const map = useMap();
+  const mapRef = useRef(map);
+  mapRef.current = map;
   const layerRef = useRef<GenericHeatmapLayer | null>(null);
   const layerAddedRef = useRef(false);
 
@@ -136,10 +138,24 @@ export function AirTemperatureLayerML({
     layerRef.current?.setOpacity(opacity);
   }, [opacity]);
 
-  // Data updates
+  // Force data upload + double-tap repaint on visibility or data change.
+  // When switching between layers that share the same cached gridData, React won't
+  // re-trigger if the reference is identical. Re-running processGridData explicitly
+  // on every visible=true ensures the WebGL texture is always populated.
   useEffect(() => {
-    if (!visible || !sharedGridData) return;
+    if (!visible || !sharedGridData || !layerRef.current) return;
+
+    // 1. Force data upload even if gridData reference hasn't changed
     processGridData(sharedGridData);
+
+    // 2. Double-tap repaint — guarantees MapLibre catches the painted texture
+    const t1 = setTimeout(() => {
+      mapRef.current?.triggerRepaint();
+    }, 50);
+    const t2 = setTimeout(() => {
+      mapRef.current?.triggerRepaint();
+    }, 150);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [visible, sharedGridData, processGridData]);
 
   return null;
