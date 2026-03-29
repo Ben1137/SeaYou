@@ -30,7 +30,8 @@
     "waveThreshold": "סף גלים (מ׳)",
     "windThreshold": "סף רוח (קמ״ש)",
     "tsunamiSimulation": "סימולציית התראת צונאמי",
-    "noData": "אין נתוני מזג אוויר זמינים."
+    "noData": "אין נתוני מזג אוויר זמינים.",
+    "alertSettings": "הגדרות התראות"
   },
   "settings": {
     "alertConfig": "הגדרת התראות",
@@ -110,6 +111,14 @@
       "cold": "קר",
       "cool": "קריר",
       "great": "מעולה"
+    },
+    "uv": {
+      "label": "מדד UV",
+      "extreme": "קיצוני",
+      "veryHigh": "גבוה מאוד",
+      "high": "גבוה",
+      "moderate": "בינוני",
+      "low": "נמוך"
     }
   },
   "forecast": {
@@ -443,6 +452,16 @@
     "apply_filters": "החל מסננים",
     "searching_for_marinas": "מחפש מרינות...",
     "no_favorite_marinas_yet": "אין עדיין מרינות מועדפות",
-    "no_marinas_found_in_area": "לא נמצאו מרינות באזור זה"
+    "no_marinas_found_in_area": "לא נמצאו מרינות באזור זה",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "צור מסלול",
+    "viewSaved": "צפה בשמורים",
+    "routeName": "שם מסלול",
+    "startLocation": "מיקום התחלה",
+    "destination": "יעד",
+    "averageSpeed": "מהירות ממוצעת"
   }
 }

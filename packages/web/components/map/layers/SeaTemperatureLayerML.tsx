@@ -1,13 +1,22 @@
 /**
- * SeaTemperatureLayerML - React component wrapper for WebGL Sea Temperature
- * Phase 5 → Phase 6A: Migrated to GenericHeatmapEngine
+ * SeaTemperatureLayerML - Canvas Source architecture for Sea Temperature
+ *
+ * Renders sea temperature data to an offscreen canvas via GenericHeatmapEngine,
+ * then uses MapLibre's CanvasSource to drape it onto the globe.
+ *
+ * Data flow:
+ *   First load  → updateData() + render() (hard set, nothing to blend from)
+ *   Subsequent  → updateNextData() + rAF blend 0→1 over BLEND_DURATION_MS
+ *                  → at blend=1 promote next→current via updateData()
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useMap } from '../useMap';
-import { createGenericHeatmapLayer, type GenericHeatmapLayer } from '../../../webgl/GenericHeatmapEngine';
+import { createGenericHeatmapEngine, type GenericHeatmapEngine } from '../../../webgl/GenericHeatmapEngine';
+import { createOffscreenCanvas, type OffscreenCanvasHandle } from '../../../webgl/OffscreenCanvasManager';
+import { useCanvasSourceLayer, boundsToCorners } from '../../../hooks/useCanvasSourceLayer';
 import { TEMPERATURE_COLORS } from '../../../webgl/ColorRamps';
-import { getSafeBeforeId } from '../../../utils/mapLayerUtils';
+import { getMarineBeforeId } from '../../../utils/mapLayerUtils';
 import type { MarineGridData } from '@seame/core';
 
 export interface SeaTemperatureLayerMLProps {
@@ -16,25 +25,101 @@ export interface SeaTemperatureLayerMLProps {
   minTemp?: number;
   maxTemp?: number;
   sharedGridData?: MarineGridData | null;
+  /** Optional instance ID to avoid source/layer collisions when multiple instances exist */
+  instanceId?: string;
 }
+
+/** Duration of the cross-fade between consecutive data frames (ms). */
+const BLEND_DURATION_MS = 2000;
 
 export function SeaTemperatureLayerML({
   visible,
   opacity = 0.6,
-  minTemp = 10,
-  maxTemp = 30,
+  minTemp = -2,
+  maxTemp = 35,
   sharedGridData,
+  instanceId = 'sea-temp',
 }: SeaTemperatureLayerMLProps) {
+  const SOURCE_ID = `${instanceId}-canvas-src`;
+  const LAYER_ID = `${instanceId}-canvas-layer`;
   const map = useMap();
   const mapRef = useRef(map);
   mapRef.current = map;
-  const layerRef = useRef<GenericHeatmapLayer | null>(null);
-  const layerAddedRef = useRef(false);
+  const engineRef = useRef<GenericHeatmapEngine | null>(null);
+  const canvasHandleRef = useRef<OffscreenCanvasHandle | null>(null);
+  const isFirstLoadRef = useRef(true);
+  const rafRef = useRef<number | null>(null);         // Blend animation rAF
+  const renderRafRef = useRef<number | null>(null);   // Continuous render loop rAF
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
 
-  // Process grid data and update the WebGL layer
+  // Create engine + offscreen canvas on mount
+  useEffect(() => {
+    const handle = createOffscreenCanvas(instanceId, 1024, 1024);
+    canvasHandleRef.current = handle;
+
+    const engine = createGenericHeatmapEngine({
+      logPrefix: '[SeaTemperature]',
+      colorRamp: TEMPERATURE_COLORS,
+      normalization: 'range',
+      minValue: minTemp,
+      maxValue: maxTemp,
+      validRange: [-2, 40],
+      opacity: 1.0, // Full internal alpha — raster-opacity controls visible opacity
+      useLandMask: false,
+    });
+    engine.init(handle.canvas);
+    engineRef.current = engine;
+    setCanvasElement(handle.canvas); // Trigger re-render so useCanvasSourceLayer hook sees the canvas
+
+    console.log('[SeaTemperatureLayerML] Engine + offscreen canvas created');
+
+    // Continuous render loop — ensures MapLibre captures the canvas after CanvasSource attaches
+    let destroyed = false;
+    const animate = () => {
+      if (destroyed) return;
+      if (engineRef.current) {
+        engineRef.current.render();
+        mapRef.current?.triggerRepaint();
+      }
+      renderRafRef.current = requestAnimationFrame(animate);
+    };
+    renderRafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      destroyed = true;
+      if (renderRafRef.current !== null) {
+        cancelAnimationFrame(renderRafRef.current);
+        renderRafRef.current = null;
+      }
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      isFirstLoadRef.current = true;
+      // Destroy immediately — free the WebGL context before a new layer can mount
+      engineRef.current?.destroy();
+      engineRef.current = null;
+      canvasHandleRef.current?.destroy();
+      canvasHandleRef.current = null;
+    };
+  }, []);
+
+  // Register CanvasSource + raster layer via hook
+  const beforeId = map ? getMarineBeforeId(map) : undefined;
+  const { updateCoordinates } = useCanvasSourceLayer({
+    map,
+    sourceId: SOURCE_ID,
+    layerId: LAYER_ID,
+    canvas: canvasElement,
+    beforeId,
+    opacity,
+    visible,
+  });
+
+  // Process grid data and update the engine
   const processGridData = useCallback((gridData: MarineGridData) => {
-    if (!gridData || !gridData.points || gridData.points.length === 0) return;
-    if (!layerRef.current) return;
+    if (!gridData?.points?.length) return;
+    if (!engineRef.current) return;
 
     const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
     const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
@@ -45,8 +130,6 @@ export function SeaTemperatureLayerML({
     const tempMap = new Map<string, number>();
     gridData.points.forEach(point => {
       const key = `${point.lat.toFixed(4)},${point.lng.toFixed(4)}`;
-      // Use NaN for land points so the encoder sets alpha=0 and the shader discards them.
-      // This prevents 0°C land values from slipping through the shader's temp range check.
       tempMap.set(key, point.isOcean ? (point.seaTemperature ?? NaN) : NaN);
     });
 
@@ -54,9 +137,7 @@ export function SeaTemperatureLayerML({
     for (let latIdx = 0; latIdx < gridHeight; latIdx++) {
       const row: number[] = [];
       for (let lonIdx = 0; lonIdx < gridWidth; lonIdx++) {
-        const lat = lats[latIdx];
-        const lon = lons[lonIdx];
-        const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+        const key = `${lats[latIdx].toFixed(4)},${lons[lonIdx].toFixed(4)}`;
         row.push(tempMap.get(key) ?? NaN);
       }
       grid.push(row);
@@ -67,102 +148,63 @@ export function SeaTemperatureLayerML({
     const actualMinLat = lats[0];
     const actualMaxLat = lats[lats.length - 1];
 
-    layerRef.current.updateData(grid, actualMinLon, actualMaxLon, actualMinLat, actualMaxLat);
+    // Update CanvasSource coordinates
+    const newCorners = boundsToCorners(actualMinLon, actualMaxLon, actualMinLat, actualMaxLat);
+    updateCoordinates(newCorners);
+
+    const engine = engineRef.current;
+
+    if (isFirstLoadRef.current) {
+      // First load — hard set, no blend animation
+      engine.updateData(grid, actualMinLon, actualMaxLon, actualMinLat, actualMaxLat);
+      engine.render();
+      map?.triggerRepaint();
+      isFirstLoadRef.current = false;
+    } else {
+      // Subsequent loads — animate blend 0→1
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+
+      engine.updateNextData(grid, actualMinLon, actualMaxLon, actualMinLat, actualMaxLat);
+      engine.setBlend(0);
+      engine.render();
+      map?.triggerRepaint();
+
+      const start = performance.now();
+      const animate = (now: number) => {
+        const progress = Math.min((now - start) / BLEND_DURATION_MS, 1.0);
+        engine.setBlend(progress);
+        engine.render();
+        map?.triggerRepaint();
+        if (progress < 1.0) {
+          rafRef.current = requestAnimationFrame(animate);
+        } else {
+          // Promote next → current
+          engine.updateData(grid, actualMinLon, actualMaxLon, actualMinLat, actualMaxLat);
+          engine.setBlend(0);
+          engine.render();
+          map?.triggerRepaint();
+          rafRef.current = null;
+        }
+      };
+      rafRef.current = requestAnimationFrame(animate);
+    }
 
     console.log('[SeaTemperatureLayerML] Data updated:', {
       gridWidth,
       gridHeight,
       bounds: { actualMinLon, actualMaxLon, actualMinLat, actualMaxLat },
     });
-  }, []);
+  }, [updateCoordinates]);
 
-  // Initialize the layer
+  // Opacity is controlled by raster-opacity in useCanvasSourceLayer — no engine update needed
+
+  // Process shared grid data when it arrives or changes
   useEffect(() => {
-    if (!map) return;
-
-    const setupLayer = () => {
-      if (layerAddedRef.current) return;
-
-      try {
-        const tempLayer = createGenericHeatmapLayer('sea-temperature-webgl', {
-          logPrefix: '[SeaTemperature]',
-          colorRamp: TEMPERATURE_COLORS,
-          normalization: 'range',
-          minValue: minTemp,
-          maxValue: maxTemp,
-          validRange: [-2, 40],  // Matches original shader guard: discard temp < -2 || temp > 40
-          opacity,
-          useLandMask: true,
-        });
-
-        layerRef.current = tempLayer;
-        // Insert BELOW the land layer so MapLibre's land polygons naturally clip the ocean heatmap.
-        // Double-guard: getSafeBeforeId checks the style spec; map.getLayer() checks runtime existence.
-        const beforeId = getSafeBeforeId(map);
-        const safeBeforeId = beforeId && map.getLayer(beforeId) ? beforeId : undefined;
-        if (!map.getLayer('sea-temperature-webgl')) {
-          map.addLayer(tempLayer, safeBeforeId);
-        }
-        layerAddedRef.current = true;
-
-        console.log('[SeaTemperatureLayerML] Layer added to map', safeBeforeId ? `before "${safeBeforeId}"` : '(top)');
-      } catch (error) {
-        console.error('[SeaTemperatureLayerML] Failed to add layer:', error);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      setupLayer();
-    } else {
-      map.once('style.load', setupLayer);
-    }
-
-    return () => {
-      if (map && layerAddedRef.current) {
-        try {
-          if (map.getLayer('sea-temperature-webgl')) {
-            map.removeLayer('sea-temperature-webgl');
-          }
-        } catch (e) {
-          // Ignore
-        }
-        layerAddedRef.current = false;
-        layerRef.current = null;
-      }
-    };
-  }, [map]);
-
-  // Handle visibility changes
-  useEffect(() => {
-    if (!layerRef.current) return;
-    layerRef.current.setVisibility(visible);
-  }, [visible]);
-
-  // Handle opacity changes
-  useEffect(() => {
-    if (layerRef.current) {
-      layerRef.current.setOpacity(opacity);
-    }
-  }, [opacity]);
-
-  // Force data upload + double-tap repaint on visibility or data change.
-  // When switching between layers that share the same cached gridData, React won't
-  // re-trigger if the reference is identical. Re-running processGridData explicitly
-  // on every visible=true ensures the WebGL texture is always populated.
-  useEffect(() => {
-    if (!visible || !sharedGridData || !layerRef.current) return;
-
-    // 1. Force data upload even if gridData reference hasn't changed
+    if (!visible || !sharedGridData) return;
     processGridData(sharedGridData);
-
-    // 2. Double-tap repaint — guarantees MapLibre catches the painted texture
-    const t1 = setTimeout(() => {
-      mapRef.current?.triggerRepaint();
-    }, 50);
-    const t2 = setTimeout(() => {
-      mapRef.current?.triggerRepaint();
-    }, 150);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [visible, sharedGridData, processGridData]);
 
   return null;

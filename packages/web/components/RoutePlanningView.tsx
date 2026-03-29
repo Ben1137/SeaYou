@@ -279,9 +279,9 @@ export const RoutePlanningView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4">
+    <div className="min-h-screen bg-black/20 p-4 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="bg-slate-900 rounded-lg shadow-lg p-6 mb-4 border border-slate-800">
+      <div className="glass-panel p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
             <Navigation className="w-8 h-8 text-blue-400" />
@@ -289,16 +289,16 @@ export const RoutePlanningView: React.FC = () => {
           </h1>
           <button
             onClick={() => setShowSavedRoutes(!showSavedRoutes)}
-            className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 border border-slate-700"
+            className="px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/10"
           >
             {showSavedRoutes ? 'Hide' : 'View'} Saved Routes
           </button>
         </div>
-        
+
         <div className="flex justify-end mb-4">
           <button
             onClick={() => setShowVesselSettings(true)}
-            className="text-sm text-blue-400 hover:text-white underline flex items-center gap-1"
+            className="text-[10px] text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2 flex items-center gap-1"
           >
             Vessel Settings: {vesselSettings.name} ({vesselSettings.draft}m draft)
           </button>
@@ -331,7 +331,7 @@ export const RoutePlanningView: React.FC = () => {
                 </div>
                 <button
                   onClick={() => dismissAlert(alert)}
-                  className="text-slate-400 hover:text-white"
+                  className="text-white/40 hover:text-white"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -343,20 +343,20 @@ export const RoutePlanningView: React.FC = () => {
 
       {/* Saved Routes List */}
       {showSavedRoutes && (
-        <div className="bg-slate-900 rounded-lg shadow-lg p-6 mb-4 border border-slate-800">
+        <div className="glass-panel p-6 mb-4">
           <h2 className="text-xl font-bold mb-4 text-white">Saved Routes</h2>
           {savedRoutes.length === 0 ? (
-            <p className="text-slate-400">No saved routes yet</p>
+            <p className="text-white/40">No saved routes yet</p>
           ) : (
             <div className="space-y-3">
               {savedRoutes.map((savedRoute) => (
                 <div
                   key={savedRoute.id}
-                  className="flex items-center justify-between p-4 border border-slate-700 rounded-lg hover:bg-slate-800"
+                  className="flex items-center justify-between p-4 border border-white/10 rounded-lg hover:bg-white/10"
                 >
                   <div className="flex-1">
                     <h3 className="font-semibold text-white">{savedRoute.name}</h3>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-white/40">
                       {formatDistance(savedRoute.totalDistance)} • ETA:{' '}
                       {formatTime(savedRoute.estimatedTime * 60)}
                     </p>
@@ -384,12 +384,12 @@ export const RoutePlanningView: React.FC = () => {
 
       {/* Route Creation Form */}
       {!isNavigating && (
-        <div className="bg-slate-900 rounded-lg shadow-lg p-6 mb-4 border border-slate-800">
+        <div className="glass-panel p-6 mb-4">
           <h2 className="text-xl font-bold mb-4 text-white">Create New Route</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-300">
+              <label className="block text-sm font-semibold mb-2 text-white/80">
                 Route Name (Optional)
               </label>
               <input
@@ -397,12 +397,12 @@ export const RoutePlanningView: React.FC = () => {
                 value={routeName}
                 onChange={(e) => setRouteName(e.target.value)}
                 placeholder="e.g., Weekend Cruise"
-                className="w-full p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-300">
+              <label className="block text-sm font-semibold mb-2 text-white/80">
                 Start Location
               </label>
               <div className="flex gap-2 mb-2">
@@ -411,7 +411,7 @@ export const RoutePlanningView: React.FC = () => {
                   value={startLocation}
                   onChange={(e) => setStartLocation(e.target.value)}
                   placeholder="Location name"
-                  className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <button
                   onClick={() => handleUseCurrentLocation('start')}
@@ -426,20 +426,20 @@ export const RoutePlanningView: React.FC = () => {
                   value={startLat}
                   onChange={(e) => setStartLat(e.target.value)}
                   placeholder="Latitude"
-                  className="p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <input
                   type="text"
                   value={startLon}
                   onChange={(e) => setStartLon(e.target.value)}
                   placeholder="Longitude"
-                  className="p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-300">
+              <label className="block text-sm font-semibold mb-2 text-white/80">
                 Destination
               </label>
               <div className="flex gap-2 mb-2">
@@ -448,7 +448,7 @@ export const RoutePlanningView: React.FC = () => {
                   value={destLocation}
                   onChange={(e) => setDestLocation(e.target.value)}
                   placeholder="Location name"
-                  className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <button
                   onClick={() => handleUseCurrentLocation('dest')}
@@ -463,20 +463,20 @@ export const RoutePlanningView: React.FC = () => {
                   value={destLat}
                   onChange={(e) => setDestLat(e.target.value)}
                   placeholder="Latitude"
-                  className="p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <input
                   type="text"
                   value={destLon}
                   onChange={(e) => setDestLon(e.target.value)}
                   placeholder="Longitude"
-                  className="p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-300">
+              <label className="block text-sm font-semibold mb-2 text-white/80">
                 Average Speed (knots)
               </label>
               <input
@@ -486,7 +486,7 @@ export const RoutePlanningView: React.FC = () => {
                 min="1"
                 max="50"
                 step="0.5"
-                className="w-full p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
             </div>
 
@@ -503,11 +503,11 @@ export const RoutePlanningView: React.FC = () => {
 
       {/* Route Display */}
       {route && (
-        <div className="bg-slate-900 rounded-lg shadow-lg p-6 mb-4 border border-slate-800">
-          
+        <div className="glass-panel bg-[#0F3A5E]/80 p-6 mb-4">
+
           {/* Hazard Analysis */}
           {isAnalyzing ? (
-            <div className="p-4 mb-4 text-center text-slate-400">
+            <div className="p-4 mb-4 text-center text-white/40">
               <div className="animate-spin inline-block w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mb-2"></div>
               <p>Analyzing route hazards...</p>
             </div>
@@ -529,24 +529,24 @@ export const RoutePlanningView: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-slate-800/50 p-4 rounded-lg">
-              <p className="text-sm text-slate-400 mb-1">Distance</p>
+            <div className="glass-inner p-4 rounded-lg">
+              <p className="text-sm text-white/40 mb-1">Distance</p>
               <p className="text-2xl font-bold text-white">
                 {formatDistance(route.totalDistance)}
               </p>
             </div>
-            <div className="bg-slate-800/50 p-4 rounded-lg">
-              <p className="text-sm text-slate-400 mb-1">ETA</p>
+            <div className="glass-inner p-4 rounded-lg">
+              <p className="text-sm text-white/40 mb-1">ETA</p>
               <p className="text-2xl font-bold text-white">
                 {formatTime(route.estimatedTime * 60)}
               </p>
             </div>
-            <div className="bg-slate-800/50 p-4 rounded-lg">
-              <p className="text-sm text-slate-400 mb-1">Waypoints</p>
+            <div className="glass-inner p-4 rounded-lg">
+              <p className="text-sm text-white/40 mb-1">Waypoints</p>
               <p className="text-2xl font-bold text-white">{route.waypoints.length}</p>
             </div>
-            <div className="bg-slate-800/50 p-4 rounded-lg">
-              <p className="text-sm text-slate-400 mb-1">Avg Speed</p>
+            <div className="glass-inner p-4 rounded-lg">
+              <p className="text-sm text-white/40 mb-1">Avg Speed</p>
               <p className="text-2xl font-bold text-white">{route.averageSpeed} kts</p>
             </div>
           </div>
@@ -583,14 +583,14 @@ export const RoutePlanningView: React.FC = () => {
 
       {/* Navigation Display */}
       {isNavigating && navigationState && (
-        <div className="bg-slate-900 rounded-lg shadow-lg p-6 border border-slate-800">
+        <div className="glass-panel p-6">
           <h2 className="text-xl font-bold mb-4 text-white">Active Navigation</h2>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-blue-900/30 p-4 rounded-lg border border-blue-700/50">
               <div className="flex items-center gap-2 mb-2">
                 <Compass className="w-5 h-5 text-blue-400" />
-                <p className="text-sm text-slate-300">Heading</p>
+                <p className="text-sm text-white/80">Heading</p>
               </div>
               <p className="text-2xl font-bold text-white">
                 {formatBearing(navigationState.heading)}
@@ -600,17 +600,17 @@ export const RoutePlanningView: React.FC = () => {
             <div className="bg-green-900/30 p-4 rounded-lg border border-green-700/50">
               <div className="flex items-center gap-2 mb-2">
                 <Activity className="w-5 h-5 text-green-400" />
-                <p className="text-sm text-slate-300">Speed</p>
+                <p className="text-sm text-white/80">Speed</p>
               </div>
               <p className="text-2xl font-bold text-white">
                 {navigationState.speed.toFixed(1)} kts
               </p>
             </div>
 
-            <div className="bg-purple-900/30 p-4 rounded-lg border border-purple-700/50">
+            <div className="bg-teal-900/30 p-4 rounded-lg border border-teal-700/50">
               <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-5 h-5 text-purple-400" />
-                <p className="text-sm text-slate-300">Distance</p>
+                <MapPin className="w-5 h-5 text-teal-400" />
+                <p className="text-sm text-white/80">Distance</p>
               </div>
               <p className="text-2xl font-bold text-white">
                 {formatDistance(navigationState.distanceToNext)}
@@ -620,7 +620,7 @@ export const RoutePlanningView: React.FC = () => {
             <div className="bg-orange-900/30 p-4 rounded-lg border border-orange-700/50">
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-5 h-5 text-orange-400" />
-                <p className="text-sm text-slate-300">ETA</p>
+                <p className="text-sm text-white/80">ETA</p>
               </div>
               <p className="text-2xl font-bold text-white">
                 {formatTime(navigationState.etaToNext)}
@@ -629,29 +629,29 @@ export const RoutePlanningView: React.FC = () => {
           </div>
 
           {navigationState.nextWaypoint && (
-            <div className="bg-slate-800/50 p-6 rounded-lg mb-4 border border-slate-700">
-              <p className="text-sm text-slate-400 mb-2">Next Waypoint</p>
+            <div className="glass-inner p-6 rounded-lg mb-4 border border-white/10">
+              <p className="text-sm text-white/40 mb-2">Next Waypoint</p>
               <h3 className="text-2xl font-bold mb-4 text-white">
                 {navigationState.nextWaypoint.name}
               </h3>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-400">Bearing</p>
+                  <p className="text-sm text-white/40">Bearing</p>
                   <p className="text-xl font-bold text-white">
                     {formatBearing(navigationState.bearingToNext)}
                   </p>
                 </div>
-                <ChevronRight className="w-8 h-8 text-slate-600" />
+                <ChevronRight className="w-8 h-8 text-white/40" />
               </div>
             </div>
           )}
 
           <div className="mb-4">
-            <div className="flex justify-between text-sm text-slate-400 mb-2">
+            <div className="flex justify-between text-sm text-white/40 mb-2">
               <span>Progress</span>
               <span>{navigationState.progress.toFixed(0)}%</span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-4 overflow-hidden">
+            <div className="w-full bg-white/10 rounded-full h-4 overflow-hidden">
               <div
                 className="bg-blue-500 h-4 rounded-full transition-all duration-500"
                 style={{ width: `${navigationState.progress}%` }}

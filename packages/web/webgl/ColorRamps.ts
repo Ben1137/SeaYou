@@ -42,7 +42,7 @@ export function createColorRampTexture(
 
 // Windy-style wave height color ramp (purple → fuchsia → pink)
 export const WAVE_COLORS: [number, number, number, number][] = [
-  [20,  20,  80,  0],     // Transparent deep blue (near zero)
+  [20,  20,  80, 100],    // Faint deep blue baseline (~0.39 opacity) — calm 0.1-0.3m waves visible
   [60,  30, 140, 140],    // Deep purple
   [147, 51, 234, 200],    // Purple-600
   [168, 85, 247, 210],    // Purple-500
@@ -100,6 +100,19 @@ export const WAVE_PARTICLE_COLORS: [number, number, number, number][] = [
   [255, 255, 255, 255],    // 5.5m+  — pure solid white (storm swell)
 ];
 
+// Monochrome particle ramp — light gray/white for compound layers (e.g. wind over heatmap).
+// Same pattern as WAVE_PARTICLE_COLORS but neutral gray instead of white, for subtle overlay.
+export const MONOCHROME_COLORS: [number, number, number, number][] = [
+  [220, 220, 220,   0],    // Calm — fully transparent
+  [220, 220, 220,  40],    // Light breeze — barely visible
+  [220, 220, 220,  95],    // Moderate — soft gray shimmer
+  [225, 225, 225, 150],    // Strong — clear gray streaks
+  [230, 230, 230, 195],    // Very strong — bright gray
+  [235, 235, 235, 225],    // Gale — near-solid
+  [240, 240, 240, 245],    // Storm — almost white
+  [245, 245, 245, 255],    // Extreme — solid light gray-white
+];
+
 // Sea temperature color ramp (cold blue → warm red)
 export const TEMPERATURE_COLORS: [number, number, number, number][] = [
   [20,  30, 100, 200],    // Cold deep blue
@@ -126,27 +139,44 @@ export const AIR_TEMPERATURE_COLORS: [number, number, number, number][] = [
   [255,  50,  20, 248],   // 50°C  — Bright red (extreme heat)
 ];
 
-// Precipitation color ramp (0 → 15 mm/h) — standard radar convention
-// Transparent (dry) → green (drizzle) → yellow (moderate) → orange-red (heavy) → magenta (extreme)
+// Precipitation color ramp (0 → 15 mm/h) — standard meteorological radar
+// Transparent (dry) → light blue (drizzle) → green → yellow → orange → red → purple (extreme)
 export const PRECIPITATION_COLORS: [number, number, number, number][] = [
   [  0,   0,   0,   0],   // 0.0 mm/h  — Fully transparent (dry)
-  [100, 230,  80, 100],   // 0.1 mm/h  — Light green (drizzle)
-  [150, 230,  50, 150],   // 0.5 mm/h  — Green (light rain)
-  [220, 220,  20, 185],   // 1.0 mm/h  — Yellow (moderate rain)
-  [255, 155,  20, 210],   // 2.0 mm/h  — Orange (heavy rain)
-  [255,  60,  20, 225],   // 4.0 mm/h  — Orange-red (very heavy)
-  [200,  20,  80, 240],   // 7.0 mm/h  — Red-magenta (intense)
-  [200,  20, 200, 250],   // 10.0 mm/h — Magenta (extreme)
+  [  0,   0,   0,   0],   // 0.05 mm/h — Still transparent (trace moisture)
+  [120, 180, 255,  80],   // 0.1 mm/h  — Very faint blue (light drizzle)
+  [ 80, 210, 255, 140],   // 0.5 mm/h  — Cyan-blue (drizzle)
+  [ 50, 200,  50, 180],   // 1.0 mm/h  — Green (moderate rain)
+  [255, 255,   0, 210],   // 2.5 mm/h  — Yellow (heavy rain)
+  [255, 165,   0, 230],   // 5.0 mm/h  — Orange (very heavy)
+  [255,  30,  30, 240],   // 8.0 mm/h  — Red (intense)
+  [180,   0, 200, 245],   // 12.0 mm/h — Purple (extreme)
   [255, 255, 255, 255],   // 15.0+ mm/h — White (extreme+)
 ];
 
-// Cloud cover color ramp (0% → 100%) — transparent sky → opaque white overcast
-// Transparent (clear) → light blue-gray (few clouds) → gray (broken) → white (overcast)
+// Pressure color ramp (960 → 1050 hPa) — MapTiler-style isobaric palette
+// Deep purple/blue (low pressure, storms) → teal → green → yellow → orange → red (high pressure, fair weather)
+export const PRESSURE_COLORS: [number, number, number, number][] = [
+  [ 80,  20, 160, 210],   //  960 hPa — Deep purple (extreme low)
+  [ 60,  60, 200, 215],   //  975 hPa — Blue-purple (low pressure)
+  [ 40, 120, 210, 220],   //  990 hPa — Ocean blue
+  [ 30, 180, 200, 225],   // 1000 hPa — Teal
+  [ 60, 200, 140, 225],   // 1010 hPa — Teal-green (standard)
+  [140, 220,  80, 225],   // 1020 hPa — Yellow-green
+  [220, 200,  40, 230],   // 1030 hPa — Yellow
+  [255, 140,  30, 235],   // 1040 hPa — Orange
+  [230,  50,  30, 240],   // 1050 hPa — Red (extreme high)
+];
+
+// Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds
+// Mimics real satellite infrared imagery: clear sky = invisible, clouds = bright white
 export const CLOUD_COVER_COLORS: [number, number, number, number][] = [
   [  0,   0,   0,   0],   //   0% — Fully transparent (clear sky)
-  [200, 215, 235,  50],   //  20% — Very light gray-blue (few clouds)
-  [170, 185, 215, 100],   //  40% — Light gray-blue (scattered)
-  [130, 150, 185, 150],   //  60% — Gray-blue (broken)
-  [100, 120, 160, 195],   //  80% — Gray (overcast)
-  [185, 190, 200, 235],   // 100% — Light gray-white (full overcast)
+  [220, 225, 230,  25],   //  10% — Barely visible wisp
+  [235, 238, 242,  60],   //  25% — Thin cirrus (few clouds)
+  [240, 242, 248,  95],   //  40% — Scattered clouds
+  [245, 247, 252, 140],   //  60% — Broken cloud layer
+  [248, 250, 255, 185],   //  80% — Mostly overcast
+  [252, 253, 255, 220],   //  90% — Heavy overcast
+  [255, 255, 255, 245],   // 100% — Full white overcast
 ];

@@ -30,7 +30,8 @@
     "waveThreshold": "Wellenschwelle (m)",
     "windThreshold": "Windschwelle (km/h)",
     "tsunamiSimulation": "Tsunami-Alarm-Simulation",
-    "noData": "Keine Wetterdaten verfügbar."
+    "noData": "Keine Wetterdaten verfügbar.",
+    "alertSettings": "Alarmeinstellungen"
   },
   "settings": {
     "alertConfig": "Alarmkonfiguration",
@@ -110,6 +111,14 @@
       "cold": "Kalt",
       "cool": "Kühl",
       "great": "Großartig"
+    },
+    "uv": {
+      "label": "UV-Index",
+      "extreme": "Extrem",
+      "veryHigh": "Sehr hoch",
+      "high": "Hoch",
+      "moderate": "Mäßig",
+      "low": "Niedrig"
     }
   },
   "forecast": {
@@ -202,7 +211,14 @@
     "highPressure": "Hochdruck",
     "normal": "Normal",
     "todaySummary": "Zusammenfassung heute",
-    "current": "Aktuell"
+    "current": "Aktuell",
+    "currentWeather": "Aktuelles Wetter",
+    "hourlyForecast": "24-Stunden-Vorhersage",
+    "dailyForecast": "10-Tage-Vorhersage",
+    "sunrise": "Sonnenaufgang",
+    "sunset": "Sonnenuntergang",
+    "today": "Heute",
+    "chanceOfRain": "Regenwahrscheinlichkeit"
   },
   "moonPhases": {
     "newMoon": "Neumond",
@@ -417,6 +433,16 @@
     "apply_filters": "Filter anwenden",
     "searching_for_marinas": "Suche nach Marinas...",
     "no_favorite_marinas_yet": "Noch keine Lieblings-Marinas",
-    "no_marinas_found_in_area": "Keine Marinas in diesem Gebiet gefunden"
+    "no_marinas_found_in_area": "Keine Marinas in diesem Gebiet gefunden",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Route erstellen",
+    "viewSaved": "Gespeicherte anzeigen",
+    "routeName": "Routenname",
+    "startLocation": "Startort",
+    "destination": "Ziel",
+    "averageSpeed": "Durchschnittsgeschwindigkeit"
   }
 }

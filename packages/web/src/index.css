@@ -105,6 +105,8 @@
   --chart-tertiary: #3b82f6;
   --chart-grid: rgba(1, 101, 141, 0.3);
   --chart-text: #94a3b8;
+
+  --theme-bg: radial-gradient(circle at top center, #2c6a9b 0%, #082c47 100%);
 }
 
 :root.dark, .dark {
@@ -142,6 +144,8 @@
   --chart-tertiary: #818cf8;
   --chart-grid: rgba(51, 65, 85, 0.5);
   --chart-text: #94a3b8;
+
+  --theme-bg: radial-gradient(circle at top center, #081422 0%, #020617 100%);
 }
 
 /* Small transition for smooth theme swaps */
@@ -258,4 +262,158 @@ html {
 .recharts-responsive-container, .recharts-wrapper {
   min-width: 0;
   min-height: 160px;
+}
+
+/* ================================================
+   Glassmorphism Design System
+   Premium glass-panel styling for SeaYou redesign
+   ================================================ */
+
+/* Theme background gradient */
+.theme-bg {
+  background: var(--theme-bg);
+}
+
+.theme-transition {
+  transition: background 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Glass Panel — primary container */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 1.25rem;
+}
+
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.75); /* slate-900 at 75% — matches old bg-card #0f172a */
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Glass Inner — nested inner elements */
+.glass-inner {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0.75rem;
+}
+
+.dark .glass-inner {
+  background: rgba(2, 6, 23, 0.5); /* slate-950 at 50% — matches old bg-elevated */
+}
+
+/* Alert Banner — orange gradient */
+.alert-banner {
+  background: linear-gradient(90deg, #E67A32 0%, #CD8B4E 100%);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 15px rgba(230, 122, 50, 0.3);
+}
+
+/* Temperature bar gradient for forecasts */
+.temp-bar-gradient {
+  background: linear-gradient(90deg, #60a5fa 0%, #fbd38d 70%, #f6ad55 100%);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Navigation item styling */
+.nav-item {
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+}
+
+.nav-item.active {
+  color: white;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark .nav-item.active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Toggle checkbox (iOS-style) */
+.toggle-checkbox:checked {
+  transform: translateX(100%);
+  border-color: transparent !important;
+  background-color: #ffffff !important;
+}
+.toggle-checkbox:checked + .toggle-label {
+  background-color: #34C759 !important;
+}
+.toggle-checkbox {
+  left: 0;
+  z-index: 1;
+  background-color: #ffffff;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  border: 2px solid transparent;
+}
+.toggle-label {
+  background-color: rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+.dark .toggle-label {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Range slider styling */
+input[type=range] {
+  -webkit-appearance: none;
+  background: transparent;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  cursor: pointer;
+  margin-top: -8px;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.2);
+  border-radius: 2px;
+}
+
+/* MapLibre control overrides for glass theme */
+.maplibregl-ctrl-group {
+  background: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 0.75rem !important;
+}
+
+.maplibregl-ctrl-group button {
+  background-color: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.maplibregl-ctrl-group button:last-child {
+  border-bottom: none !important;
+}
+
+/* Glow text for emphasis */
+.glow-text {
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
 }

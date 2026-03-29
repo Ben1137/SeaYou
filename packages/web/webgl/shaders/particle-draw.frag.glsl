@@ -36,6 +36,6 @@ void main() {
   // color.a is already in [0,1] from the texture sample
   float alpha = min(1.0, color.a * circle * ageFade * speedFade * brightnessBoost);
 
-  // Premultiplied alpha for correct blending with trail FBO
-  gl_FragColor = vec4(color.rgb * alpha, alpha);
+  // Straight alpha — canvas uses premultipliedAlpha: false
+  gl_FragColor = vec4(color.rgb, alpha);
 }

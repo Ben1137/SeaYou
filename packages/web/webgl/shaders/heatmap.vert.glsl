@@ -1,8 +1,18 @@
-// heatmap.vert.glsl - Vertex shader for wave heatmap
+// heatmap.vert.glsl - Vertex shader for heatmap layers (NDC fullscreen quad)
+//
+// Offscreen Canvas Source architecture:
+//   The engine renders to its OWN canvas with its OWN WebGL context.
+//   MapLibre's CanvasSource drapes the canvas texture onto the globe.
+//   No u_matrix, no projectTile() — just a simple NDC fullscreen quad.
+//
+// Vertex layout (stride 16 bytes):
+//   offset 0: a_pos      [-1..1] NDC position
+//   offset 8: a_texcoord [0..1]  Data texture UV
+//
 precision highp float;
 
-attribute vec2 a_pos;      // Quad vertex position (-1 to 1)
-attribute vec2 a_texcoord; // Texture coordinate (0 to 1)
+attribute vec2 a_pos;       // NDC position [-1, 1]
+attribute vec2 a_texcoord;  // UV coordinate for data texture [0, 1]
 
 varying vec2 v_texcoord;
 

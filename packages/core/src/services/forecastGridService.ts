@@ -20,6 +20,10 @@ export interface ForecastGridPoint {
   pressureMsl?: number;        // hPa
   cloudCover?: number;         // 0-100 (percentage)
   precipitation?: number;      // mm/h
+  windSpeed?: number;          // m/s (10m above ground)
+  windDirection?: number;      // degrees (meteorological: FROM direction)
+  windU?: number;              // U component (east-west) m/s
+  windV?: number;              // V component (north-south) m/s
 }
 
 export interface ForecastGridData {
@@ -93,6 +97,8 @@ export async function fetchForecastGridData(
         'pressure_msl',
         'cloud_cover',
         'precipitation',
+        'wind_speed_10m',
+        'wind_direction_10m',
       ].join(','),
       timezone: WEATHER_CONSTANTS.TIMEZONE,
       models: weatherModel,
@@ -101,7 +107,7 @@ export async function fetchForecastGridData(
     const responses = await deduplicatedFetch<any>(
       `${API_ENDPOINTS.FORECAST}?${params.toString()}`,
       undefined,
-      { ttl: 3000 }
+      { ttl: 3600000 } // 60 min — forecast data updates hourly at most
     );
 
     // Open-Meteo returns array for multiple coordinates, single object for one
@@ -110,6 +116,16 @@ export async function fetchForecastGridData(
     const points: ForecastGridPoint[] = forecastArray.map((forecast, index) => {
       const coord = coordinates[index];
 
+      // Compute wind U/V from speed + direction
+      const windSpeed = forecast.current?.wind_speed_10m ?? 0;
+      const windDirection = forecast.current?.wind_direction_10m ?? 0;
+      // Meteorological convention: direction FROM which wind blows
+      // Convert to "TO" direction for U/V: add 180° then to math angle
+      const mathAngle = (270 - windDirection) % 360;
+      const radians = (mathAngle * Math.PI) / 180;
+      const windU = windSpeed * Math.cos(radians);
+      const windV = windSpeed * Math.sin(radians);
+
       return {
         lat: coord.lat,
         lng: coord.lng,
@@ -117,6 +133,10 @@ export async function fetchForecastGridData(
         pressureMsl: forecast.current?.pressure_msl ?? undefined,
         cloudCover: forecast.current?.cloud_cover ?? undefined,
         precipitation: forecast.current?.precipitation ?? undefined,
+        windSpeed: windSpeed || undefined,
+        windDirection: windDirection || undefined,
+        windU,
+        windV,
       };
     });
 

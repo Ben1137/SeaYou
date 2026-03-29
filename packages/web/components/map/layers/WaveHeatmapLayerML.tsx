@@ -1,13 +1,21 @@
 /**
- * WaveHeatmapLayerML - React component wrapper for WebGL Wave Heatmap
- * Phase 2 → Phase 6A: Migrated to GenericHeatmapEngine
+ * WaveHeatmapLayerML - Canvas Source architecture for Wave Heatmap
+ *
+ * Renders wave height data to an offscreen canvas via GenericHeatmapEngine,
+ * then uses MapLibre's CanvasSource to drape it onto the globe.
+ *
+ * Data flow:
+ *   First load  → updateData() + render() (hard set)
+ *   Subsequent  → updateNextData() + rAF blend 0→1 over BLEND_DURATION_MS
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useMap } from '../useMap';
-import { createGenericHeatmapLayer, type GenericHeatmapLayer } from '../../../webgl/GenericHeatmapEngine';
+import { createGenericHeatmapEngine, type GenericHeatmapEngine } from '../../../webgl/GenericHeatmapEngine';
+import { createOffscreenCanvas, type OffscreenCanvasHandle } from '../../../webgl/OffscreenCanvasManager';
+import { useCanvasSourceLayer, boundsToCorners } from '../../../hooks/useCanvasSourceLayer';
 import { WAVE_COLORS } from '../../../webgl/ColorRamps';
-import { getSafeBeforeId } from '../../../utils/mapLayerUtils';
+import { getMarineBeforeId } from '../../../utils/mapLayerUtils';
 import type { MarineGridData } from '@seame/core';
 
 export interface WaveHeatmapLayerMLProps {
@@ -15,6 +23,10 @@ export interface WaveHeatmapLayerMLProps {
   opacity?: number;
   sharedGridData?: MarineGridData | null;
 }
+
+const BLEND_DURATION_MS = 2000;
+const SOURCE_ID = 'wave-heatmap-canvas-src';
+const LAYER_ID = 'wave-heatmap-canvas-layer';
 
 export function WaveHeatmapLayerML({
   visible,
@@ -24,142 +36,150 @@ export function WaveHeatmapLayerML({
   const map = useMap();
   const mapRef = useRef(map);
   mapRef.current = map;
-  const layerRef = useRef<GenericHeatmapLayer | null>(null);
-  const layerAddedRef = useRef(false);
+  const engineRef = useRef<GenericHeatmapEngine | null>(null);
+  const canvasHandleRef = useRef<OffscreenCanvasHandle | null>(null);
+  const isFirstLoadRef = useRef(true);
+  const rafRef = useRef<number | null>(null);         // Blend animation rAF
+  const renderRafRef = useRef<number | null>(null);   // Continuous render loop rAF
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
 
-  // Process grid data and update the WebGL layer
+  // Create engine + offscreen canvas
+  useEffect(() => {
+    const handle = createOffscreenCanvas('wave-heatmap', 1024, 1024);
+    canvasHandleRef.current = handle;
+
+    const engine = createGenericHeatmapEngine({
+      logPrefix: '[WaveHeatmap]',
+      colorRamp: WAVE_COLORS,
+      normalization: 'max-value',
+      maxValue: 8,            // 0-8m range — global ocean waves (Mediterranean ~0.2-1.5m, open ocean up to ~6-8m)
+      discardBelow: 0.0,      // Show ALL wave data — calm seas visible via color ramp baseline
+      fadeRange: 0.1,         // Tight fade for low-wave regions
+      opacity: 1.0,           // Full internal alpha — raster-opacity controls visible opacity
+      useLandMask: false,
+    });
+    engine.init(handle.canvas);
+    engineRef.current = engine;
+    setCanvasElement(handle.canvas);
+
+    // Continuous render loop — ensures MapLibre captures the canvas after CanvasSource attaches
+    let destroyed = false;
+    const animate = () => {
+      if (destroyed) return;
+      if (engineRef.current) {
+        engineRef.current.render();
+        mapRef.current?.triggerRepaint();
+      }
+      renderRafRef.current = requestAnimationFrame(animate);
+    };
+    renderRafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      destroyed = true;
+      if (renderRafRef.current !== null) {
+        cancelAnimationFrame(renderRafRef.current);
+        renderRafRef.current = null;
+      }
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      isFirstLoadRef.current = true;
+      // Destroy immediately — free the WebGL context before a new layer can mount
+      engineRef.current?.destroy();
+      engineRef.current = null;
+      canvasHandleRef.current?.destroy();
+      canvasHandleRef.current = null;
+    };
+  }, []);
+
+  const beforeId = map ? getMarineBeforeId(map) : undefined;
+  const { updateCoordinates } = useCanvasSourceLayer({
+    map,
+    sourceId: SOURCE_ID,
+    layerId: LAYER_ID,
+    canvas: canvasElement,
+    beforeId,
+    opacity,
+    visible,
+  });
+
   const processGridData = useCallback((gridData: MarineGridData) => {
-    if (!gridData || !gridData.points || gridData.points.length === 0) return;
-    if (!layerRef.current) return;
+    if (!gridData?.points?.length || !engineRef.current) return;
 
     const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
     const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
 
-    const gridHeight = lats.length;
-    const gridWidth = lons.length;
-
-    const waveHeightMap = new Map<string, number>();
+    const waveMap = new Map<string, number>();
     gridData.points.forEach(point => {
       const key = `${point.lat.toFixed(4)},${point.lng.toFixed(4)}`;
-      // Use NaN for land points so the encoder sets alpha=0 and the shader discards them
-      waveHeightMap.set(key, point.isOcean ? (point.waveHeight ?? NaN) : NaN);
+      waveMap.set(key, point.isOcean ? (point.waveHeight ?? NaN) : NaN);
     });
 
     const grid: number[][] = [];
-    for (let latIdx = 0; latIdx < gridHeight; latIdx++) {
+    for (let latIdx = 0; latIdx < lats.length; latIdx++) {
       const row: number[] = [];
-      for (let lonIdx = 0; lonIdx < gridWidth; lonIdx++) {
-        const lat = lats[latIdx];
-        const lon = lons[lonIdx];
-        const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
-        const value = waveHeightMap.get(key) ?? NaN;
-        row.push(value);
+      for (let lonIdx = 0; lonIdx < lons.length; lonIdx++) {
+        const key = `${lats[latIdx].toFixed(4)},${lons[lonIdx].toFixed(4)}`;
+        row.push(waveMap.get(key) ?? NaN);
       }
       grid.push(row);
     }
 
-    const actualMinLon = lons[0];
-    const actualMaxLon = lons[lons.length - 1];
-    const actualMinLat = lats[0];
-    const actualMaxLat = lats[lats.length - 1];
+    const [minLon, maxLon] = [lons[0], lons[lons.length - 1]];
+    const [minLat, maxLat] = [lats[0], lats[lats.length - 1]];
 
-    layerRef.current.updateData(grid, actualMinLon, actualMaxLon, actualMinLat, actualMaxLat);
+    const newCorners = boundsToCorners(minLon, maxLon, minLat, maxLat);
+    updateCoordinates(newCorners);
+
+    const engine = engineRef.current;
+
+    if (isFirstLoadRef.current) {
+      engine.updateData(grid, minLon, maxLon, minLat, maxLat);
+      engine.render();
+      map?.triggerRepaint();
+      isFirstLoadRef.current = false;
+    } else {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+
+      engine.updateNextData(grid, minLon, maxLon, minLat, maxLat);
+      engine.setBlend(0);
+      engine.render();
+      map?.triggerRepaint();
+
+      const start = performance.now();
+      const animate = (now: number) => {
+        const progress = Math.min((now - start) / BLEND_DURATION_MS, 1.0);
+        engine.setBlend(progress);
+        engine.render();
+        map?.triggerRepaint();
+        if (progress < 1.0) {
+          rafRef.current = requestAnimationFrame(animate);
+        } else {
+          engine.updateData(grid, minLon, maxLon, minLat, maxLat);
+          engine.setBlend(0);
+          engine.render();
+          map?.triggerRepaint();
+          rafRef.current = null;
+        }
+      };
+      rafRef.current = requestAnimationFrame(animate);
+    }
 
     console.log('[WaveHeatmapLayerML] Data updated:', {
-      gridWidth,
-      gridHeight,
-      bounds: { actualMinLon, actualMaxLon, actualMinLat, actualMaxLat },
+      gridSize: `${lons.length}x${lats.length}`,
+      bounds: { minLon, maxLon, minLat, maxLat },
     });
-  }, []);
+  }, [updateCoordinates]);
 
-  // Initialize the layer
+  // Opacity is controlled by raster-opacity in useCanvasSourceLayer — no engine update needed
+
   useEffect(() => {
-    if (!map) return;
-
-    const setupLayer = () => {
-      if (layerAddedRef.current) return;
-
-      try {
-        const heatmapLayer = createGenericHeatmapLayer('wave-heatmap-webgl', {
-          logPrefix: '[WaveHeatmap]',
-          colorRamp: WAVE_COLORS,
-          normalization: 'max-value',
-          maxValue: 10,
-          discardBelow: 0.05,
-          fadeRange: 0.25,       // Exact match: smoothstep(0.05, 0.30, value)
-          opacity,
-          useLandMask: false,
-        });
-
-        layerRef.current = heatmapLayer;
-        // Insert BELOW the land layer so MapLibre's land polygons naturally clip the ocean heatmap.
-        // Double-guard: getSafeBeforeId checks the style spec; map.getLayer() checks runtime existence
-        // (the target layer may be temporarily absent during fast zoom/pan tile-loading).
-        const beforeId = getSafeBeforeId(map);
-        const safeBeforeId = beforeId && map.getLayer(beforeId) ? beforeId : undefined;
-        if (!map.getLayer('wave-heatmap-webgl')) {
-          map.addLayer(heatmapLayer, safeBeforeId);
-        }
-        layerAddedRef.current = true;
-
-        console.log('[WaveHeatmapLayerML] Layer added to map', safeBeforeId ? `before "${safeBeforeId}"` : '(top)');
-      } catch (error) {
-        console.error('[WaveHeatmapLayerML] Failed to add layer:', error);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      setupLayer();
-    } else {
-      map.once('style.load', setupLayer);
-    }
-
-    return () => {
-      if (map && layerAddedRef.current) {
-        try {
-          if (map.getLayer('wave-heatmap-webgl')) {
-            map.removeLayer('wave-heatmap-webgl');
-          }
-        } catch (e) {
-          // Ignore
-        }
-        layerAddedRef.current = false;
-        layerRef.current = null;
-      }
-    };
-  }, [map]);
-
-  // Handle visibility changes
-  useEffect(() => {
-    if (!layerRef.current) return;
-    layerRef.current.setVisibility(visible);
-  }, [visible]);
-
-  // Handle opacity changes
-  useEffect(() => {
-    if (layerRef.current) {
-      layerRef.current.setOpacity(opacity);
-    }
-  }, [opacity]);
-
-  // Force data upload + double-tap repaint on visibility or data change.
-  // When switching between layers that share the same cached gridData, React won't
-  // re-trigger if the reference is identical. Re-running processGridData explicitly
-  // on every visible=true ensures the WebGL texture is always populated.
-  useEffect(() => {
-    if (!visible || !sharedGridData || !layerRef.current) return;
-
-    // 1. Force data upload even if gridData reference hasn't changed
+    if (!visible || !sharedGridData) return;
     processGridData(sharedGridData);
-
-    // 2. Double-tap repaint — guarantees MapLibre catches the painted texture
-    const t1 = setTimeout(() => {
-      mapRef.current?.triggerRepaint();
-    }, 50);
-    const t2 = setTimeout(() => {
-      mapRef.current?.triggerRepaint();
-    }, 150);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [visible, sharedGridData, processGridData]);
 
   return null;

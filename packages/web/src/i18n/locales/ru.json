@@ -30,7 +30,8 @@
     "waveThreshold": "Порог волн (м)",
     "windThreshold": "Порог ветра (км/ч)",
     "tsunamiSimulation": "Симуляция оповещения о цунами",
-    "noData": "Нет доступных данных о погоде."
+    "noData": "Нет доступных данных о погоде.",
+    "alertSettings": "Настройки оповещений"
   },
   "settings": {
     "alertConfig": "Конфигурация оповещений",
@@ -110,6 +111,14 @@
       "cold": "Холодно",
       "cool": "Прохладно",
       "great": "Отлично"
+    },
+    "uv": {
+      "label": "УФ-индекс",
+      "extreme": "Экстремальный",
+      "veryHigh": "Очень высокий",
+      "high": "Высокий",
+      "moderate": "Умеренный",
+      "low": "Низкий"
     }
   },
   "forecast": {
@@ -426,6 +435,16 @@
     "apply_filters": "Применить фильтры",
     "searching_for_marinas": "Поиск марин...",
     "no_favorite_marinas_yet": "Пока нет избранных марин",
-    "no_marinas_found_in_area": "Марины в этой области не найдены"
+    "no_marinas_found_in_area": "Марины в этой области не найдены",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Создать маршрут",
+    "viewSaved": "Просмотр сохранённых",
+    "routeName": "Название маршрута",
+    "startLocation": "Начальная точка",
+    "destination": "Пункт назначения",
+    "averageSpeed": "Средняя скорость"
   }
 }

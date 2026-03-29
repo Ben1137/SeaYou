@@ -30,7 +30,8 @@
     "waveThreshold": "Soglia onde (m)",
     "windThreshold": "Soglia vento (km/h)",
     "tsunamiSimulation": "Simulazione avviso tsunami",
-    "noData": "Nessun dato meteo disponibile."
+    "noData": "Nessun dato meteo disponibile.",
+    "alertSettings": "Impostazioni avvisi"
   },
   "settings": {
     "alertConfig": "Configurazione avvisi",
@@ -110,6 +111,14 @@
       "cold": "Freddo",
       "cool": "Fresco",
       "great": "Ottimo"
+    },
+    "uv": {
+      "label": "Indice UV",
+      "extreme": "Estremo",
+      "veryHigh": "Molto alto",
+      "high": "Alto",
+      "moderate": "Moderato",
+      "low": "Basso"
     }
   },
   "forecast": {
@@ -426,6 +435,16 @@
     "apply_filters": "Applica filtri",
     "searching_for_marinas": "Ricerca marine...",
     "no_favorite_marinas_yet": "Nessuna marina preferita ancora",
-    "no_marinas_found_in_area": "Nessuna marina trovata in quest'area"
+    "no_marinas_found_in_area": "Nessuna marina trovata in quest'area",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Crea rotta",
+    "viewSaved": "Visualizza salvate",
+    "routeName": "Nome rotta",
+    "startLocation": "Posizione di partenza",
+    "destination": "Destinazione",
+    "averageSpeed": "Velocità media"
   }
 }

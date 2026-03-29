@@ -63,6 +63,28 @@ export function createProgram(
 }
 
 /**
+ * Detect whether the given context is WebGL 2.
+ * Used to select correct internal format for float textures (RGBA vs RGBA32F).
+ */
+export function isWebGL2Context(gl: WebGLRenderingContext): gl is WebGL2RenderingContext {
+  return typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+}
+
+/**
+ * Get the correct internal format for RGBA float textures.
+ * WebGL 1: gl.RGBA (with OES_texture_float extension)
+ * WebGL 2: gl.RGBA32F (float textures are built-in, but require explicit sized format)
+ *
+ * Using gl.RGBA + gl.FLOAT on WebGL 2 causes GL_INVALID_OPERATION (silent failure).
+ */
+function getFloatInternalFormat(gl: WebGLRenderingContext): number {
+  if (isWebGL2Context(gl)) {
+    return (gl as WebGL2RenderingContext).RGBA32F;
+  }
+  return gl.RGBA;
+}
+
+/**
  * Create a data texture for GPGPU computation.
  * Uses NEAREST filtering (mandatory for data textures — LINEAR would interpolate encoded values).
  * Uses CLAMP_TO_EDGE (prevents wrap-around artifacts).
@@ -79,7 +101,7 @@ export function createDataTexture(
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, data);
+  gl.texImage2D(gl.TEXTURE_2D, 0, getFloatInternalFormat(gl), width, height, 0, gl.RGBA, gl.FLOAT, data);
   return texture;
 }
 
@@ -102,7 +124,7 @@ export function createInterpolatedTexture(
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
   if (isFloat) {
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.FLOAT, data as Float32Array);
+    gl.texImage2D(gl.TEXTURE_2D, 0, getFloatInternalFormat(gl), width, height, 0, gl.RGBA, gl.FLOAT, data as Float32Array);
   } else {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data as Uint8Array);
   }
@@ -178,105 +200,3 @@ export function createParticleIndexBuffer(
   return buffer;
 }
 
-/**
- * Save and restore MapLibre's GL state around custom rendering.
- * Call saveGLState before your custom rendering, restoreGLState after.
- * CRITICAL: Must save ALL state that our custom rendering touches,
- * otherwise MapLibre's rendering breaks.
- */
-export interface GLState {
-  program: WebGLProgram | null;
-  activeTexture: number;
-  texture0: WebGLTexture | null;
-  texture1: WebGLTexture | null;
-  texture2: WebGLTexture | null;
-  framebuffer: WebGLFramebuffer | null;
-  arrayBuffer: WebGLBuffer | null;
-  elementBuffer: WebGLBuffer | null;
-  blend: boolean;
-  blendSrcRGB: number;
-  blendDstRGB: number;
-  blendSrcAlpha: number;
-  blendDstAlpha: number;
-  depthTest: boolean;
-  depthMask: boolean;
-  stencilTest: boolean;
-  cullFace: boolean;
-  viewport: Int32Array;
-  enabledVertexAttribs: boolean[];
-}
-
-export function saveGLState(gl: WebGLRenderingContext): GLState {
-  const activeTexture = gl.getParameter(gl.ACTIVE_TEXTURE);
-
-  // Save texture bindings for units 0, 1, 2
-  gl.activeTexture(gl.TEXTURE0);
-  const texture0 = gl.getParameter(gl.TEXTURE_BINDING_2D);
-  gl.activeTexture(gl.TEXTURE1);
-  const texture1 = gl.getParameter(gl.TEXTURE_BINDING_2D);
-  gl.activeTexture(gl.TEXTURE2);
-  const texture2 = gl.getParameter(gl.TEXTURE_BINDING_2D);
-  gl.activeTexture(activeTexture);
-
-  // Save vertex attrib array enabled state (MapLibre typically uses 0-7)
-  const maxAttribs = Math.min(gl.getParameter(gl.MAX_VERTEX_ATTRIBS) as number, 16);
-  const enabledVertexAttribs: boolean[] = [];
-  for (let i = 0; i < maxAttribs; i++) {
-    enabledVertexAttribs.push(gl.getVertexAttrib(i, gl.VERTEX_ATTRIB_ARRAY_ENABLED) as boolean);
-  }
-
-  return {
-    program: gl.getParameter(gl.CURRENT_PROGRAM),
-    activeTexture,
-    texture0,
-    texture1,
-    texture2,
-    framebuffer: gl.getParameter(gl.FRAMEBUFFER_BINDING),
-    arrayBuffer: gl.getParameter(gl.ARRAY_BUFFER_BINDING),
-    elementBuffer: gl.getParameter(gl.ELEMENT_ARRAY_BUFFER_BINDING),
-    blend: gl.isEnabled(gl.BLEND),
-    blendSrcRGB: gl.getParameter(gl.BLEND_SRC_RGB),
-    blendDstRGB: gl.getParameter(gl.BLEND_DST_RGB),
-    blendSrcAlpha: gl.getParameter(gl.BLEND_SRC_ALPHA),
-    blendDstAlpha: gl.getParameter(gl.BLEND_DST_ALPHA),
-    depthTest: gl.isEnabled(gl.DEPTH_TEST),
-    depthMask: gl.getParameter(gl.DEPTH_WRITEMASK),
-    stencilTest: gl.isEnabled(gl.STENCIL_TEST),
-    cullFace: gl.isEnabled(gl.CULL_FACE),
-    viewport: gl.getParameter(gl.VIEWPORT),
-    enabledVertexAttribs,
-  };
-}
-
-export function restoreGLState(gl: WebGLRenderingContext, state: GLState): void {
-  gl.useProgram(state.program);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, state.framebuffer);
-
-  // Restore texture bindings for all units we touch
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, state.texture0);
-  gl.activeTexture(gl.TEXTURE1);
-  gl.bindTexture(gl.TEXTURE_2D, state.texture1);
-  gl.activeTexture(gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, state.texture2);
-  gl.activeTexture(state.activeTexture);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, state.arrayBuffer);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.elementBuffer);
-  if (state.blend) gl.enable(gl.BLEND); else gl.disable(gl.BLEND);
-  gl.blendFuncSeparate(state.blendSrcRGB, state.blendDstRGB, state.blendSrcAlpha, state.blendDstAlpha);
-  if (state.depthTest) gl.enable(gl.DEPTH_TEST); else gl.disable(gl.DEPTH_TEST);
-  gl.depthMask(state.depthMask);
-  if (state.stencilTest) gl.enable(gl.STENCIL_TEST); else gl.disable(gl.STENCIL_TEST);
-  if (state.cullFace) gl.enable(gl.CULL_FACE); else gl.disable(gl.CULL_FACE);
-  gl.viewport(state.viewport[0], state.viewport[1], state.viewport[2], state.viewport[3]);
-
-  // Restore vertex attrib array enabled state
-  for (let i = 0; i < state.enabledVertexAttribs.length; i++) {
-    if (state.enabledVertexAttribs[i]) {
-      gl.enableVertexAttribArray(i);
-    } else {
-      gl.disableVertexAttribArray(i);
-    }
-  }
-}
