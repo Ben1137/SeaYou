@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ViewState, Location, UI_CONSTANTS, NAVIGATION_CONSTANTS } from '@seame/core';
 import Dashboard from './components/Dashboard';
 import { MapProvider } from './components/map/MapProvider';
@@ -144,13 +144,23 @@ const App: React.FC = () => {
     setShowLocationModal(false);
   };
 
+  // ─── Scroll-to-top on re-tap of active nav ───
+  const mainScrollRef = useRef<HTMLElement>(null);
+  const handleNavClick = useCallback((targetView: ViewState) => {
+    if (view === targetView && mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setView(targetView);
+    }
+  }, [view]);
+
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
         console.error('Root error boundary caught:', error, errorInfo);
       }}
     >
-      <div className="flex flex-col lg:flex-row h-[100dvh] theme-bg text-white overflow-hidden font-sans theme-transition">
+      <div className="flex flex-col lg:flex-row h-[100dvh] w-full max-w-[100vw] theme-bg text-white overflow-hidden font-sans theme-transition">
 
         {/* ============ Desktop Side Rail (lg+) ============ */}
         <nav className="hidden lg:flex lg:flex-col lg:w-20 lg:shrink-0 glass-panel !rounded-none border-r border-white/10 z-20">
@@ -165,7 +175,7 @@ const App: React.FC = () => {
             {NAV_ITEMS.map(({ view: navView, icon: Icon, labelKey }) => (
               <button
                 key={navView}
-                onClick={() => setView(navView)}
+                onClick={() => handleNavClick(navView)}
                 className={`flex flex-col items-center gap-1 w-full py-3 rounded-xl transition-all ${
                   view === navView
                     ? 'text-white bg-white/20'
@@ -193,38 +203,38 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* ============ Header ============ */}
-          <header className="grid grid-cols-3 items-center px-5 pt-4 pb-3 shrink-0 z-20">
+          <header className="grid grid-cols-[auto_1fr_auto] items-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 gap-2 sm:gap-4 w-full min-w-0 box-border">
             {/* Left: Profile icon (hidden on desktop where sidebar has branding) */}
-            <div className="flex justify-start">
+            <div className="flex justify-start min-w-0 shrink-0">
               <button
-                className="lg:hidden w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors"
+                className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors"
               >
-                <User size={18} className="text-white" />
+                <User size={16} className="text-white" />
               </button>
             </div>
 
             {/* Center: App title — always centered via grid col */}
-            <div className="flex justify-center">
-              <h1 className="text-2xl font-bold tracking-wide text-white">SeaYou</h1>
+            <div className="flex justify-center min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap">SeaYou</h1>
             </div>
 
             {/* Right: Language + Theme toggle */}
-            <div className="flex items-center gap-3 justify-end">
+            <div className="flex items-center gap-1.5 sm:gap-3 justify-end min-w-0 shrink-0">
               <LanguageSelector />
 
               <button
                 onClick={toggleTheme}
-                className="lg:hidden relative flex items-center w-[4.5rem] h-9 glass-inner rounded-full p-1 border border-white/10 shadow-inner focus:outline-none"
+                className="lg:hidden relative flex items-center w-16 sm:w-[4.5rem] h-8 sm:h-9 glass-inner rounded-full p-1 border border-white/10 shadow-inner focus:outline-none shrink-0"
                 aria-label="Toggle theme"
               >
-                <div className={`absolute w-7 h-7 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                  resolvedTheme === 'dark' ? 'left-1 translate-x-0' : 'left-1 translate-x-[2.25rem]'
+                <div className={`absolute w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white shadow-md transition-transform duration-300 ${
+                  resolvedTheme === 'dark' ? 'left-1 translate-x-0' : 'left-1 translate-x-[1.85rem] sm:translate-x-[2.25rem]'
                 }`} />
                 <div className="flex-1 flex justify-center z-10">
-                  <Moon size={12} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-[#0d1b2a]' : 'text-white'}`} />
+                  <Moon size={11} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-[#0d1b2a]' : 'text-white'}`} />
                 </div>
                 <div className="flex-1 flex justify-center z-10">
-                  <Sun size={12} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-white' : 'text-[#2c6a9b]'}`} />
+                  <Sun size={11} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-white' : 'text-[#2c6a9b]'}`} />
                 </div>
               </button>
             </div>
@@ -331,7 +341,7 @@ const App: React.FC = () => {
           )}
 
           {/* ============ Main Content ============ */}
-          <main className={`flex-1 relative ${view === ViewState.MAP ? 'overflow-hidden' : 'overflow-y-auto scroll-smooth hide-scrollbar'} pb-28 lg:pb-4`}>
+          <main ref={mainScrollRef} className={`flex-1 relative ${view === ViewState.MAP ? 'overflow-hidden' : 'overflow-y-auto scroll-smooth hide-scrollbar'} pb-28 lg:pb-4`}>
             {view === ViewState.DASHBOARD && (
               <ErrorBoundary
                 resetKeys={[currentLocation.id, 'dashboard']}
@@ -391,17 +401,24 @@ const App: React.FC = () => {
 
           {/* ============ Bottom Navigation (mobile, < lg) ============ */}
           <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20">
-            <div className="bg-[#0a2033]/95 backdrop-blur-xl border-t border-white/10 px-2 pt-2 pb-6">
+            <div
+              className="backdrop-blur-xl px-2 pt-2 pb-6 theme-transition"
+              style={{
+                backgroundColor: 'color-mix(in srgb, var(--app-bg-card) 95%, transparent)',
+                borderTop: '1px solid var(--app-border)',
+              }}
+            >
               <div className="flex justify-around items-center max-w-lg mx-auto">
                 {NAV_ITEMS.map(({ view: navView, icon: Icon, labelKey }) => (
                   <button
                     key={navView}
-                    onClick={() => setView(navView)}
+                    onClick={() => handleNavClick(navView)}
                     className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
                       view === navView
                         ? 'text-white bg-white/20'
                         : 'text-white/60 hover:text-white'
                     }`}
+                    style={view === navView ? { color: 'var(--text-accent)' } : { color: 'var(--text-muted)' }}
                   >
                     <Icon size={20} />
                     <span className="text-[10px] font-medium">{t(labelKey)}</span>
@@ -410,13 +427,14 @@ const App: React.FC = () => {
               </div>
 
               <div className="text-center mt-1.5">
-                <p className="text-[9px] text-white/30">
+                <p className="text-[9px]" style={{ color: 'var(--text-muted)' }}>
                   Weather data by{' '}
                   <a
                     href="https://open-meteo.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-white/40 hover:text-white/60 transition-colors underline"
+                    className="hover:opacity-80 transition-colors underline"
+                    style={{ color: 'var(--text-muted)' }}
                   >
                     Open-Meteo.com
                   </a>

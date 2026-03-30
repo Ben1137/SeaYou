@@ -164,11 +164,11 @@ export const CoastsMarinasView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black/20 p-4 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-black/20 p-4 max-w-6xl mx-auto w-full box-border overflow-x-hidden">
       {/* Header */}
-      <div className="glass-panel p-6 mb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2 mb-4 text-white">
-          <Anchor className="w-8 h-8 text-blue-400" />
+      <div className="glass-panel p-4 sm:p-6 mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 mb-4 text-white">
+          <Anchor className="w-7 h-7 sm:w-8 sm:h-8 text-blue-400 shrink-0" />
           Nearby Coasts & Marinas
         </h1>
 
@@ -231,10 +231,10 @@ export const CoastsMarinasView: React.FC = () => {
 
         {/* Filters (visible in nearby tab) */}
         {activeTab === 'nearby' && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 glass-panel rounded-lg hover:bg-white/10 flex items-center gap-2 text-white"
+              className="px-3 sm:px-4 py-2 glass-panel rounded-lg hover:bg-white/10 flex items-center gap-2 text-white text-sm shrink-0"
             >
               <Filter className="w-4 h-4" />
               Filters
@@ -242,17 +242,17 @@ export const CoastsMarinasView: React.FC = () => {
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-white/10"
+              className="px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-white/10 shrink-0"
             >
               {isLoading ? 'Searching...' : 'Refresh'}
             </button>
-            <div className="ml-auto">
+            <div className="ml-auto min-w-0">
               <select
                 value={sortBy}
                 onChange={(e) =>
                   setSortBy(e.target.value as 'distance' | 'rating' | 'name')
                 }
-                className="px-4 py-2 glass-inner border border-white/10 rounded-lg text-white"
+                className="px-3 sm:px-4 py-2 glass-inner border border-white/10 rounded-lg text-white text-sm w-full"
               >
                 <option value="distance">Sort by Distance</option>
                 <option value="rating">Sort by Rating</option>
@@ -363,8 +363,8 @@ const MarinaCard: React.FC<{
     <div className={`glass-panel p-6 hover:shadow-xl transition-shadow ${marina.type === 'beach' ? 'border-l-4 border-l-orange-500' : marina.type === 'marina' ? 'border-l-4 border-l-blue-500' : ''}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-xl font-bold text-white">{marina.name}</h3>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 className="text-lg sm:text-xl font-bold text-white break-words">{marina.name}</h3>
             <span
               className={`px-2 py-1 rounded text-xs font-semibold ${
                 marina.type === 'marina'
