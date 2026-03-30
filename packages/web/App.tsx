@@ -193,19 +193,23 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* ============ Header ============ */}
-          <header className="flex justify-between items-center px-5 pt-4 pb-3 shrink-0 z-20">
-            {/* Left: Profile icon (no action yet — location is opened from Dashboard pill) */}
-            <button
-              className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors"
-            >
-              <User size={18} className="text-white" />
-            </button>
+          <header className="grid grid-cols-3 items-center px-5 pt-4 pb-3 shrink-0 z-20">
+            {/* Left: Profile icon (hidden on desktop where sidebar has branding) */}
+            <div className="flex justify-start">
+              <button
+                className="lg:hidden w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors"
+              >
+                <User size={18} className="text-white" />
+              </button>
+            </div>
 
-            {/* Center: App title */}
-            <h1 className="text-2xl font-bold tracking-wide text-white">SeaYou</h1>
+            {/* Center: App title — always centered via grid col */}
+            <div className="flex justify-center">
+              <h1 className="text-2xl font-bold tracking-wide text-white">SeaYou</h1>
+            </div>
 
             {/* Right: Language + Theme toggle */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 justify-end">
               <LanguageSelector />
 
               <button
