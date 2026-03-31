@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast } from '@seame/core';
-import { Trash2, Navigation, MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud } from 'lucide-react';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -63,46 +63,6 @@ interface MapContainerMLProps {
   currentLocation: Coordinate;
 }
 
-interface RouteLeg {
-  id: number;
-  distance: number;
-  bearing: number;
-  startIdx: number;
-  endIdx: number;
-}
-
-// Utility functions
-const toRad = (deg: number) => deg * Math.PI / 180;
-const toDeg = (rad: number) => rad * 180 / Math.PI;
-
-const calculateBearing = (startLat: number, startLng: number, destLat: number, destLng: number) => {
-  const startLatRad = toRad(startLat);
-  const destLatRad = toRad(destLat);
-  const dLng = toRad(destLng - startLng);
-
-  const y = Math.sin(dLng) * Math.cos(destLatRad);
-  const x = Math.cos(startLatRad) * Math.sin(destLatRad) -
-            Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(dLng);
-
-  let brng = toDeg(Math.atan2(y, x));
-  return (brng + 360) % 360;
-};
-
-const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-  const R = 6371000; // Earth radius in meters
-  const phi1 = toRad(lat1);
-  const phi2 = toRad(lat2);
-  const deltaPhi = toRad(lat2 - lat1);
-  const deltaLambda = toRad(lng2 - lng1);
-
-  const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-            Math.cos(phi1) * Math.cos(phi2) *
-            Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-  return R * c;
-};
-
 const getWindColor = (speed: number) => {
   if (speed < 10) return '#60a5fa';
   if (speed < 20) return '#22d3ee';
@@ -127,6 +87,55 @@ const getCurrentColor = (speed: number) => {
   return '#ef4444';
 };
 
+// Build popup HTML for the exploration tap-to-query feature (Issue 5)
+function buildQueryPopupHTML(
+  forecast: PointForecast,
+  layer: AdvancedLayer,
+  basicLayer: MapLayer
+): string {
+  const latStr = `${Math.abs(forecast.lat).toFixed(4)}\u00B0${forecast.lat >= 0 ? 'N' : 'S'}`;
+  const lngStr = `${Math.abs(forecast.lng).toFixed(4)}\u00B0${forecast.lng >= 0 ? 'E' : 'W'}`;
+
+  const rows: string[] = [];
+  const isGeneral = layer === 'NONE' && basicLayer === 'NONE';
+  const showWind = isGeneral || layer === 'WIND_PARTICLES' || layer === 'SEA_TEMP_WIND' || basicLayer === 'WIND';
+  const showWaves = isGeneral || layer === 'WAVE_HEATMAP' || basicLayer === 'WAVE' || basicLayer === 'SIGNIFICANT_WAVE' || basicLayer === 'WIND_WAVE' || basicLayer === 'SWELL';
+  const showCurrents = isGeneral || layer === 'CURRENT_PARTICLES' || layer === 'SEA_TEMP_CURRENTS' || basicLayer === 'CURRENTS';
+  const showSeaTemp = layer === 'SEA_TEMP' || layer === 'SEA_TEMP_CURRENTS' || layer === 'SEA_TEMP_WIND';
+  const showAirTemp = layer === 'AIR_TEMP';
+  const showPrecip = layer === 'PRECIPITATION';
+  const showCloud = layer === 'CLOUD_COVER';
+
+  const row = (label: string, value: string, extra?: string) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;">
+      <span style="color:#94a3b8;font-size:11px;">${label}</span>
+      <span style="color:#e2e8f0;font-weight:600;font-size:12px;">${value}${extra ? ` <span style="color:#64748b;font-size:10px;">${extra}</span>` : ''}</span>
+    </div>`;
+
+  if (showWind) rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+  if (showWaves && forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, forecast.wavePeriod ? `${forecast.wavePeriod.toFixed(0)}s` : ''));
+  if (showCurrents && forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, `${forecast.currentDirection || 0}\u00B0`));
+  if (showSeaTemp) {
+    if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+    if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, ''));
+  }
+  if (showAirTemp || showPrecip || showCloud) {
+    rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+  }
+  if (rows.length === 0) {
+    rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+    if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+  }
+
+  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:170px;">
+    <div style="font-size:10px;color:#64748b;margin-bottom:6px;letter-spacing:0.3px;">${latStr}, ${lngStr}</div>
+    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:4px;">${rows.join('')}</div>
+    <button class="seayou-detail-btn" style="width:100%;margin-top:8px;padding:6px 0;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:8px;color:#60a5fa;font-size:11px;font-weight:600;cursor:pointer;text-align:center;font-family:inherit;">
+      View Hourly Forecast
+    </button>
+  </div>`;
+}
+
 export function MapContainerML({ currentLocation }: MapContainerMLProps) {
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -134,18 +143,23 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
   const { setMap } = useMapContext();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Route state
-  const [waypoints, setWaypoints] = useState<{lng: number, lat: number}[]>([]);
-  const [routeStats, setRouteStats] = useState({ count: 0, distance: 0 });
-  const [legs, setLegs] = useState<RouteLeg[]>([]);
-  const [speed, setSpeed] = useState<number>(15);
-  const [waypointForecasts, setWaypointForecasts] = useState<Record<number, PointForecast>>({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   // Layer state
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
   const [advancedLayer, setAdvancedLayer] = useState<AdvancedLayer>('NONE');
   const [isLayersPanelExpanded, setIsLayersPanelExpanded] = useState(false);
+
+  // Refs to avoid stale closures inside map event listeners
+  const advancedLayerRef = useRef<AdvancedLayer>(advancedLayer);
+  const activeLayerRef = useRef<MapLayer>(activeLayer);
+
+  // Popup ref for tap-to-query (single popup, reused)
+  const queryPopupRef = useRef<maplibregl.Popup | null>(null);
+
+  // Touch device detection (memoized once)
+  const isTouchDevice = useRef(
+    typeof window !== 'undefined' &&
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  );
   const [loadingGrid, setLoadingGrid] = useState(false);
   const [loadingAdvancedLayer, setLoadingAdvancedLayer] = useState(false);
   const [gridForecasts, setGridForecasts] = useState<PointForecast[]>([]);
@@ -188,9 +202,12 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Marker refs for cleanup
-  const markersRef = useRef<maplibregl.Marker[]>([]);
   const currentLocationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const gridMarkersRef = useRef<maplibregl.Marker[]>([]);
+
+  // Keep refs in sync with state (prevents stale closures in map event handlers)
+  useEffect(() => { advancedLayerRef.current = advancedLayer; }, [advancedLayer]);
+  useEffect(() => { activeLayerRef.current = activeLayer; }, [activeLayer]);
 
   // Initialize map
   useEffect(() => {
@@ -257,10 +274,108 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         .addTo(map);
     });
 
-    // Handle map click for route planning
-    map.on('click', (e) => {
-      addRoutePoint(e.lngLat);
+    // --- Exploration-only click handler: tap-to-query weather data ---
+    map.on('click', async (e) => {
+      // Close any existing query popup first
+      if (queryPopupRef.current) {
+        queryPopupRef.current.remove();
+        queryPopupRef.current = null;
+      }
+
+      try {
+        const forecast = await fetchPointForecast(e.lngLat.lat, e.lngLat.lng);
+
+        const html = buildQueryPopupHTML(
+          forecast,
+          advancedLayerRef.current,
+          activeLayerRef.current
+        );
+
+        const popup = new maplibregl.Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: '220px',
+          className: 'seayou-query-popup',
+        })
+          .setLngLat(e.lngLat)
+          .setHTML(html)
+          .addTo(map);
+
+        queryPopupRef.current = popup;
+
+        // Attach "View Hourly Forecast" button handler after DOM insertion
+        requestAnimationFrame(() => {
+          const btn = popup.getElement()?.querySelector('.seayou-detail-btn');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              popup.remove();
+              queryPopupRef.current = null;
+              handlePointClick(e.lngLat.lat, e.lngLat.lng);
+            });
+          }
+        });
+      } catch (err) {
+        console.error('[MapContainerML] Tap-to-query fetch failed:', err);
+      }
     });
+
+    // --- Issue 5: Desktop hover tooltip (non-touch devices only) ---
+    if (!isTouchDevice.current) {
+      let hoverPopup: maplibregl.Popup | null = null;
+      let hoverDebounce: ReturnType<typeof setTimeout> | null = null;
+      let lastHoverLngLat: { lng: number; lat: number } | null = null;
+
+      map.on('mousemove', (e) => {
+        // Debounce: only fetch if cursor settles for 600ms
+        lastHoverLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+        if (hoverDebounce) clearTimeout(hoverDebounce);
+
+        hoverDebounce = setTimeout(async () => {
+          if (!lastHoverLngLat) return;
+          const { lng, lat } = lastHoverLngLat;
+
+          try {
+            const forecast = await fetchPointForecast(lat, lng);
+
+            // Dismiss if cursor has moved significantly since we started
+            if (lastHoverLngLat &&
+                (Math.abs(lastHoverLngLat.lng - lng) > 0.05 ||
+                 Math.abs(lastHoverLngLat.lat - lat) > 0.05)) return;
+
+            if (hoverPopup) hoverPopup.remove();
+
+            const latStr = `${Math.abs(forecast.lat).toFixed(2)}\u00B0${forecast.lat >= 0 ? 'N' : 'S'}`;
+            const lngStr = `${Math.abs(forecast.lng).toFixed(2)}\u00B0${forecast.lng >= 0 ? 'E' : 'W'}`;
+
+            let summary = `${forecast.windSpeed.toFixed(0)} km/h wind`;
+            if (forecast.waveHeight > 0.01) summary += ` \u00B7 ${forecast.waveHeight.toFixed(1)}m waves`;
+
+            hoverPopup = new maplibregl.Popup({
+              closeButton: false,
+              closeOnClick: false,
+              maxWidth: '200px',
+              className: 'seayou-hover-popup',
+              offset: 15,
+            })
+              .setLngLat([lng, lat])
+              .setHTML(`<div style="font-family:system-ui;font-size:11px;color:#cbd5e1;">
+                <div style="color:#64748b;font-size:10px;margin-bottom:2px;">${latStr}, ${lngStr}</div>
+                ${summary}
+              </div>`)
+              .addTo(map);
+          } catch { /* silently ignore hover fetch errors */ }
+        }, 600);
+      });
+
+      map.on('mouseout', () => {
+        if (hoverDebounce) clearTimeout(hoverDebounce);
+        lastHoverLngLat = null;
+        if (hoverPopup) {
+          hoverPopup.remove();
+          hoverPopup = null;
+        }
+      });
+    }
 
     // Listen for move end to refresh grid if layer is active
     map.on('moveend', () => {
@@ -284,12 +399,14 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     return () => {
       resizeObserver.disconnect();
       setMap(null);
-      markersRef.current.forEach(m => m.remove());
-      markersRef.current = [];
       gridMarkersRef.current.forEach(m => m.remove());
       gridMarkersRef.current = [];
       if (currentLocationMarkerRef.current) {
         currentLocationMarkerRef.current.remove();
+      }
+      if (queryPopupRef.current) {
+        queryPopupRef.current.remove();
+        queryPopupRef.current = null;
       }
       map.remove();
       mapRef.current = null;
@@ -460,156 +577,10 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     });
   }, [activeLayer]);
 
-  // Route point handling
-  const addRoutePoint = useCallback(async (lngLat: maplibregl.LngLat) => {
-    if (!mapRef.current) return;
-
-    const newWaypoint = { lng: lngLat.lng, lat: lngLat.lat };
-    const newWaypoints = [...waypoints, newWaypoint];
-    setWaypoints(newWaypoints);
-    updateRouteStats(newWaypoints);
-
-    // Add marker
-    const el = document.createElement('div');
-    el.className = 'waypoint-marker';
-    el.style.cssText = `
-      width: 24px;
-      height: 24px;
-      background: #3b82f6;
-      border: 2px solid white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-    `;
-    el.textContent = String(waypoints.length + 1);
-
-    const marker = new maplibregl.Marker({ element: el, draggable: true })
-      .setLngLat([lngLat.lng, lngLat.lat])
-      .setPopup(new maplibregl.Popup().setHTML(`${t('map.waypoint')} ${waypoints.length + 1}`))
-      .addTo(mapRef.current);
-
-    markersRef.current.push(marker);
-
-    // Fetch weather for this point
-    try {
-      const forecast = await fetchPointForecast(lngLat.lat, lngLat.lng);
-      setWaypointForecasts(prev => ({ ...prev, [waypoints.length]: forecast }));
-    } catch (e) {
-      console.error('Failed to fetch waypoint forecast:', e);
-    }
-
-    // Auto-open sidebar on 2nd waypoint
-    if (waypoints.length === 1) {
-      setIsSidebarOpen(true);
-      setIsDetailSidebarOpen(false);
-    }
-  }, [waypoints, t]);
-
-  const updateRouteStats = useCallback((points: {lng: number, lat: number}[]) => {
-    let dist = 0;
-    const newLegs: RouteLeg[] = [];
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const d = calculateDistance(points[i].lat, points[i].lng, points[i+1].lat, points[i+1].lng);
-      const distNM = d / 1852;
-      dist += distNM;
-
-      const bearing = calculateBearing(points[i].lat, points[i].lng, points[i+1].lat, points[i+1].lng);
-
-      newLegs.push({
-        id: i,
-        distance: parseFloat(distNM.toFixed(1)),
-        bearing: parseFloat(bearing.toFixed(0)),
-        startIdx: i,
-        endIdx: i + 1
-      });
-    }
-
-    setRouteStats({
-      count: points.length,
-      distance: parseFloat(dist.toFixed(1))
-    });
-    setLegs(newLegs);
-
-    // Update route line on map
-    updateRouteLine(points);
-  }, []);
-
-  const updateRouteLine = useCallback((points: {lng: number, lat: number}[]) => {
-    if (!mapRef.current) return;
-
-    const map = mapRef.current;
-    const sourceId = 'route-line';
-
-    if (map.getSource(sourceId)) {
-      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: points.map(p => [p.lng, p.lat]),
-        },
-      });
-    } else if (points.length >= 2) {
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: points.map(p => [p.lng, p.lat]),
-          },
-        },
-      });
-
-      map.addLayer({
-        id: 'route-line-layer',
-        type: 'line',
-        source: sourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#3b82f6',
-          'line-width': 4,
-          'line-dasharray': [2, 2],
-        },
-      });
-    }
-  }, []);
-
-  const clearRoute = useCallback(() => {
-    if (!mapRef.current) return;
-
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
-    if (mapRef.current.getLayer('route-line-layer')) {
-      mapRef.current.removeLayer('route-line-layer');
-    }
-    if (mapRef.current.getSource('route-line')) {
-      mapRef.current.removeSource('route-line');
-    }
-
-    setWaypoints([]);
-    setRouteStats({ count: 0, distance: 0 });
-    setLegs([]);
-    setWaypointForecasts({});
-    setIsSidebarOpen(false);
-  }, []);
-
   // Handle point click for detailed forecast
   const handlePointClick = useCallback(async (lat: number, lng: number) => {
     setLoadingDetail(true);
     setIsDetailSidebarOpen(true);
-    setIsSidebarOpen(false);
 
     try {
       const data = await fetchHourlyPointForecast(lat, lng);
@@ -802,84 +773,6 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
           )}
         </div>
       </div>
-
-      {/* Route Sidebar Toggle */}
-      {!isSidebarOpen && legs.length > 0 && (
-        <button
-          onClick={() => { setIsSidebarOpen(true); setIsDetailSidebarOpen(false); }}
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-32 w-6 glass-panel !rounded-l-none !rounded-r-xl flex items-center justify-center cursor-pointer hover:bg-white/10 z-[400] shadow-xl transition-colors"
-        >
-          <div className="rotate-90 text-[10px] uppercase font-bold text-white/40 tracking-widest whitespace-nowrap">{t('map.routeInfo')}</div>
-        </button>
-      )}
-
-      {/* Route Sidebar */}
-      {isSidebarOpen && (
-        <div className="absolute top-0 left-0 bottom-0 w-80 lg:w-96 glass-panel !rounded-none shadow-2xl border-r border-white/10 z-[500] flex flex-col animate-in slide-in-from-left duration-300">
-          <div className="p-4 border-b border-white/10 flex justify-between items-center glass-inner">
-            <div>
-              <h2 className="font-bold text-white flex items-center gap-2"><Navigation size={18} className="text-blue-400"/> {t('map.routePlan')}</h2>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">{routeStats.count} {t('map.waypoints')} - {routeStats.distance} {t('units.nm')}</p>
-            </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-white/10 rounded text-white/40 transition-colors"><X size={20}/></button>
-          </div>
-
-          <div className="p-4 glass-inner border-b border-white/10">
-            <label className="text-xs text-white/60 flex justify-between mb-2">
-              {t('map.avgSpeed')}: <span className="text-white font-bold">{speed} {t('units.knots')}</span>
-            </label>
-            <input type="range" min="1" max="40" value={speed} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer" style={{ accentColor: '#3b82f6' }} />
-            <div className="flex justify-between text-[10px] text-white/40 mt-1">
-              <span>1 {t('units.knots')}</span><span>40 {t('units.knots')}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {legs.map((leg, idx) => {
-              const forecast = waypointForecasts[leg.startIdx];
-              const time = (leg.distance / speed) * 60;
-
-              return (
-                <div key={leg.id} className="glass-inner border border-white/10 rounded-lg p-3 relative group">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs font-bold text-white">{t('map.leg')} {idx + 1}</div>
-                    <div className="text-[10px] text-white/40">{leg.distance} {t('units.nm')} @ {leg.bearing}deg</div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-400 w-1/2"></div>
-                    </div>
-                    <div className="text-[10px] text-blue-400 font-mono">~{Math.round(time)}{t('units.minutes')}</div>
-                  </div>
-
-                  {forecast && (
-                    <div className="grid grid-cols-2 gap-2 text-[10px] bg-black/20 p-2 rounded border border-white/5">
-                      <div className="flex items-center gap-1 text-white/60">
-                        <Waves size={10} className="text-blue-400"/> {forecast.waveHeight.toFixed(1)}{t('units.meters')}
-                      </div>
-                      <div className="flex items-center gap-1 text-white/60">
-                        <Wind size={10} className="text-blue-400"/> {forecast.windSpeed.toFixed(0)} {t('units.knots')}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="absolute left-[-18px] top-1/2 -translate-y-1/2 w-4 flex flex-col items-center">
-                    <div className="w-2 h-2 rounded-full bg-blue-400 border-2 border-white/10"></div>
-                    {idx < legs.length - 1 && <div className="w-0.5 h-full bg-white/10 my-1"></div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="p-4 border-t border-white/10 glass-inner">
-            <button onClick={clearRoute} className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-              <Trash2 size={14} /> {t('map.clearRoute')}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Detail Sidebar */}
       {isDetailSidebarOpen && (

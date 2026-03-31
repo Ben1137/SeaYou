@@ -231,10 +231,10 @@ export const CoastsMarinasView: React.FC = () => {
 
         {/* Filters (visible in nearby tab) */}
         {activeTab === 'nearby' && (
-          <div className="flex flex-wrap gap-2 w-full">
+          <div className="flex flex-wrap items-center justify-between gap-2 w-full">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-3 sm:px-4 py-2 glass-panel rounded-lg hover:bg-white/10 flex items-center gap-2 text-white text-sm shrink-0"
+              className="h-10 px-3 sm:px-4 glass-panel rounded-lg hover:bg-white/10 flex items-center gap-2 text-white text-sm shrink-0"
             >
               <Filter className="w-4 h-4" />
               Filters
@@ -242,7 +242,7 @@ export const CoastsMarinasView: React.FC = () => {
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="px-3 sm:px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-white/10 shrink-0"
+              className="h-10 px-3 sm:px-4 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-white/10 shrink-0"
             >
               {isLoading ? 'Searching...' : 'Refresh'}
             </button>
@@ -252,7 +252,7 @@ export const CoastsMarinasView: React.FC = () => {
                 onChange={(e) =>
                   setSortBy(e.target.value as 'distance' | 'rating' | 'name')
                 }
-                className="px-3 sm:px-4 py-2 glass-inner border border-white/10 rounded-lg text-white text-sm w-full"
+                className="h-10 px-3 sm:px-4 glass-inner border border-white/10 rounded-lg text-white text-sm w-full"
               >
                 <option value="distance">Sort by Distance</option>
                 <option value="rating">Sort by Rating</option>

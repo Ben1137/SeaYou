@@ -6,8 +6,10 @@ import { MapContainerML } from './components/map/MapContainerML';
 import Atmosphere from './components/Atmosphere';
 import { RoutePlanningView } from './components/RoutePlanningView';
 import { CoastsMarinasView } from './components/CoastsMarinasView';
+import { AuthModal } from './components/AuthModal';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { LanguageSelector } from './src/components/LanguageSelector';
+import { AlertProvider } from './src/contexts/AlertContext';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe } from 'lucide-react';
 import { searchLocations, reverseGeocode } from '@seame/core';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
@@ -45,6 +47,14 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Location[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // ─── Pull-to-refresh state ───
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const pullStartY = useRef(0);
+  const isPulling = useRef(false);
 
   const [showGeoPrompt, setShowGeoPrompt] = useState<boolean>(
     () => navigator.geolocation != null && localStorage.getItem(GEO_PROMPT_KEY) !== '1'
@@ -154,12 +164,55 @@ const App: React.FC = () => {
     }
   }, [view]);
 
+  // ─── Pull-to-refresh touch handlers ───
+  const PULL_THRESHOLD = 80;
+  const PULL_MAX = 120;
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isRefreshing) return;
+    const el = mainScrollRef.current;
+    if (el && el.scrollTop <= 0) {
+      pullStartY.current = e.touches[0].clientY;
+      isPulling.current = true;
+    }
+  }, [isRefreshing]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isPulling.current || isRefreshing) return;
+    const delta = e.touches[0].clientY - pullStartY.current;
+    if (delta > 0) {
+      setPullDistance(Math.min(delta * 0.5, PULL_MAX));
+    } else {
+      isPulling.current = false;
+      setPullDistance(0);
+    }
+  }, [isRefreshing]);
+
+  const handleTouchEnd = useCallback(async () => {
+    if (!isPulling.current || isRefreshing) return;
+    isPulling.current = false;
+    if (pullDistance >= PULL_THRESHOLD) {
+      setIsRefreshing(true);
+      try {
+        await refetch();
+      } catch (err) {
+        console.error('Pull-to-refresh failed:', err);
+      } finally {
+        setIsRefreshing(false);
+        setPullDistance(0);
+      }
+    } else {
+      setPullDistance(0);
+    }
+  }, [pullDistance, isRefreshing, refetch]);
+
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
         console.error('Root error boundary caught:', error, errorInfo);
       }}
     >
+      <AlertProvider>
       <div className="flex flex-col lg:flex-row h-[100dvh] w-full max-w-[100vw] theme-bg text-white overflow-hidden font-sans theme-transition">
 
         {/* ============ Desktop Side Rail (lg+) ============ */}
@@ -190,6 +243,13 @@ const App: React.FC = () => {
 
           <div className="flex flex-col items-center gap-3 pb-6 px-2">
             <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10"
+              aria-label="Sign in"
+            >
+              <User size={16} className="text-white" />
+            </button>
+            <button
               onClick={toggleTheme}
               className="w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10"
               aria-label="Toggle theme"
@@ -203,23 +263,22 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* ============ Header ============ */}
-          <header className="grid grid-cols-[auto_1fr_auto] items-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 gap-2 sm:gap-4 w-full min-w-0 box-border">
-            {/* Left: Profile icon (hidden on desktop where sidebar has branding) */}
-            <div className="flex justify-start min-w-0 shrink-0">
+          <header className="relative flex items-center justify-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 w-full min-w-0 max-w-[100vw] box-border overflow-hidden">
+            {/* Left: Profile icon — absolutely positioned so title stays true-center */}
+            <div className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2">
               <button
+                onClick={() => setIsAuthModalOpen(true)}
                 className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors"
               >
                 <User size={16} className="text-white" />
               </button>
             </div>
 
-            {/* Center: App title — always centered via grid col */}
-            <div className="flex justify-center min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap">SeaYou</h1>
-            </div>
+            {/* Center: App title — always true-center */}
+            <h1 className="text-xl sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap text-center">SeaYou</h1>
 
-            {/* Right: Language + Theme toggle */}
-            <div className="flex items-center gap-1.5 sm:gap-3 justify-end min-w-0 shrink-0">
+            {/* Right: Language + Theme toggle — absolutely positioned */}
+            <div className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 sm:gap-3">
               <LanguageSelector />
 
               <button
@@ -341,7 +400,32 @@ const App: React.FC = () => {
           )}
 
           {/* ============ Main Content ============ */}
-          <main ref={mainScrollRef} className={`flex-1 relative ${view === ViewState.MAP ? 'overflow-hidden' : 'overflow-y-auto scroll-smooth hide-scrollbar'} pb-28 lg:pb-4`}>
+          <main
+            ref={mainScrollRef}
+            className={`flex-1 relative ${view === ViewState.MAP ? 'overflow-hidden' : 'overflow-y-auto scroll-smooth hide-scrollbar'} pb-28 lg:pb-4`}
+            onTouchStart={view !== ViewState.MAP ? handleTouchStart : undefined}
+            onTouchMove={view !== ViewState.MAP ? handleTouchMove : undefined}
+            onTouchEnd={view !== ViewState.MAP ? handleTouchEnd : undefined}
+          >
+            {/* Pull-to-refresh indicator */}
+            {(pullDistance > 0 || isRefreshing) && (
+              <div
+                className="flex items-center justify-center pointer-events-none"
+                style={{
+                  height: isRefreshing ? 48 : pullDistance * 0.6,
+                  opacity: isRefreshing ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1),
+                  transition: isRefreshing || pullDistance === 0 ? 'height 0.3s ease, opacity 0.3s ease' : 'none',
+                }}
+              >
+                <div
+                  className={`w-6 h-6 rounded-full border-2 border-white/40 border-t-white ${isRefreshing ? 'animate-spin' : ''}`}
+                  style={{
+                    transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)`,
+                    opacity: isRefreshing ? 1 : Math.min(pullDistance / PULL_THRESHOLD, 1),
+                  }}
+                />
+              </div>
+            )}
             {view === ViewState.DASHBOARD && (
               <ErrorBoundary
                 resetKeys={[currentLocation.id, 'dashboard']}
@@ -444,7 +528,11 @@ const App: React.FC = () => {
           </div>
 
         </div>
+
+        {/* Auth Modal */}
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       </div>
+      </AlertProvider>
     </ErrorBoundary>
   );
 };

@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
-import { MarineWeatherData, AlertConfig } from '@seame/core';
+import { MarineWeatherData } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
 import {
   Wind, Activity, Waves, ArrowUp, ArrowDown,
-  Navigation, Settings, X, Bell, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog,
+  Navigation, Settings, X, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog,
   Thermometer, ThumbsUp, Skull, Flag, Palmtree, Compass, ChevronRight, ChevronLeft, Tornado, Ruler, Layers,
   AlertTriangle, Sailboat, ChevronDown
 } from 'lucide-react';
@@ -14,6 +14,8 @@ import { getWeatherDescription } from '@seame/core';
 import { DashboardSkeleton } from './LoadingSkeleton';
 import { ErrorState } from './ErrorState';
 import { useTranslation } from 'react-i18next';
+import { AlertConfigModal } from './AlertConfigModal';
+import { useAlertConfig } from '../src/contexts/AlertContext';
 
 interface DashboardProps {
   weatherData: MarineWeatherData | null | undefined;
@@ -24,12 +26,6 @@ interface DashboardProps {
   onLocationClick?: () => void;
 }
 
-const DEFAULT_ALERT_CONFIG: AlertConfig = {
-  waveHeightThreshold: 2.0,
-  windSpeedThreshold: 40,
-  swellHeightThreshold: 2.5,
-  simulateTsunami: false
-};
 
 const WeatherAnimation: React.FC<{ code: number }> = ({ code }) => {
   if (code === 0 || code === 1) return <Sun className="text-yellow-400 animate-[spin_10s_linear_infinite]" size={20} />;
@@ -67,10 +63,9 @@ const getWeatherConditionKey = (code: number): string => {
 
 const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, onRetry, onLocationClick }) => {
   const { t } = useTranslation();
+  const { thresholds, isDismissed, dismiss } = useAlertConfig();
   const [showSettings, setShowSettings] = useState(false);
-  const [alertConfig, setAlertConfig] = useState<AlertConfig>(DEFAULT_ALERT_CONFIG);
   const [forecastTab, setForecastTab] = useState<'mariner' | 'surfer' | 'kite' | 'beach'>('mariner');
-  const [dismissedAlert, setDismissedAlert] = useState(false);
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
 
   const getCardinalDirection = (angle: number): string => {
@@ -147,11 +142,48 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     if (!weatherData?.general || !currentConditions) return null;
     const { weatherCode } = weatherData.general;
     const { wind, wave } = currentConditions;
-    if (weatherCode >= 95 || wind > 65 || wave > 4.5) return { title: t('alerts.stormWarning'), message: t('alerts.stormMessage'), icon: Tornado, color: "bg-red-600" };
-    if (weatherCode >= 80 || wind > 50 || wave > 3.0) return { title: t('alerts.roughWeather'), message: t('alerts.roughWeatherMessage'), icon: CloudLightning, color: "bg-orange-600" };
-    if (alertConfig.simulateTsunami) return { title: t('alerts.tsunami'), message: t('alerts.tsunamiMessage'), icon: Waves, color: "bg-red-900 animate-pulse border-2 border-red-500" };
+
+    // Highest priority: Extreme storm (WMO code 95+ or severe readings)
+    if (weatherCode >= 95 || wind > 65 || wave > 4.5) {
+      return { title: t('alerts.stormWarning'), message: t('alerts.stormMessage'), icon: Tornado, color: "bg-red-600" };
+    }
+
+    // Tsunami simulation (if enabled)
+    if (thresholds.tsunamiWarningEnabled) {
+      return { title: t('alerts.tsunami'), message: t('alerts.tsunamiMessage'), icon: Waves, color: "bg-red-900 animate-pulse border-2 border-red-500" };
+    }
+
+    // Dynamic threshold alerts — use the user-configured thresholds (only if enabled)
+    const waveExceeded = thresholds.highWavesEnabled && wave >= thresholds.waveHeightThreshold;
+    const windExceeded = thresholds.strongWindsEnabled && wind >= thresholds.windSpeedThreshold;
+
+    if (waveExceeded && windExceeded) {
+      return {
+        title: t('alerts.roughWeather'),
+        message: `${t('alerts.waveAlert', { value: wave.toFixed(1) })} & ${t('alerts.windAlert', { value: Math.round(wind) })}`,
+        icon: CloudLightning,
+        color: "bg-orange-600"
+      };
+    }
+    if (waveExceeded) {
+      return {
+        title: t('alerts.highWaves', 'High Wave Alert'),
+        message: t('alerts.waveAlert', { value: wave.toFixed(1), defaultValue: `${wave.toFixed(1)}m waves detected — exceeds your ${thresholds.waveHeightThreshold}m threshold` }),
+        icon: Waves,
+        color: "bg-orange-600"
+      };
+    }
+    if (windExceeded) {
+      return {
+        title: t('alerts.strongWinds', 'Strong Wind Alert'),
+        message: t('alerts.windAlert', { value: Math.round(wind), defaultValue: `${Math.round(wind)} km/h winds detected — exceeds your ${thresholds.windSpeedThreshold} km/h threshold` }),
+        icon: Wind,
+        color: "bg-orange-600"
+      };
+    }
+
     return null;
-  }, [weatherData, currentConditions, alertConfig.simulateTsunami, t]);
+  }, [weatherData, currentConditions, thresholds, t]);
 
   const sailingCondition = useMemo(() => {
     if (!currentConditions) return null;
@@ -268,16 +300,18 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         </button>
       </div>
 
-      {/* ─── Alert Banner ─── */}
-      {roughWeatherAlert && !dismissedAlert && (
-        <div className="alert-banner p-4 flex items-start space-x-3 relative text-white">
-          <div className="mt-1"><Bell size={20} /></div>
-          <div>
-            <h2 className="font-bold text-lg leading-tight uppercase text-white/90">{roughWeatherAlert.title}</h2>
-            <p className="text-sm opacity-90 leading-snug">{roughWeatherAlert.message}</p>
+      {/* ─── Alert Banner (dynamic — driven by user thresholds via AlertContext) ─── */}
+      {roughWeatherAlert && !isDismissed && (
+        <div className={`${roughWeatherAlert.color} rounded-xl p-4 flex items-center gap-3 relative text-white shadow-lg mx-auto w-full max-w-2xl`}>
+          <div className="shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+            <roughWeatherAlert.icon size={20} />
           </div>
-          <button onClick={() => setDismissedAlert(true)} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-            <X size={12} />
+          <div className="flex-1 min-w-0">
+            <h2 className="font-bold text-base sm:text-lg leading-tight uppercase text-white/95">{roughWeatherAlert.title}</h2>
+            <p className="text-xs sm:text-sm opacity-90 leading-snug mt-0.5">{roughWeatherAlert.message}</p>
+          </div>
+          <button onClick={dismiss} className="shrink-0 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+            <X size={14} />
           </button>
         </div>
       )}
@@ -305,33 +339,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         </button>
       </div>
 
-      {/* ─── Alert Config Modal ─── */}
-      {showSettings && (
-        <div className="glass-panel p-4 bg-[#0F3A5E]/60 shadow-2xl animate-in fade-in slide-in-from-top-4 mb-2 relative z-50">
-          <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
-            <h3 className="font-bold text-white flex items-center gap-2">
-              <Bell size={16} className="text-blue-400" /> {t('dashboard.alertConfiguration')}
-            </h3>
-            <button onClick={() => setShowSettings(false)} className="text-white/40 hover:text-white"><X size={16} /></button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-white/60 flex justify-between mb-1">{t('dashboard.waveThreshold')} (m) <span className="text-white">{alertConfig.waveHeightThreshold}</span></label>
-                <input type="range" min="0.5" max="10" step="0.5" value={alertConfig.waveHeightThreshold} onChange={(e) => setAlertConfig({ ...alertConfig, waveHeightThreshold: parseFloat(e.target.value) })} className="w-full" />
-              </div>
-              <div>
-                <label className="text-xs text-white/60 flex justify-between mb-1">{t('dashboard.windThreshold')} (km/h) <span className="text-white">{alertConfig.windSpeedThreshold}</span></label>
-                <input type="range" min="10" max="100" step="5" value={alertConfig.windSpeedThreshold} onChange={(e) => setAlertConfig({ ...alertConfig, windSpeedThreshold: parseFloat(e.target.value) })} className="w-full" />
-              </div>
-              <div className="flex items-center justify-between p-3 bg-red-950/30 border border-red-900/50 rounded-lg">
-                <div className="flex items-center gap-2"><Waves size={16} className="text-red-500" /><span className="text-sm font-bold text-red-200">{t('dashboard.tsunamiSimulation')}</span></div>
-                <input type="checkbox" checked={alertConfig.simulateTsunami} onChange={(e) => setAlertConfig({ ...alertConfig, simulateTsunami: e.target.checked })} className="w-4 h-4 rounded border-red-500 bg-transparent accent-red-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}
+      <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* ─── Activity Report (4-Column Grid) ─── */}
       <section>
@@ -430,18 +439,25 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         </div>
 
         {/* Temperature (Air + Sea combined) */}
-        <div className="glass-panel p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center"><Thermometer size={12} className="mr-1.5" /> {t('weather.air')}</h3>
-            <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center"><Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}</h3>
-          </div>
-          <div className="flex justify-between items-end mt-2">
-            <div>
-              <div className="flex items-start"><span className="text-3xl font-bold leading-none">{weatherData.general?.temperature.toFixed(0)}</span><span className="text-sm ml-0.5 mt-0.5">°C</span></div>
-              <p className="text-[10px] text-white/60 mt-1">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
+        <div className="glass-panel p-4">
+          <div className="grid grid-cols-[1fr_auto_1fr] h-full">
+            {/* AIR column */}
+            <div className="flex flex-col items-start justify-between">
+              <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center mb-2"><Thermometer size={12} className="mr-1.5" /> {t('weather.air')}</h3>
+              <div className="mt-auto">
+                <div className="flex items-baseline"><span className="text-3xl font-bold leading-none">{weatherData.general?.temperature.toFixed(0)}</span><span className="text-sm ml-0.5">°C</span></div>
+                <p className="text-[10px] text-white/60 mt-1">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
+              </div>
             </div>
-            <div className="text-right">
-              <div className="flex items-start justify-end"><span className="text-3xl font-bold leading-none">{currentConditions.seaTemp?.toFixed(0)}</span><span className="text-sm ml-0.5 mt-0.5">°C</span></div>
+            {/* Divider */}
+            <div className="w-px bg-white/10 mx-3 my-1" />
+            {/* SEA column */}
+            <div className="flex flex-col items-start justify-between">
+              <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center mb-2"><Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}</h3>
+              <div className="mt-auto">
+                <div className="flex items-baseline"><span className="text-3xl font-bold leading-none">{currentConditions.seaTemp?.toFixed(0)}</span><span className="text-sm ml-0.5">°C</span></div>
+                <p className="text-[10px] text-white/60 mt-1 invisible">&nbsp;</p>
+              </div>
             </div>
           </div>
         </div>
