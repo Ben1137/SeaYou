@@ -263,7 +263,7 @@ const App: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* ============ Header ============ */}
-          <header className="relative flex items-center justify-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 w-full min-w-0 max-w-[100vw] box-border overflow-hidden">
+          <header className="relative flex items-center justify-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 w-full min-w-0 max-w-[100vw] box-border">
             {/* Left: Profile icon — absolutely positioned so title stays true-center */}
             <div className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2">
               <button
@@ -278,16 +278,16 @@ const App: React.FC = () => {
             <h1 className="text-xl sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap text-center">SeaYou</h1>
 
             {/* Right: Language + Theme toggle — absolutely positioned */}
-            <div className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 sm:gap-3">
+            <div className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 flex items-center gap-2 sm:gap-3">
               <LanguageSelector />
 
               <button
                 onClick={toggleTheme}
-                className="lg:hidden relative flex items-center w-16 sm:w-[4.5rem] h-8 sm:h-9 glass-inner rounded-full p-1 border border-white/10 shadow-inner focus:outline-none shrink-0"
+                className="lg:hidden relative flex items-center w-14 sm:w-[4.5rem] h-8 sm:h-9 glass-inner rounded-full p-1 border border-white/10 shadow-inner focus:outline-none shrink-0"
                 aria-label="Toggle theme"
               >
                 <div className={`absolute w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                  resolvedTheme === 'dark' ? 'left-1 translate-x-0' : 'left-1 translate-x-[1.85rem] sm:translate-x-[2.25rem]'
+                  resolvedTheme === 'dark' ? 'left-1 translate-x-0' : 'left-1 translate-x-[1.45rem] sm:translate-x-[2.25rem]'
                 }`} />
                 <div className="flex-1 flex justify-center z-10">
                   <Moon size={11} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-[#0d1b2a]' : 'text-white'}`} />

@@ -107,9 +107,9 @@ function buildQueryPopupHTML(
   const showCloud = layer === 'CLOUD_COVER';
 
   const row = (label: string, value: string, extra?: string) =>
-    `<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;">
-      <span style="color:#94a3b8;font-size:11px;">${label}</span>
-      <span style="color:#e2e8f0;font-weight:600;font-size:12px;">${value}${extra ? ` <span style="color:#64748b;font-size:10px;">${extra}</span>` : ''}</span>
+    `<div class="seayou-popup-row">
+      <span class="seayou-popup-label">${label}</span>
+      <span class="seayou-popup-value">${value}${extra ? ` <span class="seayou-popup-extra">${extra}</span>` : ''}</span>
     </div>`;
 
   if (showWind) rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
@@ -127,12 +127,10 @@ function buildQueryPopupHTML(
     if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
   }
 
-  return `<div style="font-family:system-ui,-apple-system,sans-serif;min-width:170px;">
-    <div style="font-size:10px;color:#64748b;margin-bottom:6px;letter-spacing:0.3px;">${latStr}, ${lngStr}</div>
-    <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:4px;">${rows.join('')}</div>
-    <button class="seayou-detail-btn" style="width:100%;margin-top:8px;padding:6px 0;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.25);border-radius:8px;color:#60a5fa;font-size:11px;font-weight:600;cursor:pointer;text-align:center;font-family:inherit;">
-      View Hourly Forecast
-    </button>
+  return `<div class="seayou-popup-body">
+    <div class="seayou-popup-coords">${latStr}, ${lngStr}</div>
+    <div class="seayou-popup-rows">${rows.join('')}</div>
+    <button class="seayou-detail-btn">View Hourly Forecast</button>
   </div>`;
 }
 

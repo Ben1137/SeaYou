@@ -67,13 +67,13 @@ export const LanguageSelector: React.FC = () => {
       {/* Compact pill trigger */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="glass-inner flex items-center px-3 py-1.5 space-x-1.5 rounded-full cursor-pointer border border-white/10 hover:bg-white/20 transition-colors"
+        className="glass-inner flex items-center px-2 sm:px-3 py-1.5 space-x-1 sm:space-x-1.5 rounded-full cursor-pointer border border-white/10 hover:bg-white/20 transition-colors shrink-0"
         aria-label="Select language"
         aria-expanded={isOpen}
         aria-haspopup="listbox"
       >
-        <Globe size={13} className="text-white/80" />
-        <span className="text-xs font-bold uppercase tracking-wide text-white/90">
+        <Globe size={13} className="text-white/80 hidden sm:block" />
+        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wide text-white/90">
           {currentLanguage.flag} {currentLanguage.code.toUpperCase()}
         </span>
         <ChevronDown
@@ -85,7 +85,7 @@ export const LanguageSelector: React.FC = () => {
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute top-full right-0 sm:right-0 left-0 sm:left-auto mt-2 w-64 sm:w-64 max-w-[calc(100vw-2rem)] glass-panel bg-[#0F3A5E]/90 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
+          className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-2rem)] glass-panel bg-[#0F3A5E]/90 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2"
           role="listbox"
           aria-label="Language options"
         >
