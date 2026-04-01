@@ -440,23 +440,21 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
         {/* Temperature (Air + Sea combined) */}
         <div className="glass-panel p-4">
-          <div className="grid grid-cols-[1fr_auto_1fr] h-full">
+          <div className="grid grid-cols-2 h-full">
             {/* AIR column */}
-            <div className="flex flex-col items-start justify-between">
+            <div className="flex flex-col h-full justify-between pr-3 border-r border-white/10">
               <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center mb-2"><Thermometer size={12} className="mr-1.5" /> {t('weather.air')}</h3>
               <div className="mt-auto">
                 <div className="flex items-baseline"><span className="text-3xl font-bold leading-none">{weatherData.general?.temperature.toFixed(0)}</span><span className="text-sm ml-0.5">°C</span></div>
                 <p className="text-[10px] text-white/60 mt-1">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
               </div>
             </div>
-            {/* Divider */}
-            <div className="w-px bg-white/10 mx-3 my-1" />
             {/* SEA column */}
-            <div className="flex flex-col items-start justify-between">
+            <div className="flex flex-col h-full justify-between pl-3">
               <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center mb-2"><Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}</h3>
               <div className="mt-auto">
                 <div className="flex items-baseline"><span className="text-3xl font-bold leading-none">{currentConditions.seaTemp?.toFixed(0)}</span><span className="text-sm ml-0.5">°C</span></div>
-                <p className="text-[10px] text-white/60 mt-1 invisible">&nbsp;</p>
+                <p className="text-[10px] invisible mt-1">Spacer</p>
               </div>
             </div>
           </div>
