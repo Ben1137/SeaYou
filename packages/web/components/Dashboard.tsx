@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { MarineWeatherData } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
@@ -7,7 +7,7 @@ import {
   Wind, Activity, Waves, ArrowUp, ArrowDown,
   Navigation, Settings, X, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog,
   Thermometer, ThumbsUp, Skull, Flag, Palmtree, Compass, ChevronRight, ChevronLeft, Tornado, Ruler, Layers,
-  AlertTriangle, Sailboat, ChevronDown
+  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { getWeatherDescription } from '@seame/core';
@@ -65,7 +65,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss } = useAlertConfig();
   const [showSettings, setShowSettings] = useState(false);
-  const [forecastTab, setForecastTab] = useState<'mariner' | 'surfer' | 'kite' | 'beach'>('mariner');
+  type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'sailor' | 'diver' | 'beach';
+  const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
 
   const getCardinalDirection = (angle: number): string => {
@@ -185,41 +186,33 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return null;
   }, [weatherData, currentConditions, thresholds, t]);
 
-  const sailingCondition = useMemo(() => {
-    if (!currentConditions) return null;
-    const windSpeed = currentConditions.wind || 0;
-    const waveHeight = currentConditions.wave || 0;
-    if (windSpeed > 55 || waveHeight > 3.5) return { label: t('activity.sailing.hazardous'), description: t('activity.sailing.hazardousDesc'), color: 'text-red-500', icon: Skull };
-    if (windSpeed > 40 || waveHeight > 2.5) return { label: t('activity.sailing.challenging'), description: t('activity.sailing.challengingDesc'), color: 'text-orange-500', icon: AlertTriangle };
-    if (windSpeed < 10) return { label: t('activity.sailing.calm'), description: t('activity.sailing.calmDesc'), color: 'text-white/60', icon: Wind };
-    if (windSpeed >= 10 && waveHeight < 2.0) return { label: t('activity.sailing.good'), description: t('activity.sailing.goodDesc'), color: 'text-green-400', icon: ThumbsUp };
-    return { label: t('activity.sailing.moderate'), description: t('activity.sailing.moderateDesc'), color: 'text-blue-400', icon: Flag };
-  }, [currentConditions, t]);
+  // ─── Activity Scoring (powered by @seame/core scoring engine) ───
+  const scoringConditions = useMemo(() => {
+    if (!weatherData) return null;
+    return extractCurrentConditions(weatherData);
+  }, [weatherData]);
 
-  const surfStats = useMemo(() => {
-    if (!currentConditions) return null;
-    const swellHeight = currentConditions.swell || 0;
-    const swellPeriodValue = currentConditions.swellPeriod || 0;
-    let surfRating = t('activity.surf.poor'), surfColor = 'text-white/60';
-    if (swellHeight >= 0.5 && swellPeriodValue >= 4) { surfRating = t('activity.surf.fair'); surfColor = 'text-blue-400'; }
-    if (swellHeight >= 1.0 && swellPeriodValue >= 6) { surfRating = t('activity.surf.good'); surfColor = 'text-green-400'; }
-    if (swellHeight >= 1.5 && swellPeriodValue >= 8) { surfRating = t('activity.surf.epic'); surfColor = 'text-purple-400'; }
-    return { surf: { rating: surfRating, color: surfColor }, kite: { color: 'text-white' } };
-  }, [currentConditions, t]);
+  const activityScores = useMemo(() => {
+    if (!scoringConditions) return null;
+    return {
+      [ActivityPersona.SAILOR]: scoreActivity(ActivityPersona.SAILOR, scoringConditions),
+      [ActivityPersona.WAVE_SURFER]: scoreActivity(ActivityPersona.WAVE_SURFER, scoringConditions),
+      [ActivityPersona.WIND_SURFER]: scoreActivity(ActivityPersona.WIND_SURFER, scoringConditions),
+      [ActivityPersona.KITE_SURFER]: scoreActivity(ActivityPersona.KITE_SURFER, scoringConditions),
+      [ActivityPersona.DIVER]: scoreActivity(ActivityPersona.DIVER, scoringConditions),
+    };
+  }, [scoringConditions]);
 
-  const beachStats = useMemo(() => {
-    if (!currentConditions || !weatherData?.general) return null;
-    const windSpeed = currentConditions.wind || 0, waveHeight = currentConditions.wave || 0;
-    const uvIndex = currentConditions.currentUV || 0, temp = weatherData.general.temperature || 20;
-    const code = weatherData.general.weatherCode || 0;
-    let status = t('activity.beach.perfect'), color = "text-green-400", message = t('activity.beach.perfectDesc');
-    if (code > 50) { status = t('activity.beach.poor'); color = "text-white/40"; message = t('activity.beach.poorDesc'); }
-    else if (windSpeed > 30) { status = t('activity.beach.windy'); color = "text-orange-400"; message = t('activity.beach.windyDesc'); }
-    else if (temp < 20) { status = t('activity.beach.chilly'); color = "text-blue-300"; message = t('activity.beach.chillyDesc'); }
-    else if (temp > 35) { status = t('activity.beach.scorching'); color = "text-red-400"; message = t('activity.beach.scorchingDesc'); }
-    else if (waveHeight > 1.5) { status = t('activity.beach.roughSurf'); color = "text-yellow-400"; message = t('activity.beach.roughSurfDesc'); }
-    return { status, color, message, uvIndex };
-  }, [currentConditions, weatherData?.general, t]);
+  const bestWindows = useMemo(() => {
+    if (!weatherData) return null;
+    return {
+      [ActivityPersona.SAILOR]: findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.WAVE_SURFER]: findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.WIND_SURFER]: findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.KITE_SURFER]: findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.DIVER]: findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex }),
+    };
+  }, [weatherData, currentHourIndex]);
 
   const forecastTableBlocks = useMemo(() => {
     if (!weatherData?.hourly) return [];
@@ -255,6 +248,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       if (Math.abs(startDirVal - endDirVal) > 45 && Math.abs(startDirVal - endDirVal) < 315) windDirText = `${startDirTxt}-${endDirTxt}`;
       const swellDirAvg = swellDirs.reduce((a, b) => a + b, 0) / swellDirs.length;
       blocks.push({
+        startIdx: start, endIdx: end - 1,
         period: `${startTime} - ${endTime}`, date: nextDay,
         pressure: `${minPress}-${maxPress} hPa`,
         seaStatus: getSeaStateFull(minWave, maxWave),
@@ -272,13 +266,36 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return blocks;
   }, [weatherData, currentHourIndex]);
 
+  const FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'sailor', 'diver', 'beach'];
   const handleNextTab = () => {
-    const tabs: ('mariner' | 'surfer' | 'kite' | 'beach')[] = ['mariner', 'surfer', 'kite', 'beach'];
-    setForecastTab(tabs[(tabs.indexOf(forecastTab) + 1) % tabs.length]);
+    setForecastTab(FORECAST_TABS[(FORECAST_TABS.indexOf(forecastTab) + 1) % FORECAST_TABS.length]);
   };
   const handlePrevTab = () => {
-    const tabs: ('mariner' | 'surfer' | 'kite' | 'beach')[] = ['mariner', 'surfer', 'kite', 'beach'];
-    setForecastTab(tabs[(tabs.indexOf(forecastTab) - 1 + tabs.length) % tabs.length]);
+    setForecastTab(FORECAST_TABS[(FORECAST_TABS.indexOf(forecastTab) - 1 + FORECAST_TABS.length) % FORECAST_TABS.length]);
+  };
+
+  const forecastTabLabel = (tab: ForecastTab): string => {
+    const map: Record<ForecastTab, string> = {
+      mariner: t('forecast.marinerForecast'),
+      wave_surfer: t('forecast.waveSurferForecast'),
+      wind_surfer: t('forecast.windSurferForecast'),
+      kite_surfer: t('forecast.kiteForecast'),
+      sailor: t('forecast.sailorForecast'),
+      diver: t('forecast.diverForecast'),
+      beach: t('forecast.beachForecast'),
+    };
+    return map[tab];
+  };
+
+  const forecastTabPersona = (tab: ForecastTab): ActivityPersona | null => {
+    const map: Partial<Record<ForecastTab, ActivityPersona>> = {
+      wave_surfer: ActivityPersona.WAVE_SURFER,
+      wind_surfer: ActivityPersona.WIND_SURFER,
+      kite_surfer: ActivityPersona.KITE_SURFER,
+      sailor: ActivityPersona.SAILOR,
+      diver: ActivityPersona.DIVER,
+    };
+    return map[tab] ?? null;
   };
 
   if (loading) return <DashboardSkeleton />;
@@ -342,62 +359,47 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}
       <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
-      {/* ─── Activity Report (4-Column Grid) ─── */}
+      {/* ─── Activity Report (5-Column Grid with Scores) ─── */}
       <section>
         <h3 className="text-xs font-bold tracking-widest text-white/70 mb-3 uppercase flex items-center"><Flag size={12} className="mr-2" /> {t('activity.report')}</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Sailing Card */}
-          <div className="glass-panel p-4 flex flex-col justify-between">
-            <div className="w-10 h-10 rounded-lg glass-inner flex items-center justify-center mb-3">
-              <Sailboat size={20} className="text-white" />
-            </div>
-            {sailingCondition ? (
-              <>
-                <h4 className={`font-bold mb-1 ${sailingCondition.color}`}>{sailingCondition.label} {t('activity.sailing.label')}</h4>
-                <p className="text-xs text-white/70 leading-snug">{sailingCondition.description}</p>
-              </>
-            ) : (
-              <p className="text-xs text-white/40">--</p>
-            )}
-          </div>
-          {/* Surf Card */}
-          <div className="glass-panel p-4 flex flex-col justify-between">
-            <div className="w-10 h-10 rounded-lg glass-inner flex items-center justify-center mb-3">
-              <Waves size={20} className="text-teal-400" />
-            </div>
-            <h4 className="font-bold mb-1 uppercase tracking-wide">{t('activity.surf.label')}</h4>
-            {surfStats ? (
-              <p className={`text-xs font-bold ${surfStats.surf.color}`}>{surfStats.surf.rating}</p>
-            ) : (
-              <p className="text-xs text-white/40">--</p>
-            )}
-          </div>
-          {/* Kite Card */}
-          <div className="glass-panel p-4 flex flex-col justify-between">
-            <div className="w-10 h-10 rounded-lg glass-inner flex items-center justify-center mb-3">
-              <Wind size={20} className="text-white" />
-            </div>
-            <h4 className="font-bold mb-1 uppercase tracking-wide">{t('activity.kite.label')}</h4>
-            <p className="text-xs text-white/90 font-bold">{(currentConditions.wind || 0).toFixed(0)} km/h<br /><span className="text-[10px] font-normal opacity-70"><Navigation size={8} className="inline mr-1" style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} />{getCardinalDirection(currentConditions.windDirection)}</span></p>
-          </div>
-          {/* Beach Day + UV Combined Card */}
-          <div className="glass-panel p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-10 h-10 rounded-lg glass-inner flex items-center justify-center">
-                <Palmtree size={20} className="text-yellow-400" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {([
+            { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
+            { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
+            { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
+            { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
+            { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
+          ] as const).map(({ persona, icon: Icon, iconColor, labelKey }) => {
+            const score = activityScores?.[persona];
+            const bw = bestWindows?.[persona];
+            return (
+              <div key={persona} className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-[120px]">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="w-9 h-9 rounded-lg glass-inner flex items-center justify-center">
+                    <Icon size={18} className={iconColor} />
+                  </div>
+                  {score && (
+                    <div className={`text-2xl font-bold leading-none ${score.color}`}>
+                      {score.overall}
+                    </div>
+                  )}
+                </div>
+                <h4 className="font-bold text-xs uppercase tracking-wide mb-1">{t(labelKey)}</h4>
+                {score ? (
+                  <>
+                    <p className={`text-xs font-bold ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
+                    {bw && (
+                      <p className="text-[9px] text-white/50 mt-1">
+                        {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-white/40">--</p>
+                )}
               </div>
-              <div className="text-right">
-                <h4 className="text-[10px] font-bold uppercase tracking-wide text-white/50">{t('weather.currentUV')}</h4>
-                <p className="text-2xl font-bold leading-none">{(currentConditions.currentUV || 0).toFixed(0)}</p>
-              </div>
-            </div>
-            <h4 className="font-bold mb-1">{t('activity.beach.label')}</h4>
-            {beachStats ? (
-              <p className={`text-xs font-bold ${beachStats.color}`}>{beachStats.status}<br /><span className="text-[10px] font-normal text-white/70">{beachStats.message}</span></p>
-            ) : (
-              <p className="text-xs text-white/40">--</p>
-            )}
-          </div>
+            );
+          })}
         </div>
       </section>
 
@@ -531,10 +533,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/10">
           <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
             <Compass size={14} className="mr-1.5" />
-            {forecastTab === 'mariner' && t('forecast.marinerForecast')}
-            {forecastTab === 'surfer' && t('forecast.surferForecast')}
-            {forecastTab === 'kite' && t('forecast.kiteForecast')}
-            {forecastTab === 'beach' && t('forecast.beachForecast')}
+            {forecastTabLabel(forecastTab)}
           </h3>
           <div className="flex space-x-2">
             <button onClick={handlePrevTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronLeft size={10} /></button>
@@ -547,27 +546,41 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <tr>
                 <th className="px-4 py-2 font-medium">{t('table.period')}</th>
                 {forecastTab === 'mariner' && (<><th className="px-4 py-2 font-medium">{t('table.pressure')}</th><th className="px-4 py-2 font-medium">{t('table.seaStatus')}</th><th className="px-4 py-2 font-medium">{t('table.wind')}</th><th className="px-4 py-2 font-medium">{t('table.visibility')}</th><th className="px-4 py-2 font-medium">{t('table.weather')}</th><th className="px-4 py-2 font-medium">{t('table.swell')}</th></>)}
-                {forecastTab === 'surfer' && (<><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.period')}</th><th className="px-4 py-2 font-medium">{t('table.swellHeight')}</th><th className="px-4 py-2 font-medium">{t('table.swellPeriod')}</th><th className="px-4 py-2 font-medium">{t('table.swellDir')}</th><th className="px-4 py-2 font-medium">{t('table.rating')}</th></>)}
-                {forecastTab === 'kite' && (<><th className="px-4 py-2 font-medium">{t('table.windSpeed')}</th><th className="px-4 py-2 font-medium">{t('table.direction')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.weather')}</th><th className="px-4 py-2 font-medium">{t('table.condition')}</th></>)}
+                {forecastTab === 'wave_surfer' && (<><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.period')}</th><th className="px-4 py-2 font-medium">{t('table.swellHeight')}</th><th className="px-4 py-2 font-medium">{t('table.swellPeriod')}</th><th className="px-4 py-2 font-medium">{t('table.swellDir')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
+                {forecastTab === 'wind_surfer' && (<><th className="px-4 py-2 font-medium">{t('table.windSpeed')}</th><th className="px-4 py-2 font-medium">{t('table.direction')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('weather.sea')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
+                {forecastTab === 'kite_surfer' && (<><th className="px-4 py-2 font-medium">{t('table.windSpeed')}</th><th className="px-4 py-2 font-medium">{t('table.direction')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.weather')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
+                {forecastTab === 'sailor' && (<><th className="px-4 py-2 font-medium">{t('table.wind')}</th><th className="px-4 py-2 font-medium">{t('table.seaStatus')}</th><th className="px-4 py-2 font-medium">{t('table.visibility')}</th><th className="px-4 py-2 font-medium">{t('table.pressure')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
+                {forecastTab === 'diver' && (<><th className="px-4 py-2 font-medium">{t('table.visibility')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('weather.sea')}</th><th className="px-4 py-2 font-medium">{t('table.wind')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
                 {forecastTab === 'beach' && (<><th className="px-4 py-2 font-medium">{t('table.temp')}</th><th className="px-4 py-2 font-medium">{t('table.uvIndex')}</th><th className="px-4 py-2 font-medium">{t('table.windSand')}</th><th className="px-4 py-2 font-medium">{t('table.seaState')}</th><th className="px-4 py-2 font-medium">{t('table.comfort')}</th></>)}
               </tr>
             </thead>
             <tbody className="divide-y divide-white/10">
-              {forecastTableBlocks.map((row, idx) => (
+              {forecastTableBlocks.map((row, idx) => {
+                const persona = forecastTabPersona(forecastTab);
+                const blockScore = persona && weatherData ? (() => {
+                  const midIdx = row.startIdx + Math.floor((row.endIdx - row.startIdx) / 2);
+                  const conds = extractHourlyConditions(weatherData, midIdx);
+                  return scoreActivity(persona, conds);
+                })() : null;
+                return (
                 <tr key={idx} className="hover:bg-white/5 transition-colors">
                   <td className="px-4 py-3 font-bold">{row.period}<br /><span className="text-[10px] font-normal text-white/50">{row.date}</span></td>
                   {forecastTab === 'mariner' && (<><td className="px-4 py-3 text-white/80">{row.pressure}</td><td className="px-4 py-3 text-white/80">{row.seaStatus}</td><td className="px-4 py-3 font-bold">{row.wind}</td><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3 text-teal-400 font-bold">{row.swell} ({row.swellHeight}m)</td></>)}
-                  {forecastTab === 'surfer' && (<><td className="px-4 py-3 font-bold text-blue-300">{row.waveHeight}</td><td className="px-4 py-3">{row.wavePeriod}s</td><td className="px-4 py-3 font-medium text-teal-300">{row.swellHeight}m</td><td className="px-4 py-3">{row.swellPeriod}s</td><td className="px-4 py-3">{row.swell}</td><td className="px-4 py-3">{(() => { const sh = parseFloat(row.swellHeight), sp = parseFloat(row.swellPeriod); if (sh >= 1.5 && sp >= 8) return <span className="text-purple-400 font-bold">{t('activity.surf.epic')}</span>; if (sh >= 1.0 && sp >= 6) return <span className="text-green-400 font-bold">{t('activity.surf.good')}</span>; if (sh >= 0.5 && sp >= 4) return <span className="text-blue-400">{t('activity.surf.fair')}</span>; return <span className="text-white/40">{t('activity.surf.poor')}</span>; })()}</td></>)}
-                  {forecastTab === 'kite' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3">{row.wind.includes("20-") || row.wind.includes("25-") ? <span className="text-green-400 font-bold">{t('activity.kite.optimal')}</span> : <span className="text-white/40">{t('activity.kite.light')}</span>}</td></>)}
+                  {forecastTab === 'wave_surfer' && (<><td className="px-4 py-3 font-bold text-blue-300">{row.waveHeight}</td><td className="px-4 py-3">{row.wavePeriod}s</td><td className="px-4 py-3 font-medium text-teal-300">{row.swellHeight}m</td><td className="px-4 py-3">{row.swellPeriod}s</td><td className="px-4 py-3">{row.swell}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
+                  {forecastTab === 'wind_surfer' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3">{row.temp}°C</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
+                  {forecastTab === 'kite_surfer' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
+                  {forecastTab === 'sailor' && (<><td className="px-4 py-3 font-bold">{row.wind}</td><td className="px-4 py-3 text-white/80">{row.seaStatus}</td><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3">{row.pressure}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
+                  {forecastTab === 'diver' && (<><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3">{row.temp}°C</td><td className="px-4 py-3">{row.wind}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
                   {forecastTab === 'beach' && (<><td className="px-4 py-3 font-bold text-yellow-300">{row.temp}°C</td><td className="px-4 py-3">{row.uv}</td><td className="px-4 py-3">{row.wind}</td><td className="px-4 py-3">{row.seaStatus.split('(')[0]}</td><td className="px-4 py-3">{(() => { const code = row.weatherCode, temp = parseFloat(row.temp); if (code >= 51 || code >= 80) return <span className="text-red-400 font-bold">{t('activity.beach.poorRain')}</span>; if (code === 3 && temp <= 20) return <span className="text-white/60">{t('activity.beach.coolCloudy')}</span>; if (code === 3) return <span className="text-white/60">{t('activity.beach.cloudy')}</span>; if (temp < 18) return <span className="text-blue-300">{t('activity.beach.cold')}</span>; if (temp < 22) return <span className="text-blue-200">{t('activity.beach.cool')}</span>; return <span className="text-green-400 font-bold">{t('activity.beach.great')}</span>; })()}</td></>)}
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
         <div className="p-2 flex gap-1 justify-center">
-          {['mariner', 'surfer', 'kite', 'beach'].map((tab) => (
-            <div key={tab} className={`w-2 h-2 rounded-full ${forecastTab === tab ? 'bg-blue-500' : 'bg-white/20'}`} />
+          {FORECAST_TABS.map((tab) => (
+            <button key={tab} onClick={() => setForecastTab(tab)} className={`w-2 h-2 rounded-full transition-colors ${forecastTab === tab ? 'bg-blue-500' : 'bg-white/20 hover:bg-white/40'}`} />
           ))}
         </div>
       </section>

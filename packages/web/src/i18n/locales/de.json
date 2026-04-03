@@ -119,7 +119,37 @@
       "high": "Hoch",
       "moderate": "Mäßig",
       "low": "Niedrig"
-    }
+    },
+    "waveSurfer": {
+      "label": "Wellenreiten",
+      "desc": "Wellenreit-Bedingungen"
+    },
+    "windSurfer": {
+      "label": "Windsurfen",
+      "desc": "Windsurfbedingungen"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurfen",
+      "desc": "Kitesurfbedingungen"
+    },
+    "sailor": {
+      "label": "Segeln",
+      "desc": "Segelbedingungen"
+    },
+    "diver": {
+      "label": "Tauchen / Schnorcheln",
+      "desc": "Tauch- & Schnorchelbedingungen"
+    },
+    "bestWindow": "Bestes Zeitfenster",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Bewertung"
+  },
+  "scoring": {
+    "epic": "Episch",
+    "good": "Gut",
+    "fair": "Mäßig",
+    "poor": "Schlecht",
+    "dangerous": "Gefährlich"
   },
   "forecast": {
     "waveForecast": "Wellenvorhersage (Höhe & Periode)",
@@ -135,7 +165,11 @@
     "marinerForecast": "Seemann-Vorhersage (IMS)",
     "surferForecast": "Surfer-Vorhersage",
     "kiteForecast": "Kitesurfer-Vorhersage",
-    "beachForecast": "Strandvorhersage"
+    "beachForecast": "Strandvorhersage",
+    "waveSurferForecast": "Wellenreiter-Vorhersage",
+    "windSurferForecast": "Windsurfer-Vorhersage",
+    "sailorForecast": "Segler-Vorhersage",
+    "diverForecast": "Taucher-Vorhersage"
   },
   "table": {
     "period": "Periode",

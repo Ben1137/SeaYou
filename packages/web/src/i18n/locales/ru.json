@@ -119,7 +119,37 @@
       "high": "Высокий",
       "moderate": "Умеренный",
       "low": "Низкий"
-    }
+    },
+    "waveSurfer": {
+      "label": "Сёрфинг",
+      "desc": "Условия для сёрфинга"
+    },
+    "windSurfer": {
+      "label": "Виндсёрфинг",
+      "desc": "Условия для виндсёрфинга"
+    },
+    "kiteSurfer": {
+      "label": "Кайтсёрфинг",
+      "desc": "Условия для кайтсёрфинга"
+    },
+    "sailor": {
+      "label": "Парусный спорт",
+      "desc": "Условия для парусного спорта"
+    },
+    "diver": {
+      "label": "Дайвинг / Снорклинг",
+      "desc": "Условия для дайвинга и снорклинга"
+    },
+    "bestWindow": "Лучшее время",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Оценка"
+  },
+  "scoring": {
+    "epic": "Отлично",
+    "good": "Хорошо",
+    "fair": "Нормально",
+    "poor": "Плохо",
+    "dangerous": "Опасно"
   },
   "forecast": {
     "waveForecast": "Прогноз волн (Высота и Период)",
@@ -135,7 +165,11 @@
     "marinerForecast": "Прогноз для моряков (IMS)",
     "surferForecast": "Прогноз для сёрферов",
     "kiteForecast": "Прогноз для кайтсёрферов",
-    "beachForecast": "Прогноз для пляжа"
+    "beachForecast": "Прогноз для пляжа",
+    "waveSurferForecast": "Прогноз для сёрферов",
+    "windSurferForecast": "Прогноз для виндсёрферов",
+    "sailorForecast": "Прогноз для яхтсменов",
+    "diverForecast": "Прогноз для дайверов"
   },
   "table": {
     "period": "Период",

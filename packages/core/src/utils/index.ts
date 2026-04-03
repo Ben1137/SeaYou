@@ -3,3 +3,4 @@ export * from './calculations';
 export * from './fetchWithRetry';
 export * from './requestDeduplication';
 export * from './openMeteoConfig';
+export * from './scoring';

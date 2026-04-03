@@ -119,7 +119,37 @@
       "high": "High",
       "moderate": "Moderate",
       "low": "Low"
-    }
+    },
+    "waveSurfer": {
+      "label": "Wave Surf",
+      "desc": "Wave surfing conditions"
+    },
+    "windSurfer": {
+      "label": "Wind Surf",
+      "desc": "Windsurfing conditions"
+    },
+    "kiteSurfer": {
+      "label": "Kite Surf",
+      "desc": "Kitesurfing conditions"
+    },
+    "sailor": {
+      "label": "Sailing",
+      "desc": "Sailing conditions"
+    },
+    "diver": {
+      "label": "Dive / Snorkel",
+      "desc": "Diving & snorkeling conditions"
+    },
+    "bestWindow": "Best Window",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Score"
+  },
+  "scoring": {
+    "epic": "Epic",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor",
+    "dangerous": "Dangerous"
   },
   "forecast": {
     "waveForecast": "Wave Forecast (Height & Period)",
@@ -135,7 +165,11 @@
     "marinerForecast": "Mariner's Forecast (IMS)",
     "surferForecast": "Surfer's Forecast",
     "kiteForecast": "Kite Surfer's Forecast",
-    "beachForecast": "Seashore Forecast"
+    "beachForecast": "Seashore Forecast",
+    "waveSurferForecast": "Wave Surfer's Forecast",
+    "windSurferForecast": "Wind Surfer's Forecast",
+    "sailorForecast": "Sailor's Forecast",
+    "diverForecast": "Diver's Forecast"
   },
   "table": {
     "period": "Period",

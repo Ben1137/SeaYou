@@ -119,7 +119,37 @@
       "high": "Alto",
       "moderate": "Moderato",
       "low": "Basso"
-    }
+    },
+    "waveSurfer": {
+      "label": "Surf",
+      "desc": "Condizioni per il surf"
+    },
+    "windSurfer": {
+      "label": "Windsurf",
+      "desc": "Condizioni per il windsurf"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurf",
+      "desc": "Condizioni per il kitesurf"
+    },
+    "sailor": {
+      "label": "Vela",
+      "desc": "Condizioni per la vela"
+    },
+    "diver": {
+      "label": "Immersioni / Snorkeling",
+      "desc": "Condizioni per immersioni e snorkeling"
+    },
+    "bestWindow": "Miglior finestra",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Punteggio"
+  },
+  "scoring": {
+    "epic": "Epico",
+    "good": "Buono",
+    "fair": "Discreto",
+    "poor": "Scarso",
+    "dangerous": "Pericoloso"
   },
   "forecast": {
     "waveForecast": "Previsione onde (Altezza e Periodo)",
@@ -135,7 +165,11 @@
     "marinerForecast": "Previsione del marinaio (IMS)",
     "surferForecast": "Previsione del surfista",
     "kiteForecast": "Previsione del kitesurfista",
-    "beachForecast": "Previsione spiaggia"
+    "beachForecast": "Previsione spiaggia",
+    "waveSurferForecast": "Previsioni surf",
+    "windSurferForecast": "Previsioni windsurf",
+    "sailorForecast": "Previsioni vela",
+    "diverForecast": "Previsioni immersioni"
   },
   "table": {
     "period": "Periodo",

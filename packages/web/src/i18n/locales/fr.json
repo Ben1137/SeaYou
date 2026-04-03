@@ -119,7 +119,37 @@
       "high": "Élevé",
       "moderate": "Modéré",
       "low": "Faible"
-    }
+    },
+    "waveSurfer": {
+      "label": "Surf",
+      "desc": "Conditions de surf"
+    },
+    "windSurfer": {
+      "label": "Planche à voile",
+      "desc": "Conditions de planche à voile"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurf",
+      "desc": "Conditions de kitesurf"
+    },
+    "sailor": {
+      "label": "Voile",
+      "desc": "Conditions de navigation"
+    },
+    "diver": {
+      "label": "Plongée / Snorkeling",
+      "desc": "Conditions de plongée"
+    },
+    "bestWindow": "Meilleur créneau",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Score"
+  },
+  "scoring": {
+    "epic": "Épique",
+    "good": "Bon",
+    "fair": "Moyen",
+    "poor": "Mauvais",
+    "dangerous": "Dangereux"
   },
   "forecast": {
     "waveForecast": "Prévision des vagues (Hauteur & Période)",
@@ -135,7 +165,11 @@
     "marinerForecast": "Prévision du marin (IMS)",
     "surferForecast": "Prévision du surfeur",
     "kiteForecast": "Prévision du kitesurfeur",
-    "beachForecast": "Prévision de plage"
+    "beachForecast": "Prévision de plage",
+    "waveSurferForecast": "Prévisions surf",
+    "windSurferForecast": "Prévisions planche à voile",
+    "sailorForecast": "Prévisions voile",
+    "diverForecast": "Prévisions plongée"
   },
   "table": {
     "period": "Période",

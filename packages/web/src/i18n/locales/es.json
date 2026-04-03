@@ -119,7 +119,37 @@
       "high": "Alto",
       "moderate": "Moderado",
       "low": "Bajo"
-    }
+    },
+    "waveSurfer": {
+      "label": "Surf",
+      "desc": "Condiciones de surf"
+    },
+    "windSurfer": {
+      "label": "Windsurf",
+      "desc": "Condiciones de windsurf"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurf",
+      "desc": "Condiciones de kitesurf"
+    },
+    "sailor": {
+      "label": "Vela",
+      "desc": "Condiciones de navegación"
+    },
+    "diver": {
+      "label": "Buceo / Snorkel",
+      "desc": "Condiciones de buceo y snorkel"
+    },
+    "bestWindow": "Mejor ventana",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Puntuación"
+  },
+  "scoring": {
+    "epic": "Épico",
+    "good": "Bueno",
+    "fair": "Regular",
+    "poor": "Malo",
+    "dangerous": "Peligroso"
   },
   "forecast": {
     "waveForecast": "Pronóstico de olas (Altura y Período)",
@@ -135,7 +165,11 @@
     "marinerForecast": "Pronóstico del marinero (IMS)",
     "surferForecast": "Pronóstico del surfista",
     "kiteForecast": "Pronóstico del kitesurfista",
-    "beachForecast": "Pronóstico de playa"
+    "beachForecast": "Pronóstico de playa",
+    "waveSurferForecast": "Pronóstico de surf",
+    "windSurferForecast": "Pronóstico de windsurf",
+    "sailorForecast": "Pronóstico de vela",
+    "diverForecast": "Pronóstico de buceo"
   },
   "table": {
     "period": "Período",
