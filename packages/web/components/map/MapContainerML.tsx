@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast } from '@seame/core';
-import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation } from 'lucide-react';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -39,6 +39,12 @@ import { AirTemperatureLayerML } from './layers/AirTemperatureLayerML';
 import { PrecipitationLayerML } from './layers/PrecipitationLayerML';
 import { CloudCoverLayerML } from './layers/CloudCoverLayerML';
 
+// Activity-specific Layers (Phase 7)
+import { SwellParticleLayerML } from './layers/SwellParticleLayerML';
+import { DiveSuitabilityLayerML } from './layers/DiveSuitabilityLayerML';
+import { ChopLevelLayerML } from './layers/ChopLevelLayerML';
+import { GustDeltaLayerML } from './layers/GustDeltaLayerML';
+
 // Shared data hooks
 import { useSharedMarineData } from '../../hooks/useSharedMarineData';
 import { useSharedForecastGridData } from '../../hooks/useSharedForecastGridData';
@@ -57,7 +63,12 @@ type AdvancedLayer =
   // Phase 6B — atmospheric forecast layers
   | 'AIR_TEMP'
   | 'PRECIPITATION'
-  | 'CLOUD_COVER';
+  | 'CLOUD_COVER'
+  // Phase 7 — activity-specific layers
+  | 'SWELL_PARTICLES'
+  | 'DIVE_SUITABILITY'
+  | 'CHOP_LEVEL'
+  | 'GUST_DELTA';
 
 interface MapContainerMLProps {
   currentLocation: Coordinate;
@@ -169,7 +180,11 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     advancedLayer === 'WAVE_HEATMAP' ||
     advancedLayer === 'SEA_TEMP' ||
     advancedLayer === 'SEA_TEMP_CURRENTS' ||
-    advancedLayer === 'SEA_TEMP_WIND'
+    advancedLayer === 'SEA_TEMP_WIND' ||
+    advancedLayer === 'SWELL_PARTICLES' ||
+    advancedLayer === 'DIVE_SUITABILITY' ||
+    advancedLayer === 'CHOP_LEVEL' ||
+    advancedLayer === 'GUST_DELTA'
   );
   const sharedMarineData = useSharedMarineData(mapRef.current, isMarineLayerActive);
 
@@ -724,6 +739,35 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
               <Cloud size={12} /> Cloud Cover
             </button>
 
+            {/* Activity-specific Layers (Phase 7) */}
+            <div className="border-t border-white/5 my-2 pt-2">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.activityLayers') || 'Activity Layers'}</div>
+            </div>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Navigation size={12} /> {t('map.swellDirection') || 'Swell Direction'}
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Anchor size={12} /> {t('map.diveSuitability') || 'Dive Suitability'}
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'CHOP_LEVEL' ? 'NONE' : 'CHOP_LEVEL')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CHOP_LEVEL' ? 'bg-fuchsia-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Waves size={12} /> {t('map.chopLevel') || 'Chop Level'}
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'GUST_DELTA' ? 'NONE' : 'GUST_DELTA')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'GUST_DELTA' ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Wind size={12} /> {t('map.gustDelta') || 'Gust Delta'}
+            </button>
+
             {/* GeoJSON Overlay Layers Divider */}
             <div className="border-t border-white/5 my-2 pt-2">
               <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.geoJSONLayers') || 'Map Overlays'}</div>
@@ -1106,6 +1150,28 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         visible={advancedLayer === 'CLOUD_COVER'}
         opacity={0.55}
         sharedGridData={sharedForecastData.gridData}
+      />
+
+      {/* Activity-specific Layers (Phase 7) */}
+      <SwellParticleLayerML
+        visible={advancedLayer === 'SWELL_PARTICLES'}
+        particleCount={192}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <DiveSuitabilityLayerML
+        visible={advancedLayer === 'DIVE_SUITABILITY'}
+        opacity={0.6}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <ChopLevelLayerML
+        visible={advancedLayer === 'CHOP_LEVEL'}
+        opacity={0.55}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <GustDeltaLayerML
+        visible={advancedLayer === 'GUST_DELTA'}
+        opacity={0.6}
+        sharedGridData={sharedMarineData.gridData}
       />
 
     </div>

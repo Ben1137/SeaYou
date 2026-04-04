@@ -292,7 +292,12 @@
     "loadingData": "Chargement des données...",
     "waveSwellHeight": "Hauteur vagues & houle (m)",
     "windSpeedChart": "Vitesse du vent (km/h)",
-    "currentVelocity": "Vélocité du courant (km/h)"
+    "currentVelocity": "Vélocité du courant (km/h)",
+    "activityLayers": "Couches d'activité",
+    "swellDirection": "Direction de la houle",
+    "diveSuitability": "Aptitude à la plongée",
+    "chopLevel": "Niveau de clapot",
+    "gustDelta": "Delta de rafales"
   },
   "units": {
     "meters": "m",

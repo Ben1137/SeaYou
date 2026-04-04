@@ -292,7 +292,12 @@
     "loadingData": "Cargando datos...",
     "waveSwellHeight": "Altura de olas y oleaje (m)",
     "windSpeedChart": "Velocidad del viento (km/h)",
-    "currentVelocity": "Velocidad de corriente (km/h)"
+    "currentVelocity": "Velocidad de corriente (km/h)",
+    "activityLayers": "Capas de actividad",
+    "swellDirection": "Dirección del oleaje",
+    "diveSuitability": "Aptitud para buceo",
+    "chopLevel": "Nivel de marejada",
+    "gustDelta": "Delta de ráfagas"
   },
   "units": {
     "meters": "m",

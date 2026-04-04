@@ -325,7 +325,12 @@
     "reefs": "שוניות אלמוגים",
     "ports": "נמלים",
     "marineAreas": "אזורים ימיים",
-    "loadingGeoJSON": "טוען נתוני מפה..."
+    "loadingGeoJSON": "טוען נתוני מפה...",
+    "activityLayers": "שכבות פעילות",
+    "swellDirection": "כיוון גלישה",
+    "diveSuitability": "התאמה לצלילה",
+    "chopLevel": "רמת סערה",
+    "gustDelta": "הפרש משבי רוח"
   },
   "units": {
     "meters": "מ׳",

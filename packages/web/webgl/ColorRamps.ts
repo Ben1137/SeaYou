@@ -168,6 +168,56 @@ export const PRESSURE_COLORS: [number, number, number, number][] = [
   [230,  50,  30, 240],   // 1050 hPa — Red (extreme high)
 ];
 
+// Swell particle ramp — teal/aqua palette for swell direction visualization
+// Distinct from wind (cyan-yellow-red) and currents (sapphire-teal) to avoid confusion
+export const SWELL_PARTICLE_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],    // 0.0m   — fully transparent (no swell)
+  [ 80, 180, 230,  50],    // 0.3m   — faint sky blue hint
+  [100, 200, 240, 110],    // 0.6m   — light teal-blue
+  [120, 220, 220, 165],    // 1.0m   — medium teal
+  [140, 235, 200, 200],    // 1.5m   — bright teal-aqua
+  [170, 245, 180, 225],    // 2.5m   — vivid aqua-green
+  [200, 250, 160, 240],    // 3.5m   — bright yellow-green
+  [240, 255, 140, 255],    // 5.0m+  — neon lime (extreme swell)
+];
+
+// Dive suitability ramp — green (excellent) → yellow → orange → red (dangerous)
+// Computed from wave height, current speed, sea temp — higher value = better diving
+export const DIVE_SUITABILITY_COLORS: [number, number, number, number][] = [
+  [220,  30,  30, 180],    //   0 — Dangerous: red (high waves, strong currents)
+  [255, 100,  30, 195],    //  25 — Poor: orange
+  [255, 200,  40, 210],    //  50 — Fair: yellow
+  [140, 220,  80, 220],    //  65 — Moderate: yellow-green
+  [ 50, 210, 100, 230],    //  80 — Good: green
+  [ 30, 190, 180, 235],    //  90 — Very good: teal-green
+  [ 40, 170, 220, 240],    // 100 — Excellent: cyan-blue (calm & clear)
+];
+
+// Chop index ramp — blue (clean swell) → purple → red (pure wind chop)
+// 0 = all swell (clean), 1 = all wind waves (choppy)
+export const CHOP_LEVEL_COLORS: [number, number, number, number][] = [
+  [ 40, 170, 225, 150],    // 0.0 — Clean swell: calm blue
+  [ 80, 140, 230, 170],    // 0.2 — Mostly swell: blue-purple
+  [130, 110, 220, 190],    // 0.4 — Mixed: purple
+  [180,  80, 200, 205],    // 0.5 — Even mix: magenta-purple
+  [220,  60, 150, 215],    // 0.6 — Mostly chop: pink-magenta
+  [240,  70,  80, 225],    // 0.8 — Heavy chop: red-pink
+  [255,  40,  40, 240],    // 1.0 — Pure wind chop: bright red
+];
+
+// Wind gust delta ramp — calm green → warning yellow → danger red
+// Represents gusts - sustained (km/h): higher = more gusty = more dangerous
+export const GUST_DELTA_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],    //  0 km/h — No gusts, transparent
+  [ 60, 200, 120,  80],    //  3 km/h — Light gusts: faint green
+  [120, 220,  80, 140],    //  6 km/h — Moderate: green-yellow
+  [220, 220,  40, 190],    // 10 km/h — Noticeable: yellow
+  [255, 170,  30, 215],    // 15 km/h — Strong: orange
+  [255,  80,  30, 235],    // 20 km/h — Very strong: red-orange
+  [230,  30,  30, 248],    // 25 km/h — Dangerous: red
+  [200,  20, 120, 255],    // 35+ km/h — Extreme: magenta
+];
+
 // Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds
 // Mimics real satellite infrared imagery: clear sky = invisible, clouds = bright white
 export const CLOUD_COVER_COLORS: [number, number, number, number][] = [

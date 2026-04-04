@@ -341,7 +341,12 @@
     "ports": "Ports",
     "marineAreas": "Marine Areas",
     "rainRadar": "Rain Radar",
-    "loadingGeoJSON": "Loading map data..."
+    "loadingGeoJSON": "Loading map data...",
+    "activityLayers": "Activity Layers",
+    "swellDirection": "Swell Direction",
+    "diveSuitability": "Dive Suitability",
+    "chopLevel": "Chop Level",
+    "gustDelta": "Gust Delta"
   },
   "units": {
     "meters": "m",

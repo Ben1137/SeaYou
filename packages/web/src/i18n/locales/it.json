@@ -311,7 +311,12 @@
     "loadingData": "Caricamento dati...",
     "waveSwellHeight": "Altezza onde e onda lunga (m)",
     "windSpeedChart": "Velocità vento (km/h)",
-    "currentVelocity": "Velocità corrente (km/h)"
+    "currentVelocity": "Velocità corrente (km/h)",
+    "activityLayers": "Livelli attività",
+    "swellDirection": "Direzione onda lunga",
+    "diveSuitability": "Idoneità immersione",
+    "chopLevel": "Livello increspatura",
+    "gustDelta": "Delta raffiche"
   },
   "units": {
     "meters": "m",

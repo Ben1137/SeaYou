@@ -311,7 +311,12 @@
     "loadingData": "Загрузка данных...",
     "waveSwellHeight": "Высота волн и зыби (м)",
     "windSpeedChart": "Скорость ветра (км/ч)",
-    "currentVelocity": "Скорость течения (км/ч)"
+    "currentVelocity": "Скорость течения (км/ч)",
+    "activityLayers": "Слои активности",
+    "swellDirection": "Направление зыби",
+    "diveSuitability": "Пригодность для дайвинга",
+    "chopLevel": "Уровень волнения",
+    "gustDelta": "Разница порывов ветра"
   },
   "units": {
     "meters": "м",

@@ -309,7 +309,12 @@
     "loadingData": "Daten laden...",
     "waveSwellHeight": "Wellen- & Dünungshöhe (m)",
     "windSpeedChart": "Windgeschwindigkeit (km/h)",
-    "currentVelocity": "Strömungsgeschwindigkeit (km/h)"
+    "currentVelocity": "Strömungsgeschwindigkeit (km/h)",
+    "activityLayers": "Aktivitätsebenen",
+    "swellDirection": "Dünung-Richtung",
+    "diveSuitability": "Taucheignung",
+    "chopLevel": "Wellenkabbel",
+    "gustDelta": "Böendifferenz"
   },
   "units": {
     "meters": "m",
