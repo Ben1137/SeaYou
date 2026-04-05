@@ -332,7 +332,10 @@
       "windWaveHeight": "Wind Wave Height",
       "significantWaveHeight": "Significant Wave Height",
       "bathymetry": "Ocean Depth",
-      "marineAreas": "Marine Areas"
+      "marineAreas": "Marine Areas",
+      "diveSuitability": "Dive Suitability",
+      "chopLevel": "Chop Level",
+      "gustDelta": "Gust Delta"
     },
     "geoJSONLayers": "Map Overlays",
     "coastline": "Coastline",

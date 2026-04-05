@@ -123,19 +123,50 @@ function buildQueryPopupHTML(
       <span class="seayou-popup-value">${value}${extra ? ` <span class="seayou-popup-extra">${extra}</span>` : ''}</span>
     </div>`;
 
-  if (showWind) rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
-  if (showWaves && forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, forecast.wavePeriod ? `${forecast.wavePeriod.toFixed(0)}s` : ''));
-  if (showCurrents && forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, `${forecast.currentDirection || 0}\u00B0`));
-  if (showSeaTemp) {
-    if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
-    if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, ''));
-  }
-  if (showAirTemp || showPrecip || showCloud) {
-    rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
-  }
-  if (rows.length === 0) {
-    rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
-    if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+  // Activity-specific layer popups
+  if (layer === 'DIVE_SUITABILITY') {
+    const waveP = Math.min(forecast.waveHeight / 2.5, 1) * 40;
+    const currP = Math.min((forecast.currentSpeed || 0) / 1.5, 1) * 35;
+    const tempB = forecast.seaTemp ? Math.max(0, Math.min((forecast.seaTemp - 15) / 15, 1)) * 25 : 0;
+    const diveScore = Math.round(Math.max(0, 100 - waveP - currP + tempB));
+    rows.push(row('Dive Score', `${diveScore}/100`));
+    if (forecast.seaTemp) rows.push(row('Sea Temp', `${forecast.seaTemp.toFixed(1)}°C`));
+    if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`));
+    rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`));
+  } else if (layer === 'CHOP_LEVEL') {
+    const windWaveH = forecast.windWaveHeight || 0;
+    const swellH = forecast.swellHeight || 0;
+    const total = windWaveH + swellH;
+    const chopRatio = total > 0.01 ? (windWaveH / total) : 0;
+    rows.push(row('Chop Ratio', `${(chopRatio * 100).toFixed(0)}%`));
+    rows.push(row('Wind Waves', `${windWaveH.toFixed(1)} m`));
+    rows.push(row('Swell', `${swellH.toFixed(1)} m`));
+  } else if (layer === 'GUST_DELTA') {
+    const gusts = forecast.windGusts || forecast.windSpeed * 1.3;
+    const delta = Math.max(0, gusts - forecast.windSpeed);
+    rows.push(row('Gust Delta', `${delta.toFixed(1)} km/h`));
+    rows.push(row('Sustained', `${forecast.windSpeed.toFixed(1)} km/h`));
+    rows.push(row('Gusts', `${gusts.toFixed(1)} km/h`));
+  } else if (layer === 'SWELL_PARTICLES') {
+    rows.push(row('Swell', `${forecast.swellHeight.toFixed(1)} m`, forecast.swellPeriod ? `${forecast.swellPeriod.toFixed(0)}s` : ''));
+    rows.push(row('Direction', `${forecast.swellDirection}\u00B0`));
+    if (forecast.waveHeight > 0.01) rows.push(row('Total Waves', `${forecast.waveHeight.toFixed(1)} m`));
+  } else {
+    // Standard layer popups
+    if (showWind) rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+    if (showWaves && forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, forecast.wavePeriod ? `${forecast.wavePeriod.toFixed(0)}s` : ''));
+    if (showCurrents && forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, `${forecast.currentDirection || 0}\u00B0`));
+    if (showSeaTemp) {
+      if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+      if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, ''));
+    }
+    if (showAirTemp || showPrecip || showCloud) {
+      rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+    }
+    if (rows.length === 0) {
+      rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+      if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+    }
   }
 
   return `<div class="seayou-popup-body">
@@ -1033,6 +1064,40 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
           unit="m"
           title={t('map.legend.bathymetry')}
           position="bottomleft"
+        />
+      )}
+
+      {/* Activity layer legends (Phase 7) */}
+      {advancedLayer === 'SWELL_PARTICLES' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.swellParticles}
+          unit="m"
+          title={t('map.legend.swellHeight') || 'Swell Height'}
+          position="bottomright"
+        />
+      )}
+      {advancedLayer === 'DIVE_SUITABILITY' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.diveSuitability}
+          unit="score"
+          title={t('map.legend.diveSuitability') || 'Dive Suitability'}
+          position="bottomright"
+        />
+      )}
+      {advancedLayer === 'CHOP_LEVEL' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.chopLevel}
+          unit="ratio"
+          title={t('map.legend.chopLevel') || 'Chop Level'}
+          position="bottomright"
+        />
+      )}
+      {advancedLayer === 'GUST_DELTA' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.gustDelta}
+          unit="km/h"
+          title={t('map.legend.gustDelta') || 'Gust Delta'}
+          position="bottomright"
         />
       )}
 

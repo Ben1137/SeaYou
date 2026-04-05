@@ -177,6 +177,8 @@ export interface PointForecast {
   windWaveDirection?: number;
   windWavePeriod?: number;
   swellPeriod?: number;
+  windGusts?: number;
+  seaTemp?: number;
 }
 
 export interface DetailedPointForecast {

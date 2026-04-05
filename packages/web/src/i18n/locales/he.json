@@ -317,7 +317,10 @@
       "seaTemperature": "טמפרטורת ים",
       "swellHeight": "גובה סוול",
       "windWaveHeight": "גובה גלי רוח",
-      "significantWaveHeight": "גובה גלים משמעותי"
+      "significantWaveHeight": "גובה גלים משמעותי",
+      "diveSuitability": "התאמה לצלילה",
+      "chopLevel": "רמת סערה",
+      "gustDelta": "הפרש משבי רוח"
     },
     "geoJSONLayers": "שכבות מפה",
     "coastline": "קו החוף",
