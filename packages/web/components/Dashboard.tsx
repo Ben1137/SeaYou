@@ -16,6 +16,7 @@ import { ErrorState } from './ErrorState';
 import { useTranslation } from 'react-i18next';
 import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
+import { ActivityTimeline } from './ActivityTimeline';
 
 interface DashboardProps {
   weatherData: MarineWeatherData | null | undefined;
@@ -394,6 +395,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   </>
                 ) : (
                   <p className="text-xs text-white/40">--</p>
+                )}
+                {weatherData && (
+                  <ActivityTimeline
+                    persona={persona}
+                    weatherData={weatherData}
+                    startHourIndex={currentHourIndex}
+                  />
                 )}
               </div>
             );

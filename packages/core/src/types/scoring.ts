@@ -50,3 +50,26 @@ export interface ScoredHour {
   score: number;
   conditions: HourlyConditions;
 }
+
+// ─── Push Notification Types (Phase 4) ───
+
+export interface FavoriteSpot {
+  lat: number;
+  lon: number;
+  radiusKm: number;
+  name: string;
+}
+
+export interface NotificationThresholds {
+  /** Minimum activity score (0-100) to trigger an alert */
+  minScore: number;
+  /** How many hours in advance to check for upcoming windows */
+  notifyHoursInAdvance: number;
+}
+
+export interface UserProfile {
+  id: string;
+  userType: ActivityPersona | 'multi';
+  favoriteSpots: FavoriteSpot[];
+  notificationThresholds: NotificationThresholds;
+}
