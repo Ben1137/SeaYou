@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow } from '@seame/core';
+import React, { useMemo, useState, useEffect } from 'react';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, fetchActiveTsunamis, checkTsunamiRisk } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
@@ -296,6 +296,41 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     };
     return map[tab] ?? null;
   };
+
+  // ─── Tsunami risk check on mount (Phase 5 — GDACS) ───
+  useEffect(() => {
+    if (!weatherData?.latitude || !weatherData?.longitude) return;
+    const lat = weatherData.latitude;
+    const lon = weatherData.longitude;
+
+    fetchActiveTsunamis()
+      .then((events) => {
+        if (events.length === 0) {
+          console.log('[TsunamiCheck] No active GDACS events');
+          return;
+        }
+        console.log(`[TsunamiCheck] ${events.length} GDACS events fetched`);
+        const risks = checkTsunamiRisk(lat, lon, events);
+        if (risks.length > 0) {
+          console.warn(
+            '%c TSUNAMI RISK DETECTED ',
+            'background: #dc2626; color: white; font-size: 18px; font-weight: bold; padding: 4px 12px;',
+            risks.map((r) => ({
+              title: r.event.title,
+              magnitude: r.event.magnitude,
+              distanceKm: Math.round(r.distanceKm),
+              riskLevel: r.riskLevel,
+              alertLevel: r.event.alertLevel,
+            }))
+          );
+        } else {
+          console.log('[TsunamiCheck] No tsunami risk near user location');
+        }
+      })
+      .catch((err) => {
+        console.warn('[TsunamiCheck] Failed to check tsunami risk:', err);
+      });
+  }, [weatherData?.latitude, weatherData?.longitude]);
 
   if (loading) return <DashboardSkeleton />;
   if (error) return <ErrorState error={error} onRetry={onRetry} />;

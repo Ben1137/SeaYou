@@ -9,3 +9,4 @@ export * from './forecastGridService';
 export * from './geojsonService';
 export * from './apiRateLimiter';
 export * from './NotificationService';
+export * from './TsunamiAlertService';

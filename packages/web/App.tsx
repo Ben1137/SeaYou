@@ -16,6 +16,7 @@ import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import './src/pwa';
+import { initOneSignalWeb } from './src/services/oneSignalWeb';
 
 const DEFAULT_LOC: Location = {
   id: 0,
@@ -72,6 +73,11 @@ const App: React.FC = () => {
     lon: currentLocation.lng,
     refetchInterval: UI_CONSTANTS.AUTO_REFRESH_INTERVAL_MS
   });
+
+  // Initialize OneSignal web SDK (Phase 4 — Push Notifications)
+  useEffect(() => {
+    initOneSignalWeb().catch(() => {/* non-critical */});
+  }, []);
 
   useEffect(() => {
     if (weatherData?.general?.sunrise && weatherData?.general?.sunset) {

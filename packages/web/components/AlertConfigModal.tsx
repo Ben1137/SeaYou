@@ -1,7 +1,8 @@
-import React, { useEffect, useCallback } from 'react';
-import { X, Bell, Waves, Wind } from 'lucide-react';
+import React, { useEffect, useCallback, useState } from 'react';
+import { X, Bell, Waves, Wind, BellRing } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlertConfig } from '../src/contexts/AlertContext';
+import { requestPushPermission } from '../src/services/oneSignalWeb';
 
 interface AlertConfigModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface AlertConfigModalProps {
 
 export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
+  const [pushStatus, setPushStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const {
     thresholds,
     setWaveThreshold,
@@ -169,6 +171,46 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
               />
               <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-red-600/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
             </label>
+          </div>
+
+          {/* Push Notifications test */}
+          <div className="glass-inner rounded-xl p-4 border border-purple-500/20">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-900/40 flex items-center justify-center">
+                  <BellRing size={16} className="text-purple-400" />
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-purple-200 block">
+                    {t('alerts.pushNotifications', 'Push Notifications')}
+                  </span>
+                  <span className="text-[10px] text-purple-400/60">
+                    {pushStatus === 'granted' ? t('alerts.pushEnabled', 'Enabled') :
+                     pushStatus === 'denied' ? t('alerts.pushDenied', 'Blocked by browser') :
+                     t('alerts.pushDesc', 'Get alerts when conditions are perfect')}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={async () => {
+                  setPushStatus('requesting');
+                  const granted = await requestPushPermission();
+                  setPushStatus(granted ? 'granted' : 'denied');
+                }}
+                disabled={pushStatus === 'requesting' || pushStatus === 'granted'}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                  pushStatus === 'granted'
+                    ? 'bg-emerald-600/40 text-emerald-300 cursor-default'
+                    : pushStatus === 'requesting'
+                      ? 'bg-purple-600/30 text-purple-300 animate-pulse cursor-wait'
+                      : 'bg-purple-600/50 text-white hover:bg-purple-500/60 active:bg-purple-500/80'
+                }`}
+              >
+                {pushStatus === 'granted' ? t('alerts.pushGranted', 'Enabled') :
+                 pushStatus === 'requesting' ? '...' :
+                 t('alerts.pushEnable', 'Enable')}
+              </button>
+            </div>
           </div>
         </div>
 

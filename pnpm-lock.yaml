@@ -167,6 +167,9 @@ importers:
       react-i18next:
         specifier: ^16.5.0
         version: 16.5.0(i18next@25.7.3(typescript@5.8.3))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)(typescript@5.8.3)
+      react-onesignal:
+        specifier: ^3.5.1
+        version: 3.5.1
       recharts:
         specifier: ^3.5.1
         version: 3.6.0(@types/react@19.0.14)(react-dom@19.2.3(react@19.2.3))(react-is@19.2.3)(react@19.2.3)(redux@5.0.1)
@@ -4115,6 +4118,10 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-onesignal@3.5.1:
+    resolution: {integrity: sha512-Pd3V/4yOfaD20o2aglJ+ernr9VO7FKNs20LJCmT81pkpkYNn+eCAAdLgLcaGocElLmM8sc9GiM2CCh2FzgYuaw==}
+    engines: {node: '>=14', npm: '>=6'}
 
   react-redux@9.2.0:
     resolution: {integrity: sha512-ROY9fvHhwOD9ySfrF0wmvu//bKCQ6AeZZq1nJNtbDC+kk5DuSuNX/n6YWYF/SYy7bSba4D4FSz8DJeKY/S/r+g==}
@@ -9591,6 +9598,8 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  react-onesignal@3.5.1: {}
 
   react-redux@9.2.0(@types/react@19.0.14)(react@19.2.3)(redux@5.0.1):
     dependencies:
