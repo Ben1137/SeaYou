@@ -47,7 +47,23 @@
     "roughWeather": "ייעוץ מזג אוויר קשה",
     "roughMessage": "רוחות חזקות וים גועש צפויים. מומלץ זהירות.",
     "tsunami": "אזהרת צונאמי",
-    "tsunamiMessage": "פקודת פינוי מיידית. פגיעת גלים גבוהים קרובה."
+    "tsunamiMessage": "פקודת פינוי מיידית. פגיעת גלים גבוהים קרובה.",
+    "highWaves": "גלים גבוהים",
+    "strongWinds": "רוחות חזקות",
+    "tsunamiDesc": "הדמיית באנר אזהרת צונאמי",
+    "pushNotifications": "התראות דחיפה",
+    "pushDesc": "קבל התראות כשהתנאים מושלמים",
+    "pushEnabled": "מופעל",
+    "pushDenied": "חסום על ידי הדפדפן",
+    "pushEnable": "הפעל",
+    "pushGranted": "מופעל",
+    "instantUpdate": "השינויים נכנסים לתוקף מיידית — לא צריך לשמור"
+  },
+  "tsunami": {
+    "evacuate": "אזהרת צונאמי — חפשו מקום גבוה",
+    "advisory": "ייעוץ צונאמי",
+    "watch": "מעקב רעידת אדמה",
+    "moreEvents": "אירועים נוספים"
   },
   "weather": {
     "waveHeight": "גובה גלים",

@@ -47,7 +47,23 @@
     "roughWeather": "ROUGH WEATHER ADVISORY",
     "roughMessage": "High winds and rough seas expected. Caution advised.",
     "tsunami": "TSUNAMI ALERT",
-    "tsunamiMessage": "Immediate evacuation ordered. High wave impact imminent."
+    "tsunamiMessage": "Immediate evacuation ordered. High wave impact imminent.",
+    "highWaves": "High Waves",
+    "strongWinds": "Strong Winds",
+    "tsunamiDesc": "Simulates tsunami warning banner",
+    "pushNotifications": "Push Notifications",
+    "pushDesc": "Get alerts when conditions are perfect",
+    "pushEnabled": "Enabled",
+    "pushDenied": "Blocked by browser",
+    "pushEnable": "Enable",
+    "pushGranted": "Enabled",
+    "instantUpdate": "Changes take effect instantly — no save needed"
+  },
+  "tsunami": {
+    "evacuate": "TSUNAMI WARNING — SEEK HIGH GROUND",
+    "advisory": "TSUNAMI ADVISORY",
+    "watch": "EARTHQUAKE WATCH",
+    "moreEvents": "more events"
   },
   "weather": {
     "waveHeight": "Wave Height",

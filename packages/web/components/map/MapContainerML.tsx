@@ -45,6 +45,10 @@ import { DiveSuitabilityLayerML } from './layers/DiveSuitabilityLayerML';
 import { ChopLevelLayerML } from './layers/ChopLevelLayerML';
 import { GustDeltaLayerML } from './layers/GustDeltaLayerML';
 
+// Tsunami Alert Layer (Phase 5 — GDACS)
+import { ActiveTsunamiLayerML } from './layers/ActiveTsunamiLayerML';
+import type { TsunamiRisk } from '@seame/core';
+
 // Shared data hooks
 import { useSharedMarineData } from '../../hooks/useSharedMarineData';
 import { useSharedForecastGridData } from '../../hooks/useSharedForecastGridData';
@@ -72,6 +76,7 @@ type AdvancedLayer =
 
 interface MapContainerMLProps {
   currentLocation: Coordinate;
+  tsunamiRisks?: TsunamiRisk[];
 }
 
 const getWindColor = (speed: number) => {
@@ -176,7 +181,7 @@ function buildQueryPopupHTML(
   </div>`;
 }
 
-export function MapContainerML({ currentLocation }: MapContainerMLProps) {
+export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContainerMLProps) {
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -1237,6 +1242,12 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         visible={advancedLayer === 'GUST_DELTA'}
         opacity={0.6}
         sharedGridData={sharedMarineData.gridData}
+      />
+
+      {/* Phase 5 — Tsunami event epicenters (always visible when alerts exist) */}
+      <ActiveTsunamiLayerML
+        risks={tsunamiRisks}
+        visible={tsunamiRisks.length > 0}
       />
 
     </div>

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -10,7 +10,10 @@ import {
 } from 'react-native';
 import { watchColors, WATCH_SIZE } from '../theme/watchColors';
 import { PaginationDots } from '../components/PaginationDots';
+import { WatchTsunamiAlert } from '../components/WatchTsunamiAlert';
 import { useWatchData } from '../hooks/useWatchData';
+import { useTsunamiCheck } from '../hooks/useTsunamiCheck';
+import { WatchDashboard } from './WatchDashboard';
 import { AlertsScreen } from './AlertsScreen';
 import { ConditionsScreen } from './ConditionsScreen';
 import { AtmosphereScreen } from './AtmosphereScreen';
@@ -19,14 +22,23 @@ import { LiveRadarScreen } from './LiveRadarScreen';
 import { NearestMarinaScreen } from './NearestMarinaScreen';
 import { ActiveRouteScreen } from './ActiveRouteScreen';
 
-const SCREEN_COUNT = 7;
 const LAT = 32.0853;
 const LNG = 34.7818;
 
 export function WatchCarousel() {
   const [currentPage, setCurrentPage] = useState(0);
   const { data, isLoading, error } = useWatchData(LAT, LNG);
+  const tsunamiRisks = useTsunamiCheck(LAT, LNG);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // If there's a HIGH tsunami risk, show it as the first screen
+  const highRisk = useMemo(
+    () => tsunamiRisks.find((r) => r.riskLevel === 'HIGH') ?? null,
+    [tsunamiRisks],
+  );
+
+  // Screen count adjusts if tsunami alert is active
+  const screenCount = highRisk ? 9 : 8;
 
   const handleScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -69,6 +81,13 @@ export function WatchCarousel() {
         contentContainerStyle={styles.scrollContent}
         accessibilityRole="tablist"
       >
+        {/* Tsunami alert — pinned first if HIGH risk exists */}
+        {highRisk && <WatchTsunamiAlert risk={highRisk} />}
+
+        {/* Activity Dashboard — 5 persona scores */}
+        <WatchDashboard data={data} />
+
+        {/* Original screens */}
         <AlertsScreen data={data} />
         <ConditionsScreen data={data} />
         <AtmosphereScreen data={data} />
@@ -78,7 +97,7 @@ export function WatchCarousel() {
         <ActiveRouteScreen />
       </ScrollView>
       <View style={styles.dotsContainer}>
-        <PaginationDots total={SCREEN_COUNT} current={currentPage} />
+        <PaginationDots total={screenCount} current={currentPage} />
       </View>
     </View>
   );

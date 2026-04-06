@@ -2,6 +2,7 @@
 export * from './navigation';
 export * from './apiResponses';
 export * from './scoring';
+export * from './preferences';
 
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',

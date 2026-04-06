@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { X, Bell, Waves, Wind, BellRing } from 'lucide-react';
+import { X, Bell, Waves, Wind, BellRing, Anchor, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ActivityPersona } from '@seame/core';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { requestPushPermission } from '../src/services/oneSignalWeb';
 
@@ -9,11 +10,23 @@ interface AlertConfigModalProps {
   onClose: () => void;
 }
 
+// ─── Persona selector config ───
+
+const PERSONA_OPTIONS: { persona: ActivityPersona; label: string; emoji: string; color: string }[] = [
+  { persona: ActivityPersona.WAVE_SURFER, label: 'Wave Surf', emoji: '\uD83C\uDFC4', color: 'bg-purple-500/60' },
+  { persona: ActivityPersona.WIND_SURFER, label: 'Wind Surf', emoji: '\uD83D\uDCA8', color: 'bg-cyan-500/60' },
+  { persona: ActivityPersona.KITE_SURFER, label: 'Kite', emoji: '\uD83E\uDE81', color: 'bg-amber-500/60' },
+  { persona: ActivityPersona.SAILOR, label: 'Sailing', emoji: '\u26F5', color: 'bg-teal-500/60' },
+  { persona: ActivityPersona.DIVER, label: 'Dive', emoji: '\uD83E\uDD3F', color: 'bg-blue-500/60' },
+];
+
 export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onClose }) => {
   const { t } = useTranslation();
   const [pushStatus, setPushStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
   const {
     thresholds,
+    primaryPersona,
+    setPrimaryPersona,
     setWaveThreshold,
     setWindThreshold,
     toggleHighWaves,
@@ -49,7 +62,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
       aria-label={t('dashboard.alertConfiguration', 'Alert Configuration')}
     >
       <div
-        className="glass-panel w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8"
+        className="glass-panel w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 max-h-[90vh] overflow-y-auto hide-scrollbar"
         style={{ backgroundColor: 'color-mix(in srgb, var(--app-bg-card) 85%, transparent)' }}
       >
         {/* Header */}
@@ -73,7 +86,37 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
         {/* Alert controls */}
         <div className="px-6 pt-5 pb-2 flex flex-col gap-4">
 
-          {/* Wave threshold card */}
+          {/* ═══ Persona Selector ═══ */}
+          <div className="glass-inner rounded-xl p-4 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Anchor size={16} className="text-blue-400" />
+              <span className="text-sm font-bold text-white">{t('profile.primaryActivity', 'Primary Activity')}</span>
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {PERSONA_OPTIONS.map((opt) => {
+                const isActive = primaryPersona === opt.persona;
+                return (
+                  <button
+                    key={opt.persona}
+                    onClick={() => setPrimaryPersona(opt.persona)}
+                    className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all ${
+                      isActive
+                        ? `${opt.color} border-white/30 scale-105`
+                        : 'bg-white/5 border-white/5 opacity-50 hover:opacity-80'
+                    }`}
+                  >
+                    <span className="text-lg">{opt.emoji}</span>
+                    <span className="text-[9px] font-bold text-white leading-tight">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-white/40 mt-2 text-center">
+              {t('profile.personaHint', 'Hype alerts and scoring are tuned to your primary activity')}
+            </p>
+          </div>
+
+          {/* ═══ Wave threshold card ═══ */}
           <div className={`glass-inner rounded-xl p-4 border transition-colors ${thresholds.highWavesEnabled ? 'border-orange-500/30' : 'border-white/5 opacity-60'}`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -110,7 +153,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* Wind threshold card */}
+          {/* ═══ Wind threshold card ═══ */}
           <div className={`glass-inner rounded-xl p-4 border transition-colors ${thresholds.strongWindsEnabled ? 'border-blue-500/30' : 'border-white/5 opacity-60'}`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -147,7 +190,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* Tsunami simulation */}
+          {/* ═══ Tsunami simulation ═══ */}
           <div className="flex items-center justify-between p-4 bg-red-950/30 border border-red-900/40 rounded-xl">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-red-900/40 flex items-center justify-center">
@@ -173,7 +216,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
             </label>
           </div>
 
-          {/* Push Notifications test */}
+          {/* ═══ Push Notifications ═══ */}
           <div className="glass-inner rounded-xl p-4 border border-purple-500/20">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

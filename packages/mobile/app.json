@@ -15,7 +15,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "SeaYou uses your location to show nearby marine conditions and marinas."
+        "NSLocationWhenInUseUsageDescription": "SeaYou uses your location to show nearby marine conditions and marinas.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SeaYou monitors your location in the background to alert you about tsunami risks.",
+        "UIBackgroundModes": ["fetch", "remote-notification"]
       }
     },
     "android": {
@@ -24,8 +26,26 @@
         "backgroundColor": "#082c47"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS"
+      ]
     },
+    "plugins": [
+      "expo-background-fetch",
+      "expo-task-manager",
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "SeaYou monitors your location in the background to alert you about tsunami risks."
+        }
+      ]
+    ],
     "web": {
       "favicon": "./assets/favicon.png"
     }

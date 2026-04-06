@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ListRenderItemInfo,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
@@ -17,52 +18,144 @@ import {
   Navigation,
   Settings,
   Sailboat,
-  Fish,
   Anchor as AnchorIcon,
   MapPin,
+  Eye,
 } from 'lucide-react-native';
-import { generateTideData } from '@seame/core';
+import {
+  generateTideData,
+  ActivityPersona,
+  scoreActivity,
+  extractCurrentConditions,
+  extractHourlyConditions,
+  findBestWindow,
+} from '@seame/core';
+import type { MarineWeatherData } from '@seame/core';
 import { useMarineData } from '../hooks/useMarineData';
 import { MetricCard } from '../components/MetricCard';
 import { TideCard } from '../components/TideCard';
 import { HourlyForecast } from '../components/HourlyForecast';
+import { ActivityTimelineMobile } from '../components/ActivityTimelineMobile';
+import { ProfileScreen } from './ProfileScreen';
 import { colors } from '../theme/colors';
 
 const DEFAULT_LAT = 32.0853;
 const DEFAULT_LNG = 34.7818;
 
+// ─── Activity persona config ───
+
 interface ActivityItem {
   id: string;
   label: string;
+  persona: ActivityPersona;
   icon: React.ComponentType<{ size: number; color: string }>;
   color: string;
+  glowColor: string;
 }
 
 const ACTIVITIES: ActivityItem[] = [
-  { id: 'sailing', label: 'Sailing', icon: Sailboat, color: colors.accent },
-  { id: 'fishing', label: 'Fishing', icon: Fish, color: '#f59e0b' },
-  { id: 'diving', label: 'Diving', icon: AnchorIcon, color: colors.blue },
-  { id: 'surfing', label: 'Surfing', icon: Waves, color: '#8b5cf6' },
+  { id: 'wave_surfer', label: 'Wave Surf', persona: ActivityPersona.WAVE_SURFER, icon: Waves, color: '#8b5cf6', glowColor: 'rgba(139, 92, 246, 0.2)' },
+  { id: 'wind_surfer', label: 'Wind Surf', persona: ActivityPersona.WIND_SURFER, icon: Wind, color: '#22d3ee', glowColor: 'rgba(34, 211, 238, 0.2)' },
+  { id: 'kite_surfer', label: 'Kite', persona: ActivityPersona.KITE_SURFER, icon: Navigation, color: '#f59e0b', glowColor: 'rgba(245, 158, 11, 0.2)' },
+  { id: 'sailor', label: 'Sailing', persona: ActivityPersona.SAILOR, icon: Sailboat, color: colors.accent, glowColor: colors.accentGlow },
+  { id: 'diver', label: 'Dive', persona: ActivityPersona.DIVER, icon: Eye, color: colors.blue, glowColor: colors.blueGlow },
 ];
 
-const ACTIVITY_CARD_WIDTH = 100;
-const ACTIVITY_CARD_MARGIN = 10;
+// ─── Score → color/label ───
 
-const ActivityCard = React.memo<{ item: ActivityItem }>(({ item }) => {
+function scoreColor(score: number): string {
+  if (score >= 90) return '#a78bfa'; // purple — Epic
+  if (score >= 70) return '#34d399'; // emerald — Good
+  if (score >= 50) return '#3b82f6'; // blue — Fair
+  if (score >= 30) return 'rgba(255,255,255,0.6)'; // dim — Poor
+  return '#ef4444'; // red — Dangerous
+}
+
+function scoreLabel(score: number): string {
+  if (score >= 90) return 'Epic';
+  if (score >= 70) return 'Good';
+  if (score >= 50) return 'Fair';
+  if (score >= 30) return 'Poor';
+  return 'No Go';
+}
+
+// ─── Current hour index ───
+
+function getCurrentHourIndex(weatherData: MarineWeatherData): number {
+  if (!weatherData?.hourly?.time) return 0;
+  const now = Date.now();
+  let closest = 0;
+  let minDiff = Infinity;
+  weatherData.hourly.time.forEach((t, i) => {
+    const diff = Math.abs(now - new Date(t).getTime());
+    if (diff < minDiff) { minDiff = diff; closest = i; }
+  });
+  return closest;
+}
+
+// ─── Activity Card ───
+
+const ActivityCard = React.memo<{
+  item: ActivityItem;
+  weatherData: MarineWeatherData | null | undefined;
+  currentHourIndex: number;
+}>(({ item, weatherData, currentHourIndex }) => {
   const Icon = item.icon;
+
+  const score = useMemo(() => {
+    if (!weatherData) return null;
+    const conditions = extractCurrentConditions(weatherData);
+    return scoreActivity(item.persona, conditions);
+  }, [weatherData, item.persona]);
+
+  const bestWindow = useMemo(() => {
+    if (!weatherData) return null;
+    return findBestWindow(weatherData, item.persona, { startHourIndex: currentHourIndex });
+  }, [weatherData, item.persona, currentHourIndex]);
+
+  const overall = score?.overall ?? 0;
+
   return (
-    <TouchableOpacity
-      style={styles.activityCard}
-      activeOpacity={0.7}
-      accessibilityRole="button"
-      accessibilityLabel={item.label}
-    >
-      <Icon size={24} color={item.color} />
-      <Text style={styles.activityLabel}>{item.label}</Text>
-    </TouchableOpacity>
+    <View style={styles.activityCard}>
+      {/* Header row: icon + name + score badge */}
+      <View style={styles.activityHeader}>
+        <View style={[styles.activityIconBadge, { backgroundColor: item.glowColor }]}>
+          <Icon size={18} color={item.color} />
+        </View>
+        <View style={styles.activityNameCol}>
+          <Text style={styles.activityLabel}>{item.label}</Text>
+          {bestWindow && (
+            <Text style={styles.bestWindowText}>
+              Best: {bestWindow.startTime.slice(11, 16)}–{bestWindow.endTime.slice(11, 16)}
+            </Text>
+          )}
+        </View>
+        {score && (
+          <View style={[styles.scoreBadge, { backgroundColor: scoreColor(overall) + '33' }]}>
+            <Text style={[styles.scoreValue, { color: scoreColor(overall) }]}>
+              {Math.round(overall)}
+            </Text>
+            <Text style={[styles.scoreLabel, { color: scoreColor(overall) }]}>
+              {scoreLabel(overall)}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Sparkline */}
+      {weatherData && (
+        <ActivityTimelineMobile
+          persona={item.persona}
+          weatherData={weatherData}
+          startHourIndex={currentHourIndex}
+        />
+      )}
+    </View>
   );
 });
 ActivityCard.displayName = 'ActivityCard';
+
+// ─── Dashboard Screen ───
 
 export function DashboardScreen() {
   const { data, isLoading, error, refetch } = useMarineData(
@@ -70,24 +163,24 @@ export function DashboardScreen() {
     DEFAULT_LNG,
   );
 
+  const [showProfile, setShowProfile] = useState(false);
+  const openProfile = useCallback(() => setShowProfile(true), []);
+  const closeProfile = useCallback(() => setShowProfile(false), []);
+
+  const currentHourIndex = useMemo(() => {
+    if (!data) return 0;
+    return getCurrentHourIndex(data);
+  }, [data]);
+
   const renderActivity = useCallback(
     ({ item }: ListRenderItemInfo<ActivityItem>) => (
-      <ActivityCard item={item} />
+      <ActivityCard item={item} weatherData={data} currentHourIndex={currentHourIndex} />
     ),
-    [],
+    [data, currentHourIndex],
   );
 
   const activityKeyExtractor = useCallback(
     (item: ActivityItem) => item.id,
-    [],
-  );
-
-  const activityGetItemLayout = useCallback(
-    (_: unknown, index: number) => ({
-      length: ACTIVITY_CARD_WIDTH + ACTIVITY_CARD_MARGIN,
-      offset: (ACTIVITY_CARD_WIDTH + ACTIVITY_CARD_MARGIN) * index,
-      index,
-    }),
     [],
   );
 
@@ -154,20 +247,19 @@ export function DashboardScreen() {
                 activeOpacity={0.7}
                 accessibilityRole="button"
                 accessibilityLabel="Settings"
+                onPress={openProfile}
               >
                 <Settings size={22} color={colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* Activities */}
-            <Text style={styles.sectionTitle}>Activities</Text>
+            {/* Activity Cards — 5 personas with scores + sparklines */}
+            <Text style={styles.sectionTitle}>Activity Report</Text>
             <FlatList
               data={ACTIVITIES}
               renderItem={renderActivity}
               keyExtractor={activityKeyExtractor}
-              getItemLayout={activityGetItemLayout}
-              horizontal
-              showsHorizontalScrollIndicator={false}
+              scrollEnabled={false}
               style={styles.activitiesList}
             />
 
@@ -214,10 +306,23 @@ export function DashboardScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       />
+
+      {/* Profile & Alerts modal — opens from the header settings gear */}
+      <Modal
+        visible={showProfile}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeProfile}
+      >
+        <ProfileScreen onClose={closeProfile} />
+      </Modal>
+
       <StatusBar style="light" />
     </LinearGradient>
   );
 }
+
+// ─── Styles ───
 
 const styles = StyleSheet.create({
   gradient: {
@@ -301,27 +406,63 @@ const styles = StyleSheet.create({
   activitiesList: {
     marginBottom: 20,
   },
-  activityCard: {
-    backgroundColor: colors.glassPanel,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.glassBorder,
-    width: ACTIVITY_CARD_WIDTH,
-    height: 90,
-    marginRight: ACTIVITY_CARD_MARGIN,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-  },
-  activityLabel: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: '500',
-  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     marginBottom: 12,
+  },
+
+  // ─── Activity Card (new) ───
+  activityCard: {
+    backgroundColor: colors.glassPanel,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    padding: 14,
+    marginBottom: 10,
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  activityIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activityNameCol: {
+    flex: 1,
+  },
+  activityLabel: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  bestWindowText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  scoreBadge: {
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    minWidth: 52,
+  },
+  scoreValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 22,
+  },
+  scoreLabel: {
+    fontSize: 9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 });

@@ -22,7 +22,7 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     return;
   }
 
-  const id = appId || import.meta.env.VITE_ONESIGNAL_APP_ID;
+  const id = appId || (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_ONESIGNAL_APP_ID;
   if (!id || id === 'YOUR_ONESIGNAL_APP_ID') {
     console.warn(
       '[OneSignalWeb] No OneSignal App ID configured. Set VITE_ONESIGNAL_APP_ID in .env to enable push notifications.'

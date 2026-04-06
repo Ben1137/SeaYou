@@ -47,7 +47,23 @@
     "roughWeather": "RAUHE WETTERWARNUNG",
     "roughMessage": "Starke Winde und raue See erwartet. Vorsicht geboten.",
     "tsunami": "TSUNAMI-ALARM",
-    "tsunamiMessage": "Sofortige Evakuierung angeordnet. Hohe Wellenauswirkung steht bevor."
+    "tsunamiMessage": "Sofortige Evakuierung angeordnet. Hohe Wellenauswirkung steht bevor.",
+    "highWaves": "Hohe Wellen",
+    "strongWinds": "Starke Winde",
+    "tsunamiDesc": "Simuliert Tsunami-Warnbanner",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "pushDesc": "Benachrichtigungen bei perfekten Bedingungen",
+    "pushEnabled": "Aktiviert",
+    "pushDenied": "Vom Browser blockiert",
+    "pushEnable": "Aktivieren",
+    "pushGranted": "Aktiviert",
+    "instantUpdate": "Änderungen wirken sofort — kein Speichern nötig"
+  },
+  "tsunami": {
+    "evacuate": "TSUNAMI-WARNUNG — HÖHERES GELÄNDE AUFSUCHEN",
+    "advisory": "TSUNAMI-HINWEIS",
+    "watch": "ERDBEBEN-ÜBERWACHUNG",
+    "moreEvents": "weitere Ereignisse"
   },
   "weather": {
     "waveHeight": "Wellenhöhe",

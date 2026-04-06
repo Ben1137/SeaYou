@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ViewState, Location, UI_CONSTANTS, NAVIGATION_CONSTANTS } from '@seame/core';
+import { ViewState, Location, UI_CONSTANTS, NAVIGATION_CONSTANTS, TsunamiRisk, fetchActiveTsunamis, checkTsunamiRisk } from '@seame/core';
 import Dashboard from './components/Dashboard';
 import { MapProvider } from './components/map/MapProvider';
 import { MapContainerML } from './components/map/MapContainerML';
@@ -10,6 +10,7 @@ import { AuthModal } from './components/AuthModal';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { LanguageSelector } from './src/components/LanguageSelector';
 import { AlertProvider } from './src/contexts/AlertContext';
+import { TsunamiBanner } from './components/TsunamiBanner';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe } from 'lucide-react';
 import { searchLocations, reverseGeocode } from '@seame/core';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
@@ -17,6 +18,9 @@ import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import './src/pwa';
 import { initOneSignalWeb } from './src/services/oneSignalWeb';
+
+/** Polling interval for GDACS tsunami feeds (5 minutes) */
+const TSUNAMI_POLL_MS = 5 * 60 * 1000;
 
 const DEFAULT_LOC: Location = {
   id: 0,
@@ -78,6 +82,71 @@ const App: React.FC = () => {
   useEffect(() => {
     initOneSignalWeb().catch(() => {/* non-critical */});
   }, []);
+
+  // ─── Tsunami risk state + background polling (Phase 5) ───
+  const [tsunamiRisks, setTsunamiRisks] = useState<TsunamiRisk[]>([]);
+
+  useEffect(() => {
+    const lat = currentLocation.lat;
+    const lng = currentLocation.lng;
+    if (!lat || !lng) return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const events = await fetchActiveTsunamis();
+        if (cancelled) return;
+
+        if (events.length === 0) {
+          console.log('[TsunamiPoll] No active GDACS events');
+          setTsunamiRisks([]);
+          return;
+        }
+
+        console.log(`[TsunamiPoll] ${events.length} GDACS events fetched`);
+        const risks = checkTsunamiRisk(lat, lng, events);
+        setTsunamiRisks(risks);
+
+        if (risks.length > 0) {
+          console.warn(
+            '%c TSUNAMI RISK DETECTED ',
+            'background: #dc2626; color: white; font-size: 18px; font-weight: bold; padding: 4px 12px;',
+            risks.map((r) => ({
+              title: r.event.title,
+              magnitude: r.event.magnitude,
+              distanceKm: Math.round(r.distanceKm),
+              riskLevel: r.riskLevel,
+            }))
+          );
+
+          // Fire native push notification for HIGH risk
+          const highRisk = risks.find((r) => r.riskLevel === 'HIGH');
+          if (highRisk && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('⚠️ TSUNAMI WARNING', {
+              body: `${highRisk.event.title} — M${highRisk.event.magnitude.toFixed(1)} — ${Math.round(highRisk.distanceKm)} km away. Seek high ground immediately.`,
+              icon: '/icons/icon-192x192.png',
+              tag: 'tsunami-high',
+              requireInteraction: true,
+            });
+          }
+        }
+      } catch (err) {
+        if (!cancelled) console.warn('[TsunamiPoll] Failed:', err);
+      }
+    };
+
+    // Initial fetch
+    poll();
+
+    // Poll every 5 minutes
+    const intervalId = setInterval(poll, TSUNAMI_POLL_MS);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [currentLocation.lat, currentLocation.lng]);
 
   useEffect(() => {
     if (weatherData?.general?.sunrise && weatherData?.general?.sunset) {
@@ -219,6 +288,8 @@ const App: React.FC = () => {
       }}
     >
       <AlertProvider>
+      {/* Phase 5 — Global tsunami alert banner (fixed top, above everything) */}
+      <TsunamiBanner risks={tsunamiRisks} />
       <div className="flex flex-col lg:flex-row h-[100dvh] w-full max-w-[100vw] theme-bg text-white overflow-hidden font-sans theme-transition">
 
         {/* ============ Desktop Side Rail (lg+) ============ */}
@@ -452,7 +523,7 @@ const App: React.FC = () => {
                   }}
                 >
                   <MapProvider>
-                    <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} />
+                    <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} tsunamiRisks={tsunamiRisks} />
                   </MapProvider>
                 </ErrorBoundary>
               </div>

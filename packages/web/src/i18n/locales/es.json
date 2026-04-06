@@ -47,7 +47,23 @@
     "roughWeather": "AVISO DE MAL TIEMPO",
     "roughMessage": "Se esperan fuertes vientos y mar agitado. Se aconseja precaución.",
     "tsunami": "ALERTA DE TSUNAMI",
-    "tsunamiMessage": "Ordenada evacuación inmediata. Impacto de olas altas inminente."
+    "tsunamiMessage": "Ordenada evacuación inmediata. Impacto de olas altas inminente.",
+    "highWaves": "Olas altas",
+    "strongWinds": "Vientos fuertes",
+    "tsunamiDesc": "Simula el banner de alerta de tsunami",
+    "pushNotifications": "Notificaciones push",
+    "pushDesc": "Recibe alertas cuando las condiciones sean perfectas",
+    "pushEnabled": "Activado",
+    "pushDenied": "Bloqueado por el navegador",
+    "pushEnable": "Activar",
+    "pushGranted": "Activado",
+    "instantUpdate": "Los cambios surten efecto al instante — no es necesario guardar"
+  },
+  "tsunami": {
+    "evacuate": "ALERTA DE TSUNAMI — BUSQUE TERRENO ELEVADO",
+    "advisory": "AVISO DE TSUNAMI",
+    "watch": "VIGILANCIA DE TERREMOTO",
+    "moreEvents": "más eventos"
   },
   "weather": {
     "waveHeight": "Altura de las olas",
