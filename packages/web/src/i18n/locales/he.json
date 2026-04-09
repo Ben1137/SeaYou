@@ -30,7 +30,8 @@
     "waveThreshold": "סף גלים (מ׳)",
     "windThreshold": "סף רוח (קמ״ש)",
     "tsunamiSimulation": "סימולציית התראת צונאמי",
-    "noData": "אין נתוני מזג אוויר זמינים."
+    "noData": "אין נתוני מזג אוויר זמינים.",
+    "alertSettings": "הגדרות התראות"
   },
   "settings": {
     "alertConfig": "הגדרת התראות",
@@ -46,7 +47,23 @@
     "roughWeather": "ייעוץ מזג אוויר קשה",
     "roughMessage": "רוחות חזקות וים גועש צפויים. מומלץ זהירות.",
     "tsunami": "אזהרת צונאמי",
-    "tsunamiMessage": "פקודת פינוי מיידית. פגיעת גלים גבוהים קרובה."
+    "tsunamiMessage": "פקודת פינוי מיידית. פגיעת גלים גבוהים קרובה.",
+    "highWaves": "גלים גבוהים",
+    "strongWinds": "רוחות חזקות",
+    "tsunamiDesc": "הדמיית באנר אזהרת צונאמי",
+    "pushNotifications": "התראות דחיפה",
+    "pushDesc": "קבל התראות כשהתנאים מושלמים",
+    "pushEnabled": "מופעל",
+    "pushDenied": "חסום על ידי הדפדפן",
+    "pushEnable": "הפעל",
+    "pushGranted": "מופעל",
+    "instantUpdate": "השינויים נכנסים לתוקף מיידית — לא צריך לשמור"
+  },
+  "tsunami": {
+    "evacuate": "אזהרת צונאמי — חפשו מקום גבוה",
+    "advisory": "ייעוץ צונאמי",
+    "watch": "מעקב רעידת אדמה",
+    "moreEvents": "אירועים נוספים"
   },
   "weather": {
     "waveHeight": "גובה גלים",
@@ -110,7 +127,49 @@
       "cold": "קר",
       "cool": "קריר",
       "great": "מעולה"
-    }
+    },
+    "uv": {
+      "label": "מדד UV",
+      "extreme": "קיצוני",
+      "veryHigh": "גבוה מאוד",
+      "high": "גבוה",
+      "moderate": "בינוני",
+      "low": "נמוך"
+    },
+    "waveSurfer": {
+      "label": "גלישת גלים",
+      "desc": "תנאי גלישת גלים"
+    },
+    "windSurfer": {
+      "label": "גלישת רוח",
+      "desc": "תנאי גלישת רוח"
+    },
+    "kiteSurfer": {
+      "label": "קייט סרף",
+      "desc": "תנאי קייט סרפינג"
+    },
+    "sailor": {
+      "label": "שיט",
+      "desc": "תנאי שיט"
+    },
+    "diver": {
+      "label": "צלילה / שנירקול",
+      "desc": "תנאי צלילה ושנירקול"
+    },
+    "beachgoer": {
+      "label": "חוף ושמש",
+      "desc": "תנאי חוף, שחייה ושיזוף"
+    },
+    "bestWindow": "חלון מיטבי",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "ציון"
+  },
+  "scoring": {
+    "epic": "מדהים",
+    "good": "טוב",
+    "fair": "סביר",
+    "poor": "גרוע",
+    "dangerous": "מסוכן"
   },
   "forecast": {
     "waveForecast": "תחזית גלים (גובה ותקופה)",
@@ -126,7 +185,11 @@
     "marinerForecast": "תחזית למלחים (IMS)",
     "surferForecast": "תחזית לגולשים",
     "kiteForecast": "תחזית לגולשי קייט",
-    "beachForecast": "תחזית חוף"
+    "beachForecast": "תחזית חוף",
+    "waveSurferForecast": "תחזית גולשי גלים",
+    "windSurferForecast": "תחזית גולשי רוח",
+    "sailorForecast": "תחזית שייטים",
+    "diverForecast": "תחזית צוללנים"
   },
   "table": {
     "period": "תקופה",
@@ -274,7 +337,10 @@
       "seaTemperature": "טמפרטורת ים",
       "swellHeight": "גובה סוול",
       "windWaveHeight": "גובה גלי רוח",
-      "significantWaveHeight": "גובה גלים משמעותי"
+      "significantWaveHeight": "גובה גלים משמעותי",
+      "diveSuitability": "התאמה לצלילה",
+      "chopLevel": "רמת סערה",
+      "gustDelta": "הפרש משבי רוח"
     },
     "geoJSONLayers": "שכבות מפה",
     "coastline": "קו החוף",
@@ -282,7 +348,12 @@
     "reefs": "שוניות אלמוגים",
     "ports": "נמלים",
     "marineAreas": "אזורים ימיים",
-    "loadingGeoJSON": "טוען נתוני מפה..."
+    "loadingGeoJSON": "טוען נתוני מפה...",
+    "activityLayers": "שכבות פעילות",
+    "swellDirection": "כיוון גלישה",
+    "diveSuitability": "התאמה לצלילה",
+    "chopLevel": "רמת סערה",
+    "gustDelta": "הפרש משבי רוח"
   },
   "units": {
     "meters": "מ׳",
@@ -443,6 +514,36 @@
     "apply_filters": "החל מסננים",
     "searching_for_marinas": "מחפש מרינות...",
     "no_favorite_marinas_yet": "אין עדיין מרינות מועדפות",
-    "no_marinas_found_in_area": "לא נמצאו מרינות באזור זה"
+    "no_marinas_found_in_area": "לא נמצאו מרינות באזור זה",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "צור מסלול",
+    "viewSaved": "צפה בשמורים",
+    "routeName": "שם מסלול",
+    "startLocation": "מיקום התחלה",
+    "destination": "יעד",
+    "averageSpeed": "מהירות ממוצעת"
+  },
+  "auth": {
+    "signIn": "התחבר",
+    "signUp": "הרשמה",
+    "signOut": "התנתק",
+    "profile": "פרופיל",
+    "signedInAs": "מחובר בתור",
+    "continueWithGoogle": "המשך עם Google",
+    "continueWithFacebook": "המשך עם Facebook",
+    "continueWithApple": "המשך עם Apple",
+    "continueWithEmail": "המשך עם דוא\"ל",
+    "createAccount": "צור חשבון",
+    "emailPlaceholder": "הזן את כתובת הדוא\"ל שלך",
+    "passwordPlaceholder": "סיסמה",
+    "sendMagicLink": "או שלח לי קישור קסם בדוא\"ל",
+    "magicLinkSent": "בדוק את תיבת הדואר שלך — שלחנו לך קישור התחברות.",
+    "notConfigured": "האימות אינו זמין — חסרים פרטי הגישה ל-Supabase.",
+    "noAccount": "אין לך חשבון?",
+    "haveAccount": "כבר יש לך חשבון?",
+    "or": "או"
   }
 }

@@ -1,6 +1,8 @@
 
 export * from './navigation';
 export * from './apiResponses';
+export * from './scoring';
+export * from './preferences';
 
 export enum ViewState {
   DASHBOARD = 'DASHBOARD',
@@ -48,6 +50,12 @@ export interface MarineWeatherHourly {
   sea_surface_temperature?: number[];
   uv_index?: number[];
   weather_code?: number[];
+  wave_peak_period?: number[];
+  wind_wave_height?: number[];
+  wind_wave_direction?: number[];
+  wind_wave_period?: number[];
+  ocean_current_velocity?: number[];
+  ocean_current_direction?: number[];
 }
 
 export interface MarineWeatherDaily {
@@ -170,6 +178,8 @@ export interface PointForecast {
   windWaveDirection?: number;
   windWavePeriod?: number;
   swellPeriod?: number;
+  windGusts?: number;
+  seaTemp?: number;
 }
 
 export interface DetailedPointForecast {

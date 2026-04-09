@@ -30,7 +30,8 @@
     "waveThreshold": "Soglia onde (m)",
     "windThreshold": "Soglia vento (km/h)",
     "tsunamiSimulation": "Simulazione avviso tsunami",
-    "noData": "Nessun dato meteo disponibile."
+    "noData": "Nessun dato meteo disponibile.",
+    "alertSettings": "Impostazioni avvisi"
   },
   "settings": {
     "alertConfig": "Configurazione avvisi",
@@ -46,7 +47,23 @@
     "roughWeather": "AVVISO METEO AVVERSO",
     "roughMessage": "Previsti forti venti e mare mosso. Cautela consigliata.",
     "tsunami": "AVVISO TSUNAMI",
-    "tsunamiMessage": "Ordinata evacuazione immediata. Imminente impatto di onde alte."
+    "tsunamiMessage": "Ordinata evacuazione immediata. Imminente impatto di onde alte.",
+    "highWaves": "Onde alte",
+    "strongWinds": "Venti forti",
+    "tsunamiDesc": "Simula il banner di allarme tsunami",
+    "pushNotifications": "Notifiche push",
+    "pushDesc": "Ricevi avvisi quando le condizioni sono perfette",
+    "pushEnabled": "Attivato",
+    "pushDenied": "Bloccato dal browser",
+    "pushEnable": "Attiva",
+    "pushGranted": "Attivato",
+    "instantUpdate": "Le modifiche hanno effetto immediato — nessun salvataggio necessario"
+  },
+  "tsunami": {
+    "evacuate": "ALLARME TSUNAMI — CERCARE TERRENO ELEVATO",
+    "advisory": "AVVISO TSUNAMI",
+    "watch": "SORVEGLIANZA TERREMOTO",
+    "moreEvents": "altri eventi"
   },
   "weather": {
     "waveHeight": "Altezza onde",
@@ -110,7 +127,49 @@
       "cold": "Freddo",
       "cool": "Fresco",
       "great": "Ottimo"
-    }
+    },
+    "uv": {
+      "label": "Indice UV",
+      "extreme": "Estremo",
+      "veryHigh": "Molto alto",
+      "high": "Alto",
+      "moderate": "Moderato",
+      "low": "Basso"
+    },
+    "waveSurfer": {
+      "label": "Surf",
+      "desc": "Condizioni per il surf"
+    },
+    "windSurfer": {
+      "label": "Windsurf",
+      "desc": "Condizioni per il windsurf"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurf",
+      "desc": "Condizioni per il kitesurf"
+    },
+    "sailor": {
+      "label": "Vela",
+      "desc": "Condizioni per la vela"
+    },
+    "diver": {
+      "label": "Immersioni / Snorkeling",
+      "desc": "Condizioni per immersioni e snorkeling"
+    },
+    "beachgoer": {
+      "label": "Spiaggia & Sole",
+      "desc": "Condizioni per spiaggia, nuoto e abbronzatura"
+    },
+    "bestWindow": "Miglior finestra",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Punteggio"
+  },
+  "scoring": {
+    "epic": "Epico",
+    "good": "Buono",
+    "fair": "Discreto",
+    "poor": "Scarso",
+    "dangerous": "Pericoloso"
   },
   "forecast": {
     "waveForecast": "Previsione onde (Altezza e Periodo)",
@@ -126,7 +185,11 @@
     "marinerForecast": "Previsione del marinaio (IMS)",
     "surferForecast": "Previsione del surfista",
     "kiteForecast": "Previsione del kitesurfista",
-    "beachForecast": "Previsione spiaggia"
+    "beachForecast": "Previsione spiaggia",
+    "waveSurferForecast": "Previsioni surf",
+    "windSurferForecast": "Previsioni windsurf",
+    "sailorForecast": "Previsioni vela",
+    "diverForecast": "Previsioni immersioni"
   },
   "table": {
     "period": "Periodo",
@@ -268,7 +331,12 @@
     "loadingData": "Caricamento dati...",
     "waveSwellHeight": "Altezza onde e onda lunga (m)",
     "windSpeedChart": "Velocità vento (km/h)",
-    "currentVelocity": "Velocità corrente (km/h)"
+    "currentVelocity": "Velocità corrente (km/h)",
+    "activityLayers": "Livelli attività",
+    "swellDirection": "Direzione onda lunga",
+    "diveSuitability": "Idoneità immersione",
+    "chopLevel": "Livello increspatura",
+    "gustDelta": "Delta raffiche"
   },
   "units": {
     "meters": "m",
@@ -426,6 +494,36 @@
     "apply_filters": "Applica filtri",
     "searching_for_marinas": "Ricerca marine...",
     "no_favorite_marinas_yet": "Nessuna marina preferita ancora",
-    "no_marinas_found_in_area": "Nessuna marina trovata in quest'area"
+    "no_marinas_found_in_area": "Nessuna marina trovata in quest'area",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Crea rotta",
+    "viewSaved": "Visualizza salvate",
+    "routeName": "Nome rotta",
+    "startLocation": "Posizione di partenza",
+    "destination": "Destinazione",
+    "averageSpeed": "Velocità media"
+  },
+  "auth": {
+    "signIn": "Accedi",
+    "signUp": "Registrati",
+    "signOut": "Esci",
+    "profile": "Profilo",
+    "signedInAs": "Connesso come",
+    "continueWithGoogle": "Continua con Google",
+    "continueWithFacebook": "Continua con Facebook",
+    "continueWithApple": "Continua con Apple",
+    "continueWithEmail": "Continua con e-mail",
+    "createAccount": "Crea account",
+    "emailPlaceholder": "Inserisci la tua e-mail",
+    "passwordPlaceholder": "Password",
+    "sendMagicLink": "Oppure inviami un magic link via e-mail",
+    "magicLinkSent": "Controlla la tua casella — ti abbiamo inviato un link di accesso.",
+    "notConfigured": "Autenticazione non disponibile — mancano le credenziali Supabase.",
+    "noAccount": "Non hai un account?",
+    "haveAccount": "Hai già un account?",
+    "or": "o"
   }
 }

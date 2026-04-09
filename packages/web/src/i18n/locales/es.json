@@ -30,7 +30,8 @@
     "waveThreshold": "Umbral de olas (m)",
     "windThreshold": "Umbral de viento (km/h)",
     "tsunamiSimulation": "Simulación de alerta de tsunami",
-    "noData": "No hay datos meteorológicos disponibles."
+    "noData": "No hay datos meteorológicos disponibles.",
+    "alertSettings": "Configuración de alertas"
   },
   "settings": {
     "alertConfig": "Configuración de alertas",
@@ -46,7 +47,23 @@
     "roughWeather": "AVISO DE MAL TIEMPO",
     "roughMessage": "Se esperan fuertes vientos y mar agitado. Se aconseja precaución.",
     "tsunami": "ALERTA DE TSUNAMI",
-    "tsunamiMessage": "Ordenada evacuación inmediata. Impacto de olas altas inminente."
+    "tsunamiMessage": "Ordenada evacuación inmediata. Impacto de olas altas inminente.",
+    "highWaves": "Olas altas",
+    "strongWinds": "Vientos fuertes",
+    "tsunamiDesc": "Simula el banner de alerta de tsunami",
+    "pushNotifications": "Notificaciones push",
+    "pushDesc": "Recibe alertas cuando las condiciones sean perfectas",
+    "pushEnabled": "Activado",
+    "pushDenied": "Bloqueado por el navegador",
+    "pushEnable": "Activar",
+    "pushGranted": "Activado",
+    "instantUpdate": "Los cambios surten efecto al instante — no es necesario guardar"
+  },
+  "tsunami": {
+    "evacuate": "ALERTA DE TSUNAMI — BUSQUE TERRENO ELEVADO",
+    "advisory": "AVISO DE TSUNAMI",
+    "watch": "VIGILANCIA DE TERREMOTO",
+    "moreEvents": "más eventos"
   },
   "weather": {
     "waveHeight": "Altura de las olas",
@@ -110,7 +127,49 @@
       "cold": "Frío",
       "cool": "Fresco",
       "great": "Excelente"
-    }
+    },
+    "uv": {
+      "label": "Índice UV",
+      "extreme": "Extremo",
+      "veryHigh": "Muy alto",
+      "high": "Alto",
+      "moderate": "Moderado",
+      "low": "Bajo"
+    },
+    "waveSurfer": {
+      "label": "Surf",
+      "desc": "Condiciones de surf"
+    },
+    "windSurfer": {
+      "label": "Windsurf",
+      "desc": "Condiciones de windsurf"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurf",
+      "desc": "Condiciones de kitesurf"
+    },
+    "sailor": {
+      "label": "Vela",
+      "desc": "Condiciones de navegación"
+    },
+    "diver": {
+      "label": "Buceo / Snorkel",
+      "desc": "Condiciones de buceo y snorkel"
+    },
+    "beachgoer": {
+      "label": "Playa & Sol",
+      "desc": "Condiciones de playa, natación y bronceado"
+    },
+    "bestWindow": "Mejor ventana",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Puntuación"
+  },
+  "scoring": {
+    "epic": "Épico",
+    "good": "Bueno",
+    "fair": "Regular",
+    "poor": "Malo",
+    "dangerous": "Peligroso"
   },
   "forecast": {
     "waveForecast": "Pronóstico de olas (Altura y Período)",
@@ -126,7 +185,11 @@
     "marinerForecast": "Pronóstico del marinero (IMS)",
     "surferForecast": "Pronóstico del surfista",
     "kiteForecast": "Pronóstico del kitesurfista",
-    "beachForecast": "Pronóstico de playa"
+    "beachForecast": "Pronóstico de playa",
+    "waveSurferForecast": "Pronóstico de surf",
+    "windSurferForecast": "Pronóstico de windsurf",
+    "sailorForecast": "Pronóstico de vela",
+    "diverForecast": "Pronóstico de buceo"
   },
   "table": {
     "period": "Período",
@@ -249,7 +312,12 @@
     "loadingData": "Cargando datos...",
     "waveSwellHeight": "Altura de olas y oleaje (m)",
     "windSpeedChart": "Velocidad del viento (km/h)",
-    "currentVelocity": "Velocidad de corriente (km/h)"
+    "currentVelocity": "Velocidad de corriente (km/h)",
+    "activityLayers": "Capas de actividad",
+    "swellDirection": "Dirección del oleaje",
+    "diveSuitability": "Aptitud para buceo",
+    "chopLevel": "Nivel de marejada",
+    "gustDelta": "Delta de ráfagas"
   },
   "units": {
     "meters": "m",
@@ -407,6 +475,36 @@
     "apply_filters": "Aplicar filtros",
     "searching_for_marinas": "Buscando marinas...",
     "no_favorite_marinas_yet": "No hay marinas favoritas todavía",
-    "no_marinas_found_in_area": "No se encontraron marinas en esta área"
+    "no_marinas_found_in_area": "No se encontraron marinas en esta área",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Crear ruta",
+    "viewSaved": "Ver guardadas",
+    "routeName": "Nombre de ruta",
+    "startLocation": "Ubicación de inicio",
+    "destination": "Destino",
+    "averageSpeed": "Velocidad media"
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "signUp": "Registrarse",
+    "signOut": "Cerrar sesión",
+    "profile": "Perfil",
+    "signedInAs": "Sesión iniciada como",
+    "continueWithGoogle": "Continuar con Google",
+    "continueWithFacebook": "Continuar con Facebook",
+    "continueWithApple": "Continuar con Apple",
+    "continueWithEmail": "Continuar con e-mail",
+    "createAccount": "Crear cuenta",
+    "emailPlaceholder": "Introduce tu e-mail",
+    "passwordPlaceholder": "Contraseña",
+    "sendMagicLink": "O envíame un enlace mágico por e-mail",
+    "magicLinkSent": "Revisa tu bandeja de entrada — te enviamos un enlace de inicio de sesión.",
+    "notConfigured": "Autenticación no disponible — faltan credenciales de Supabase.",
+    "noAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "or": "o"
   }
 }

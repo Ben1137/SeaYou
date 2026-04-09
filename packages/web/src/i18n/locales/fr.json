@@ -30,7 +30,8 @@
     "waveThreshold": "Seuil de vague (m)",
     "windThreshold": "Seuil de vent (km/h)",
     "tsunamiSimulation": "Simulation d'alerte tsunami",
-    "noData": "Aucune donnée météo disponible."
+    "noData": "Aucune donnée météo disponible.",
+    "alertSettings": "Paramètres d'alerte"
   },
   "settings": {
     "alertConfig": "Configuration des alertes",
@@ -46,7 +47,23 @@
     "roughWeather": "AVIS DE MAUVAIS TEMPS",
     "roughMessage": "Vents forts et mer agitée prévus. Prudence conseillée.",
     "tsunami": "ALERTE TSUNAMI",
-    "tsunamiMessage": "Évacuation immédiate ordonnée. Impact de vague élevée imminent."
+    "tsunamiMessage": "Évacuation immédiate ordonnée. Impact de vague élevée imminent.",
+    "highWaves": "Vagues hautes",
+    "strongWinds": "Vents forts",
+    "tsunamiDesc": "Simule la bannière d'alerte tsunami",
+    "pushNotifications": "Notifications push",
+    "pushDesc": "Recevez des alertes quand les conditions sont idéales",
+    "pushEnabled": "Activé",
+    "pushDenied": "Bloqué par le navigateur",
+    "pushEnable": "Activer",
+    "pushGranted": "Activé",
+    "instantUpdate": "Les changements prennent effet immédiatement — pas besoin de sauvegarder"
+  },
+  "tsunami": {
+    "evacuate": "ALERTE TSUNAMI — REJOIGNEZ LES HAUTEURS",
+    "advisory": "AVIS DE TSUNAMI",
+    "watch": "VEILLE SISMIQUE",
+    "moreEvents": "événements supplémentaires"
   },
   "weather": {
     "waveHeight": "Hauteur des vagues",
@@ -110,7 +127,49 @@
       "cold": "Froid",
       "cool": "Frais",
       "great": "Super"
-    }
+    },
+    "uv": {
+      "label": "Indice UV",
+      "extreme": "Extrême",
+      "veryHigh": "Très élevé",
+      "high": "Élevé",
+      "moderate": "Modéré",
+      "low": "Faible"
+    },
+    "waveSurfer": {
+      "label": "Surf",
+      "desc": "Conditions de surf"
+    },
+    "windSurfer": {
+      "label": "Planche à voile",
+      "desc": "Conditions de planche à voile"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurf",
+      "desc": "Conditions de kitesurf"
+    },
+    "sailor": {
+      "label": "Voile",
+      "desc": "Conditions de navigation"
+    },
+    "diver": {
+      "label": "Plongée / Snorkeling",
+      "desc": "Conditions de plongée"
+    },
+    "beachgoer": {
+      "label": "Plage & Soleil",
+      "desc": "Conditions de plage, baignade & bronzage"
+    },
+    "bestWindow": "Meilleur créneau",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Score"
+  },
+  "scoring": {
+    "epic": "Épique",
+    "good": "Bon",
+    "fair": "Moyen",
+    "poor": "Mauvais",
+    "dangerous": "Dangereux"
   },
   "forecast": {
     "waveForecast": "Prévision des vagues (Hauteur & Période)",
@@ -126,7 +185,11 @@
     "marinerForecast": "Prévision du marin (IMS)",
     "surferForecast": "Prévision du surfeur",
     "kiteForecast": "Prévision du kitesurfeur",
-    "beachForecast": "Prévision de plage"
+    "beachForecast": "Prévision de plage",
+    "waveSurferForecast": "Prévisions surf",
+    "windSurferForecast": "Prévisions planche à voile",
+    "sailorForecast": "Prévisions voile",
+    "diverForecast": "Prévisions plongée"
   },
   "table": {
     "period": "Période",
@@ -249,7 +312,12 @@
     "loadingData": "Chargement des données...",
     "waveSwellHeight": "Hauteur vagues & houle (m)",
     "windSpeedChart": "Vitesse du vent (km/h)",
-    "currentVelocity": "Vélocité du courant (km/h)"
+    "currentVelocity": "Vélocité du courant (km/h)",
+    "activityLayers": "Couches d'activité",
+    "swellDirection": "Direction de la houle",
+    "diveSuitability": "Aptitude à la plongée",
+    "chopLevel": "Niveau de clapot",
+    "gustDelta": "Delta de rafales"
   },
   "units": {
     "meters": "m",
@@ -407,6 +475,36 @@
     "apply_filters": "Appliquer les filtres",
     "searching_for_marinas": "Recherche de marinas...",
     "no_favorite_marinas_yet": "Aucune marina favorite pour le moment",
-    "no_marinas_found_in_area": "Aucune marina trouvée dans cette zone"
+    "no_marinas_found_in_area": "Aucune marina trouvée dans cette zone",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Créer un itinéraire",
+    "viewSaved": "Voir les enregistrés",
+    "routeName": "Nom de l'itinéraire",
+    "startLocation": "Lieu de départ",
+    "destination": "Destination",
+    "averageSpeed": "Vitesse moyenne"
+  },
+  "auth": {
+    "signIn": "Se connecter",
+    "signUp": "S'inscrire",
+    "signOut": "Se déconnecter",
+    "profile": "Profil",
+    "signedInAs": "Connecté en tant que",
+    "continueWithGoogle": "Continuer avec Google",
+    "continueWithFacebook": "Continuer avec Facebook",
+    "continueWithApple": "Continuer avec Apple",
+    "continueWithEmail": "Continuer avec e-mail",
+    "createAccount": "Créer un compte",
+    "emailPlaceholder": "Entrez votre e-mail",
+    "passwordPlaceholder": "Mot de passe",
+    "sendMagicLink": "Ou envoyez-moi un lien magique par e-mail",
+    "magicLinkSent": "Vérifiez votre boîte de réception — nous vous avons envoyé un lien de connexion.",
+    "notConfigured": "L'authentification est indisponible — les identifiants Supabase manquent dans l'environnement.",
+    "noAccount": "Pas encore de compte ?",
+    "haveAccount": "Vous avez déjà un compte ?",
+    "or": "ou"
   }
 }

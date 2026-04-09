@@ -30,7 +30,8 @@
     "waveThreshold": "Порог волн (м)",
     "windThreshold": "Порог ветра (км/ч)",
     "tsunamiSimulation": "Симуляция оповещения о цунами",
-    "noData": "Нет доступных данных о погоде."
+    "noData": "Нет доступных данных о погоде.",
+    "alertSettings": "Настройки оповещений"
   },
   "settings": {
     "alertConfig": "Конфигурация оповещений",
@@ -46,7 +47,23 @@
     "roughWeather": "ПРЕДУПРЕЖДЕНИЕ О ПЛОХОЙ ПОГОДЕ",
     "roughMessage": "Ожидаются сильные ветры и штормовое море. Рекомендуется осторожность.",
     "tsunami": "ПРЕДУПРЕЖДЕНИЕ О ЦУНАМИ",
-    "tsunamiMessage": "Приказана немедленная эвакуация. Неминуемо воздействие высокой волны."
+    "tsunamiMessage": "Приказана немедленная эвакуация. Неминуемо воздействие высокой волны.",
+    "highWaves": "Высокие волны",
+    "strongWinds": "Сильный ветер",
+    "tsunamiDesc": "Симулирует баннер предупреждения о цунами",
+    "pushNotifications": "Push-уведомления",
+    "pushDesc": "Получайте уведомления при идеальных условиях",
+    "pushEnabled": "Включено",
+    "pushDenied": "Заблокировано браузером",
+    "pushEnable": "Включить",
+    "pushGranted": "Включено",
+    "instantUpdate": "Изменения вступают в силу мгновенно — сохранение не требуется"
+  },
+  "tsunami": {
+    "evacuate": "ПРЕДУПРЕЖДЕНИЕ О ЦУНАМИ — ИЩИТЕ ВОЗВЫШЕННОСТЬ",
+    "advisory": "РЕКОМЕНДАЦИЯ О ЦУНАМИ",
+    "watch": "НАБЛЮДЕНИЕ ЗА ЗЕМЛЕТРЯСЕНИЕМ",
+    "moreEvents": "ещё событий"
   },
   "weather": {
     "waveHeight": "Высота волн",
@@ -110,7 +127,49 @@
       "cold": "Холодно",
       "cool": "Прохладно",
       "great": "Отлично"
-    }
+    },
+    "uv": {
+      "label": "УФ-индекс",
+      "extreme": "Экстремальный",
+      "veryHigh": "Очень высокий",
+      "high": "Высокий",
+      "moderate": "Умеренный",
+      "low": "Низкий"
+    },
+    "waveSurfer": {
+      "label": "Сёрфинг",
+      "desc": "Условия для сёрфинга"
+    },
+    "windSurfer": {
+      "label": "Виндсёрфинг",
+      "desc": "Условия для виндсёрфинга"
+    },
+    "kiteSurfer": {
+      "label": "Кайтсёрфинг",
+      "desc": "Условия для кайтсёрфинга"
+    },
+    "sailor": {
+      "label": "Парусный спорт",
+      "desc": "Условия для парусного спорта"
+    },
+    "diver": {
+      "label": "Дайвинг / Снорклинг",
+      "desc": "Условия для дайвинга и снорклинга"
+    },
+    "beachgoer": {
+      "label": "Пляж и Солнце",
+      "desc": "Условия для пляжа, плавания и загара"
+    },
+    "bestWindow": "Лучшее время",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Оценка"
+  },
+  "scoring": {
+    "epic": "Отлично",
+    "good": "Хорошо",
+    "fair": "Нормально",
+    "poor": "Плохо",
+    "dangerous": "Опасно"
   },
   "forecast": {
     "waveForecast": "Прогноз волн (Высота и Период)",
@@ -126,7 +185,11 @@
     "marinerForecast": "Прогноз для моряков (IMS)",
     "surferForecast": "Прогноз для сёрферов",
     "kiteForecast": "Прогноз для кайтсёрферов",
-    "beachForecast": "Прогноз для пляжа"
+    "beachForecast": "Прогноз для пляжа",
+    "waveSurferForecast": "Прогноз для сёрферов",
+    "windSurferForecast": "Прогноз для виндсёрферов",
+    "sailorForecast": "Прогноз для яхтсменов",
+    "diverForecast": "Прогноз для дайверов"
   },
   "table": {
     "period": "Период",
@@ -268,7 +331,12 @@
     "loadingData": "Загрузка данных...",
     "waveSwellHeight": "Высота волн и зыби (м)",
     "windSpeedChart": "Скорость ветра (км/ч)",
-    "currentVelocity": "Скорость течения (км/ч)"
+    "currentVelocity": "Скорость течения (км/ч)",
+    "activityLayers": "Слои активности",
+    "swellDirection": "Направление зыби",
+    "diveSuitability": "Пригодность для дайвинга",
+    "chopLevel": "Уровень волнения",
+    "gustDelta": "Разница порывов ветра"
   },
   "units": {
     "meters": "м",
@@ -426,6 +494,36 @@
     "apply_filters": "Применить фильтры",
     "searching_for_marinas": "Поиск марин...",
     "no_favorite_marinas_yet": "Пока нет избранных марин",
-    "no_marinas_found_in_area": "Марины в этой области не найдены"
+    "no_marinas_found_in_area": "Марины в этой области не найдены",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Создать маршрут",
+    "viewSaved": "Просмотр сохранённых",
+    "routeName": "Название маршрута",
+    "startLocation": "Начальная точка",
+    "destination": "Пункт назначения",
+    "averageSpeed": "Средняя скорость"
+  },
+  "auth": {
+    "signIn": "Войти",
+    "signUp": "Регистрация",
+    "signOut": "Выйти",
+    "profile": "Профиль",
+    "signedInAs": "Вход выполнен как",
+    "continueWithGoogle": "Продолжить с Google",
+    "continueWithFacebook": "Продолжить с Facebook",
+    "continueWithApple": "Продолжить с Apple",
+    "continueWithEmail": "Продолжить с e-mail",
+    "createAccount": "Создать аккаунт",
+    "emailPlaceholder": "Введите ваш e-mail",
+    "passwordPlaceholder": "Пароль",
+    "sendMagicLink": "Или отправить мне магическую ссылку по e-mail",
+    "magicLinkSent": "Проверьте свою почту — мы отправили вам ссылку для входа.",
+    "notConfigured": "Аутентификация недоступна — отсутствуют учётные данные Supabase.",
+    "noAccount": "Нет аккаунта?",
+    "haveAccount": "Уже есть аккаунт?",
+    "or": "или"
   }
 }

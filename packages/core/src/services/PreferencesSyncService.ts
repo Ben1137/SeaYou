@@ -1,0 +1,149 @@
+/**
+ * PreferencesSyncService — cloud sync for UserPreferences via Supabase.
+ *
+ * Expects a `user_preferences` table with Row Level Security:
+ *
+ *   create table user_preferences (
+ *     user_id uuid primary key references auth.users(id) on delete cascade,
+ *     preferences jsonb not null,
+ *     updated_at timestamptz default now()
+ *   );
+ *
+ *   -- RLS policies: users can only read/write their own row
+ *   alter table user_preferences enable row level security;
+ *   create policy "read own prefs"  on user_preferences for select using (auth.uid() = user_id);
+ *   create policy "write own prefs" on user_preferences for insert with check (auth.uid() = user_id);
+ *   create policy "update own prefs" on user_preferences for update using (auth.uid() = user_id);
+ */
+import { UserPreferences } from '../types/preferences';
+import { getSupabaseClient } from './SupabaseService';
+
+const TABLE = 'user_preferences';
+
+export interface SyncResult {
+  preferences: UserPreferences | null;
+  error: string | null;
+  updatedAt: string | null;
+}
+
+/**
+ * Fetch the current user's cloud preferences. Returns `null` preferences
+ * (no error) if the row doesn't exist yet — this is a normal state for
+ * first-time sign-ins.
+ */
+export async function fetchPreferences(userId: string): Promise<SyncResult> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .select('preferences, updated_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      return { preferences: null, updatedAt: null, error: error.message };
+    }
+    return {
+      preferences: (data?.preferences as UserPreferences) ?? null,
+      updatedAt: data?.updated_at ?? null,
+      error: null,
+    };
+  } catch (e) {
+    return {
+      preferences: null,
+      updatedAt: null,
+      error: e instanceof Error ? e.message : 'Unknown error fetching preferences',
+    };
+  }
+}
+
+/**
+ * Upsert the user's preferences. Uses `user_id` as the conflict target so
+ * the same user's row is updated on every save.
+ */
+export async function upsertPreferences(
+  userId: string,
+  preferences: UserPreferences
+): Promise<{ error: string | null; updatedAt: string | null }> {
+  try {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from(TABLE)
+      .upsert(
+        {
+          user_id: userId,
+          preferences,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      )
+      .select('updated_at')
+      .single();
+
+    if (error) return { error: error.message, updatedAt: null };
+    return { error: null, updatedAt: data?.updated_at ?? null };
+  } catch (e) {
+    return {
+      error: e instanceof Error ? e.message : 'Unknown error saving preferences',
+      updatedAt: null,
+    };
+  }
+}
+
+/**
+ * Subscribe to realtime updates on this user's preferences row.
+ * Fires whenever the row is inserted, updated, or deleted from any device.
+ *
+ * Returns an unsubscribe function.
+ */
+export function subscribeToPreferences(
+  userId: string,
+  callback: (preferences: UserPreferences | null) => void
+): () => void {
+  const supabase = getSupabaseClient();
+  const channel = supabase
+    .channel(`user_preferences:${userId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: TABLE,
+        filter: `user_id=eq.${userId}`,
+      },
+      (payload) => {
+        const row = payload.new as { preferences?: UserPreferences } | null;
+        callback(row?.preferences ?? null);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    void supabase.removeChannel(channel);
+  };
+}
+
+// ─── Merge strategy ───
+
+/**
+ * Last-write-wins merge at the top level. If the cloud row has a newer
+ * `updated_at` timestamp, cloud wins; otherwise, local wins. The caller
+ * is responsible for tracking the local `updated_at`.
+ *
+ * For first-time sign-ins (cloud is null), local always wins so the user
+ * doesn't lose any settings they configured before signing in.
+ */
+export function mergePreferences(
+  local: UserPreferences,
+  cloud: UserPreferences | null,
+  localUpdatedAt: string | null,
+  cloudUpdatedAt: string | null
+): UserPreferences {
+  if (!cloud) return local;
+  if (!localUpdatedAt) return cloud;
+  if (!cloudUpdatedAt) return local;
+
+  const localTime = new Date(localUpdatedAt).getTime();
+  const cloudTime = new Date(cloudUpdatedAt).getTime();
+  return cloudTime > localTime ? cloud : local;
+}

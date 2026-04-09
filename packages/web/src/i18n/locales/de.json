@@ -30,7 +30,8 @@
     "waveThreshold": "Wellenschwelle (m)",
     "windThreshold": "Windschwelle (km/h)",
     "tsunamiSimulation": "Tsunami-Alarm-Simulation",
-    "noData": "Keine Wetterdaten verfügbar."
+    "noData": "Keine Wetterdaten verfügbar.",
+    "alertSettings": "Alarmeinstellungen"
   },
   "settings": {
     "alertConfig": "Alarmkonfiguration",
@@ -46,7 +47,23 @@
     "roughWeather": "RAUHE WETTERWARNUNG",
     "roughMessage": "Starke Winde und raue See erwartet. Vorsicht geboten.",
     "tsunami": "TSUNAMI-ALARM",
-    "tsunamiMessage": "Sofortige Evakuierung angeordnet. Hohe Wellenauswirkung steht bevor."
+    "tsunamiMessage": "Sofortige Evakuierung angeordnet. Hohe Wellenauswirkung steht bevor.",
+    "highWaves": "Hohe Wellen",
+    "strongWinds": "Starke Winde",
+    "tsunamiDesc": "Simuliert Tsunami-Warnbanner",
+    "pushNotifications": "Push-Benachrichtigungen",
+    "pushDesc": "Benachrichtigungen bei perfekten Bedingungen",
+    "pushEnabled": "Aktiviert",
+    "pushDenied": "Vom Browser blockiert",
+    "pushEnable": "Aktivieren",
+    "pushGranted": "Aktiviert",
+    "instantUpdate": "Änderungen wirken sofort — kein Speichern nötig"
+  },
+  "tsunami": {
+    "evacuate": "TSUNAMI-WARNUNG — HÖHERES GELÄNDE AUFSUCHEN",
+    "advisory": "TSUNAMI-HINWEIS",
+    "watch": "ERDBEBEN-ÜBERWACHUNG",
+    "moreEvents": "weitere Ereignisse"
   },
   "weather": {
     "waveHeight": "Wellenhöhe",
@@ -110,7 +127,49 @@
       "cold": "Kalt",
       "cool": "Kühl",
       "great": "Großartig"
-    }
+    },
+    "uv": {
+      "label": "UV-Index",
+      "extreme": "Extrem",
+      "veryHigh": "Sehr hoch",
+      "high": "Hoch",
+      "moderate": "Mäßig",
+      "low": "Niedrig"
+    },
+    "waveSurfer": {
+      "label": "Wellenreiten",
+      "desc": "Wellenreit-Bedingungen"
+    },
+    "windSurfer": {
+      "label": "Windsurfen",
+      "desc": "Windsurfbedingungen"
+    },
+    "kiteSurfer": {
+      "label": "Kitesurfen",
+      "desc": "Kitesurfbedingungen"
+    },
+    "sailor": {
+      "label": "Segeln",
+      "desc": "Segelbedingungen"
+    },
+    "diver": {
+      "label": "Tauchen / Schnorcheln",
+      "desc": "Tauch- & Schnorchelbedingungen"
+    },
+    "beachgoer": {
+      "label": "Strand & Sonne",
+      "desc": "Strand-, Schwimm- & Sonnenbedingungen"
+    },
+    "bestWindow": "Bestes Zeitfenster",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Bewertung"
+  },
+  "scoring": {
+    "epic": "Episch",
+    "good": "Gut",
+    "fair": "Mäßig",
+    "poor": "Schlecht",
+    "dangerous": "Gefährlich"
   },
   "forecast": {
     "waveForecast": "Wellenvorhersage (Höhe & Periode)",
@@ -126,7 +185,11 @@
     "marinerForecast": "Seemann-Vorhersage (IMS)",
     "surferForecast": "Surfer-Vorhersage",
     "kiteForecast": "Kitesurfer-Vorhersage",
-    "beachForecast": "Strandvorhersage"
+    "beachForecast": "Strandvorhersage",
+    "waveSurferForecast": "Wellenreiter-Vorhersage",
+    "windSurferForecast": "Windsurfer-Vorhersage",
+    "sailorForecast": "Segler-Vorhersage",
+    "diverForecast": "Taucher-Vorhersage"
   },
   "table": {
     "period": "Periode",
@@ -202,7 +265,14 @@
     "highPressure": "Hochdruck",
     "normal": "Normal",
     "todaySummary": "Zusammenfassung heute",
-    "current": "Aktuell"
+    "current": "Aktuell",
+    "currentWeather": "Aktuelles Wetter",
+    "hourlyForecast": "24-Stunden-Vorhersage",
+    "dailyForecast": "10-Tage-Vorhersage",
+    "sunrise": "Sonnenaufgang",
+    "sunset": "Sonnenuntergang",
+    "today": "Heute",
+    "chanceOfRain": "Regenwahrscheinlichkeit"
   },
   "moonPhases": {
     "newMoon": "Neumond",
@@ -259,7 +329,12 @@
     "loadingData": "Daten laden...",
     "waveSwellHeight": "Wellen- & Dünungshöhe (m)",
     "windSpeedChart": "Windgeschwindigkeit (km/h)",
-    "currentVelocity": "Strömungsgeschwindigkeit (km/h)"
+    "currentVelocity": "Strömungsgeschwindigkeit (km/h)",
+    "activityLayers": "Aktivitätsebenen",
+    "swellDirection": "Dünung-Richtung",
+    "diveSuitability": "Taucheignung",
+    "chopLevel": "Wellenkabbel",
+    "gustDelta": "Böendifferenz"
   },
   "units": {
     "meters": "m",
@@ -417,6 +492,36 @@
     "apply_filters": "Filter anwenden",
     "searching_for_marinas": "Suche nach Marinas...",
     "no_favorite_marinas_yet": "Noch keine Lieblings-Marinas",
-    "no_marinas_found_in_area": "Keine Marinas in diesem Gebiet gefunden"
+    "no_marinas_found_in_area": "Keine Marinas in diesem Gebiet gefunden",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Route erstellen",
+    "viewSaved": "Gespeicherte anzeigen",
+    "routeName": "Routenname",
+    "startLocation": "Startort",
+    "destination": "Ziel",
+    "averageSpeed": "Durchschnittsgeschwindigkeit"
+  },
+  "auth": {
+    "signIn": "Anmelden",
+    "signUp": "Registrieren",
+    "signOut": "Abmelden",
+    "profile": "Profil",
+    "signedInAs": "Angemeldet als",
+    "continueWithGoogle": "Mit Google fortfahren",
+    "continueWithFacebook": "Mit Facebook fortfahren",
+    "continueWithApple": "Mit Apple fortfahren",
+    "continueWithEmail": "Mit E-Mail fortfahren",
+    "createAccount": "Konto erstellen",
+    "emailPlaceholder": "E-Mail-Adresse eingeben",
+    "passwordPlaceholder": "Passwort",
+    "sendMagicLink": "Oder sende mir einen Magic Link per E-Mail",
+    "magicLinkSent": "Prüfe dein Postfach — wir haben dir einen Anmeldelink gesendet.",
+    "notConfigured": "Authentifizierung nicht verfügbar — Supabase-Zugangsdaten fehlen in der Umgebung.",
+    "noAccount": "Noch kein Konto?",
+    "haveAccount": "Bereits ein Konto?",
+    "or": "oder"
   }
 }

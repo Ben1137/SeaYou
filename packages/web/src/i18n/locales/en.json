@@ -30,7 +30,8 @@
     "waveThreshold": "Wave Threshold (m)",
     "windThreshold": "Wind Threshold (km/h)",
     "tsunamiSimulation": "Tsunami Alert Simulation",
-    "noData": "No weather data available."
+    "noData": "No weather data available.",
+    "alertSettings": "Alert Settings"
   },
   "settings": {
     "alertConfig": "Alert Config",
@@ -46,7 +47,23 @@
     "roughWeather": "ROUGH WEATHER ADVISORY",
     "roughMessage": "High winds and rough seas expected. Caution advised.",
     "tsunami": "TSUNAMI ALERT",
-    "tsunamiMessage": "Immediate evacuation ordered. High wave impact imminent."
+    "tsunamiMessage": "Immediate evacuation ordered. High wave impact imminent.",
+    "highWaves": "High Waves",
+    "strongWinds": "Strong Winds",
+    "tsunamiDesc": "Simulates tsunami warning banner",
+    "pushNotifications": "Push Notifications",
+    "pushDesc": "Get alerts when conditions are perfect",
+    "pushEnabled": "Enabled",
+    "pushDenied": "Blocked by browser",
+    "pushEnable": "Enable",
+    "pushGranted": "Enabled",
+    "instantUpdate": "Changes take effect instantly — no save needed"
+  },
+  "tsunami": {
+    "evacuate": "TSUNAMI WARNING — SEEK HIGH GROUND",
+    "advisory": "TSUNAMI ADVISORY",
+    "watch": "EARTHQUAKE WATCH",
+    "moreEvents": "more events"
   },
   "weather": {
     "waveHeight": "Wave Height",
@@ -110,7 +127,49 @@
       "cold": "Cold",
       "cool": "Cool",
       "great": "Great"
-    }
+    },
+    "uv": {
+      "label": "UV Index",
+      "extreme": "Extreme",
+      "veryHigh": "Very High",
+      "high": "High",
+      "moderate": "Moderate",
+      "low": "Low"
+    },
+    "waveSurfer": {
+      "label": "Wave Surf",
+      "desc": "Wave surfing conditions"
+    },
+    "windSurfer": {
+      "label": "Wind Surf",
+      "desc": "Windsurfing conditions"
+    },
+    "kiteSurfer": {
+      "label": "Kite Surf",
+      "desc": "Kitesurfing conditions"
+    },
+    "sailor": {
+      "label": "Sailing",
+      "desc": "Sailing conditions"
+    },
+    "diver": {
+      "label": "Dive / Snorkel",
+      "desc": "Diving & snorkeling conditions"
+    },
+    "beachgoer": {
+      "label": "Beach & Sun",
+      "desc": "Beach, swimming & tanning conditions"
+    },
+    "bestWindow": "Best Window",
+    "bestWindowTime": "{{start}} – {{end}}",
+    "score": "Score"
+  },
+  "scoring": {
+    "epic": "Epic",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor",
+    "dangerous": "Dangerous"
   },
   "forecast": {
     "waveForecast": "Wave Forecast (Height & Period)",
@@ -126,7 +185,11 @@
     "marinerForecast": "Mariner's Forecast (IMS)",
     "surferForecast": "Surfer's Forecast",
     "kiteForecast": "Kite Surfer's Forecast",
-    "beachForecast": "Seashore Forecast"
+    "beachForecast": "Seashore Forecast",
+    "waveSurferForecast": "Wave Surfer's Forecast",
+    "windSurferForecast": "Wind Surfer's Forecast",
+    "sailorForecast": "Sailor's Forecast",
+    "diverForecast": "Diver's Forecast"
   },
   "table": {
     "period": "Period",
@@ -289,7 +352,10 @@
       "windWaveHeight": "Wind Wave Height",
       "significantWaveHeight": "Significant Wave Height",
       "bathymetry": "Ocean Depth",
-      "marineAreas": "Marine Areas"
+      "marineAreas": "Marine Areas",
+      "diveSuitability": "Dive Suitability",
+      "chopLevel": "Chop Level",
+      "gustDelta": "Gust Delta"
     },
     "geoJSONLayers": "Map Overlays",
     "coastline": "Coastline",
@@ -298,7 +364,12 @@
     "ports": "Ports",
     "marineAreas": "Marine Areas",
     "rainRadar": "Rain Radar",
-    "loadingGeoJSON": "Loading map data..."
+    "loadingGeoJSON": "Loading map data...",
+    "activityLayers": "Activity Layers",
+    "swellDirection": "Swell Direction",
+    "diveSuitability": "Dive Suitability",
+    "chopLevel": "Chop Level",
+    "gustDelta": "Gust Delta"
   },
   "units": {
     "meters": "m",
@@ -465,6 +536,36 @@
     "apply_filters": "Apply Filters",
     "searching_for_marinas": "Searching for marinas...",
     "no_favorite_marinas_yet": "No favorite marinas yet",
-    "no_marinas_found_in_area": "No marinas found in this area"
+    "no_marinas_found_in_area": "No marinas found in this area",
+    "googleMaps": "Google Maps",
+    "waze": "Waze"
+  },
+  "routes": {
+    "createRoute": "Create Route",
+    "viewSaved": "View Saved",
+    "routeName": "Route Name",
+    "startLocation": "Start Location",
+    "destination": "Destination",
+    "averageSpeed": "Average Speed"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "profile": "Profile",
+    "signedInAs": "Signed in as",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithFacebook": "Continue with Facebook",
+    "continueWithApple": "Continue with Apple",
+    "continueWithEmail": "Continue with Email",
+    "createAccount": "Create account",
+    "emailPlaceholder": "Enter your email",
+    "passwordPlaceholder": "Password",
+    "sendMagicLink": "Or email me a magic link",
+    "magicLinkSent": "Check your inbox — we sent you a sign-in link.",
+    "notConfigured": "Authentication is unavailable — Supabase credentials are missing from the environment.",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?",
+    "or": "or"
   }
 }
