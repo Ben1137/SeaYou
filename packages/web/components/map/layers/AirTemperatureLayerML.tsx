@@ -1,27 +1,31 @@
 /**
- * AirTemperatureLayerML - WebGL heatmap for 2-metre air temperature
- * Phase 6B: Forecast layers using GenericHeatmapEngine
+ * AirTemperatureLayerML - Canvas Source architecture for Air Temperature
  *
  * Data source: Open-Meteo Forecast API — temperature_2m (°C)
  * Range: -20°C (arctic cold) → 50°C (extreme heat)
  * Normalization: 'range' (-20 to 50)
- * Land mask: OFF — air temperature is valid everywhere (land + ocean)
+ * Land mask: OFF — air temperature is valid everywhere
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useMap } from '../useMap';
-import { createGenericHeatmapLayer, type GenericHeatmapLayer } from '../../../webgl/GenericHeatmapEngine';
+import { createGenericHeatmapEngine, type GenericHeatmapEngine } from '../../../webgl/GenericHeatmapEngine';
+import { createOffscreenCanvas, type OffscreenCanvasHandle } from '../../../webgl/OffscreenCanvasManager';
+import { useCanvasSourceLayer, boundsToCorners } from '../../../hooks/useCanvasSourceLayer';
 import { AIR_TEMPERATURE_COLORS } from '../../../webgl/ColorRamps';
-import { getSafeBeforeId } from '../../../utils/mapLayerUtils';
+import { getAtmosphereBeforeId } from '../../../utils/mapLayerUtils';
 import type { ForecastGridData } from '@seame/core';
 
 export interface AirTemperatureLayerMLProps {
   visible: boolean;
   opacity?: number;
-  minTemp?: number;   // Default: -20°C
-  maxTemp?: number;   // Default: 50°C
+  minTemp?: number;
+  maxTemp?: number;
   sharedGridData?: ForecastGridData | null;
 }
+
+const SOURCE_ID = 'air-temp-canvas-src';
+const LAYER_ID = 'air-temp-canvas-layer';
 
 export function AirTemperatureLayerML({
   visible,
@@ -33,22 +37,77 @@ export function AirTemperatureLayerML({
   const map = useMap();
   const mapRef = useRef(map);
   mapRef.current = map;
-  const layerRef = useRef<GenericHeatmapLayer | null>(null);
-  const layerAddedRef = useRef(false);
+  const engineRef = useRef<GenericHeatmapEngine | null>(null);
+  const canvasHandleRef = useRef<OffscreenCanvasHandle | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
 
-  // Process grid data → 2D number[][] for the engine
+  useEffect(() => {
+    const handle = createOffscreenCanvas('air-temp', 1024, 1024);
+    canvasHandleRef.current = handle;
+
+    const engine = createGenericHeatmapEngine({
+      logPrefix: '[AirTemperature]',
+      colorRamp: AIR_TEMPERATURE_COLORS,
+      normalization: 'range',
+      minValue: minTemp,
+      maxValue: maxTemp,
+      opacity: 1.0, // Full internal alpha — raster-opacity controls visible opacity
+      useLandMask: false,
+      discardBelow: 0,
+      fadeRange: 0,
+    });
+    engine.init(handle.canvas);
+    engineRef.current = engine;
+    setCanvasElement(handle.canvas);
+
+    // Continuous render loop — ensures MapLibre captures the canvas after CanvasSource attaches
+    let destroyed = false;
+    const animate = () => {
+      if (destroyed) return;
+      if (engineRef.current) {
+        engineRef.current.render();
+        mapRef.current?.triggerRepaint();
+      }
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      destroyed = true;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      // Destroy immediately — free the WebGL context before a new layer can mount
+      engineRef.current?.destroy();
+      engineRef.current = null;
+      canvasHandleRef.current?.destroy();
+      canvasHandleRef.current = null;
+    };
+  }, []);
+
+  const beforeId = map ? getAtmosphereBeforeId(map) : undefined;
+  const { updateCoordinates } = useCanvasSourceLayer({
+    map,
+    sourceId: SOURCE_ID,
+    layerId: LAYER_ID,
+    canvas: canvasElement,
+    beforeId,
+    opacity,
+    visible,
+  });
+
   const processGridData = useCallback((gridData: ForecastGridData) => {
-    if (!gridData?.points?.length || !layerRef.current) return;
+    if (!gridData?.points?.length || !engineRef.current) return;
 
     const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
     const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
-
     if (lats.length < 2 || lons.length < 2) return;
 
     const tempMap = new Map<string, number>();
     gridData.points.forEach(point => {
       const key = `${point.lat.toFixed(4)},${point.lng.toFixed(4)}`;
-      // temperature2m is valid everywhere; NaN for missing data
       tempMap.set(key, point.temperature2m !== undefined ? point.temperature2m : NaN);
     });
 
@@ -62,100 +121,26 @@ export function AirTemperatureLayerML({
       grid.push(row);
     }
 
-    layerRef.current.updateData(
-      grid,
-      lons[0], lons[lons.length - 1],
-      lats[0], lats[lats.length - 1]
-    );
+    const [minLon, maxLon] = [lons[0], lons[lons.length - 1]];
+    const [minLat, maxLat] = [lats[0], lats[lats.length - 1]];
+
+    const newCorners = boundsToCorners(minLon, maxLon, minLat, maxLat);
+    updateCoordinates(newCorners);
+
+    engineRef.current.updateData(grid, minLon, maxLon, minLat, maxLat);
+    engineRef.current.render();
+    map?.triggerRepaint();
 
     console.log('[AirTemperatureLayerML] Data updated:', {
       gridSize: `${lons.length}x${lats.length}`,
     });
-  }, []);
+  }, [updateCoordinates]);
 
-  // Initialize layer
+  // Opacity is controlled by raster-opacity in useCanvasSourceLayer — no engine update needed
+
   useEffect(() => {
-    if (!map) return;
-
-    const setupLayer = () => {
-      if (layerAddedRef.current) return;
-
-      try {
-        const layer = createGenericHeatmapLayer('air-temperature-webgl', {
-          logPrefix: '[AirTemperature]',
-          colorRamp: AIR_TEMPERATURE_COLORS,
-          normalization: 'range',
-          minValue: minTemp,
-          maxValue: maxTemp,
-          opacity,
-          useLandMask: false, // Valid everywhere — no land mask needed
-          discardBelow: 0,    // No threshold — even cold arctic temps shown
-          fadeRange: 0,       // No smoothstep — hard cutoff at alpha=0
-        });
-
-        layerRef.current = layer;
-
-        const beforeId = getSafeBeforeId(map);
-        const safeBeforeId = beforeId && map.getLayer(beforeId) ? beforeId : undefined;
-
-        if (!map.getLayer('air-temperature-webgl')) {
-          map.addLayer(layer, safeBeforeId);
-        }
-        layerAddedRef.current = true;
-
-        console.log('[AirTemperatureLayerML] Layer added', safeBeforeId ? `before "${safeBeforeId}"` : '(top)');
-      } catch (error) {
-        console.error('[AirTemperatureLayerML] Failed to add layer:', error);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      setupLayer();
-    } else {
-      map.once('style.load', setupLayer);
-    }
-
-    return () => {
-      if (map && layerAddedRef.current) {
-        try {
-          if (map.getLayer('air-temperature-webgl')) {
-            map.removeLayer('air-temperature-webgl');
-          }
-        } catch (_) { /* ignore */ }
-        layerAddedRef.current = false;
-        layerRef.current = null;
-      }
-    };
-  }, [map]);
-
-  // Visibility
-  useEffect(() => {
-    layerRef.current?.setVisibility(visible);
-  }, [visible]);
-
-  // Opacity
-  useEffect(() => {
-    layerRef.current?.setOpacity(opacity);
-  }, [opacity]);
-
-  // Force data upload + double-tap repaint on visibility or data change.
-  // When switching between layers that share the same cached gridData, React won't
-  // re-trigger if the reference is identical. Re-running processGridData explicitly
-  // on every visible=true ensures the WebGL texture is always populated.
-  useEffect(() => {
-    if (!visible || !sharedGridData || !layerRef.current) return;
-
-    // 1. Force data upload even if gridData reference hasn't changed
+    if (!visible || !sharedGridData) return;
     processGridData(sharedGridData);
-
-    // 2. Double-tap repaint — guarantees MapLibre catches the painted texture
-    const t1 = setTimeout(() => {
-      mapRef.current?.triggerRepaint();
-    }, 50);
-    const t2 = setTimeout(() => {
-      mapRef.current?.triggerRepaint();
-    }, 150);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [visible, sharedGridData, processGridData]);
 
   return null;

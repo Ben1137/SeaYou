@@ -9,17 +9,41 @@
  * u_fade_range controls the smoothstep fade band (in raw value units):
  *   > 0.0 → apply smoothstep(discardBelow, discardBelow + fadeRange, rawValue)
  *   = 0.0 → no smoothstep (hard cutoff from discard only)
+ *
+ * v_texcoord is now in data-texture UV space [0,1] directly (not viewport space).
+ * The vertex shader (heatmap.vert.glsl) positions a Mercator geo-quad whose corners
+ * are the data bbox corners, so v_texcoord.xy maps exactly onto the data grid.
+ * This replaces the old view_bbox + data_bbox linear unprojection that broke at
+ * any significant lat/lon span due to Web Mercator's non-linear latitude mapping.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Temporal Interpolation — 60 FPS Fluid Data Transitions
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Open-Meteo delivers hourly forecast snapshots. u_data holds the current
+ * timestep; u_data_next holds the next. u_time_blend (0→1) drives the
+ * smooth transition between them so heatmap data never "jumps".
+ *
+ * The blend is valid-data-aware: if the next frame has no data at a UV
+ * (alpha = 0, e.g. land points or not yet uploaded), the blend factor is
+ * clamped to 0 so only the current frame contributes at that pixel.
+ *
+ * Engine side (GenericHeatmapEngine.ts):
+ *   - u_data_next is bound to TEXTURE3 (TEXTURE1 is occupied by u_color_ramp)
+ *   - A 1×1 transparent dummy is bound when next data is not yet available
+ *   - setBlend(0..1) updates u_time_blend and triggers a repaint
+ *   - updateNextData() uploads the next timestep grid
+ * ─────────────────────────────────────────────────────────────────────────────
  */
 precision highp float;
 
-uniform sampler2D u_data;       // Scalar data texture (R = raw value, A = valid flag)
-uniform sampler2D u_color_ramp; // Color ramp texture (256x1)
-uniform sampler2D u_land_mask;  // Land/sea mask texture (0 = sea, 1 = land)
+uniform sampler2D u_data;       // Current timestep (R = raw value, A = valid flag)
+uniform sampler2D u_data_next;  // Next timestep for temporal blend (TEXTURE3)
+uniform sampler2D u_color_ramp; // Color ramp texture (256x1, TEXTURE1)
+uniform sampler2D u_land_mask;  // Land/sea mask texture (0 = sea, 1 = land, TEXTURE2)
 
-uniform vec4 u_data_bbox;       // [minLon, minLat, maxLon, maxLat] of the data grid
-uniform vec4 u_view_bbox;       // [minLon, minLat, maxLon, maxLat] of the current viewport
 uniform float u_opacity;        // Overall layer opacity
 uniform float u_use_land_mask;  // 1.0 to use land mask, 0.0 to skip
+uniform float u_time_blend;     // Temporal blend factor: 0.0 = current only, 1.0 = next only
 
 // Normalization parameters
 uniform float u_norm_mode;      // 0 = max-value, 1 = range, 2 = unit
@@ -27,40 +51,68 @@ uniform float u_min_value;      // For range mode: lower bound
 uniform float u_max_value;      // For max-value and range modes: upper bound
 uniform float u_discard_below;  // Minimum raw value threshold (skip near-zero)
 uniform float u_fade_range;     // Smoothstep band width in raw value units (0 = disabled)
+uniform float u_cloud_pattern;  // 1.0 = apply FBM noise for cloud-like alpha modulation
 
 varying vec2 v_texcoord;
 
+// ── Procedural FBM noise for cloud texturing ──────────────────────────────
+// Standard 2D hash → value noise → FBM with 4 octaves.
+// Used only when u_cloud_pattern > 0.5 to break up flat color into cloud shapes.
+
+float hash2D(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float noise2D(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  // Cubic Hermite smooth interpolation
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(
+    mix(hash2D(i + vec2(0.0, 0.0)), hash2D(i + vec2(1.0, 0.0)), u.x),
+    mix(hash2D(i + vec2(0.0, 1.0)), hash2D(i + vec2(1.0, 1.0)), u.x),
+    u.y
+  );
+}
+
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for (int i = 0; i < 4; i++) {
+    value += amplitude * noise2D(p);
+    p *= 2.0;
+    amplitude *= 0.5;
+  }
+  return value;
+}
+// ──────────────────────────────────────────────────────────────────────────
+
 void main() {
-  // Map screen texcoord to geographic coordinates
-  float lon = mix(u_view_bbox.x, u_view_bbox.z, v_texcoord.x);
-  float lat = mix(u_view_bbox.y, u_view_bbox.w, v_texcoord.y);
+  // v_texcoord is in data-texture UV space [0,1] — the geo quad vertex shader
+  // positions the quad so UV maps directly onto the data grid with no additional
+  // unprojection needed. U=0 → minLon, U=1 → maxLon, V=0 → minLat, V=1 → maxLat.
+  vec2 data_uv = v_texcoord;
 
-  // Map geographic coordinates to data texture coordinates
-  float data_u = (lon - u_data_bbox.x) / (u_data_bbox.z - u_data_bbox.x);
-  float data_v = (lat - u_data_bbox.y) / (u_data_bbox.w - u_data_bbox.y);
+  // Temporal interpolation: blend current and next timestep textures.
+  // effective_blend collapses to 0 wherever the next frame has no valid data
+  // (alpha = 0 from the dummy 1×1 texture or from land/no-data pixels).
+  vec4 sample_curr = texture2D(u_data,      data_uv);
+  vec4 sample_next = texture2D(u_data_next, data_uv);
+  float effective_blend = u_time_blend * step(0.1, sample_next.a);
+  vec4 sample_val = mix(sample_curr, sample_next, effective_blend);
 
-  // Check if we're within the data bounds
-  if (data_u < 0.0 || data_u > 1.0 || data_v < 0.0 || data_v > 1.0) {
+  // LOWER THRESHOLD: Allow data to reach the coast via bilinear interpolation.
+  // The native vector land mask (LandMaskLayerML) handles coastline clipping.
+  if (sample_val.a < 0.1) {
     discard;
   }
 
-  // Sample land mask — discard if on land (only if land mask is enabled)
+  // Sample land mask — same UV space as data texture (both rasterized at data bbox).
   if (u_use_land_mask > 0.5) {
-    float land = texture2D(u_land_mask, v_texcoord).r;
+    float land = texture2D(u_land_mask, data_uv).r;
     if (land > 0.5) {
       discard;
     }
-  }
-
-  // Sample data (bilinear interpolation via GL_LINEAR on the texture)
-  vec4 sample_val = texture2D(u_data, vec2(data_u, data_v));
-
-  // Skip invalid / boundary data — strict threshold eliminates gl.LINEAR smear.
-  // When bilinear filtering interpolates between valid ocean (a=1.0) and invalid
-  // land (a=0.0), intermediate alpha values (0.1–0.8) appear as a soft bleed
-  // gradient spilling onto land.  Threshold at 0.85 kills this border fringe.
-  if (sample_val.a < 0.85) {
-    discard;
   }
 
   float raw_value = sample_val.r;
@@ -98,6 +150,19 @@ void main() {
     alpha *= smoothstep(u_discard_below, u_discard_below + u_fade_range, raw_value);
   }
 
-  // Premultiplied alpha output (required by MapLibre's blend mode)
-  gl_FragColor = vec4(color.rgb * alpha, alpha);
+  // ── Cloud pattern: FBM noise modulates alpha for fluffy cloud shapes ────
+  // The noise breaks up the flat gradient into realistic cloud-like patches.
+  // Higher cloud cover (val) makes the noise threshold lower → more solid clouds.
+  // Lower cloud cover → only the noise peaks survive → scattered wisps.
+  if (u_cloud_pattern > 0.5) {
+    float n = fbm(v_texcoord * 15.0);
+    // Remap: normalized=1 (100% cloud) → mostly opaque; normalized=0 → fully transparent
+    // The smoothstep(0.1, 0.9, ...) softens edges for fluffy appearance
+    float cloud_alpha = smoothstep(0.1, 0.9, n * (normalized * 2.0));
+    alpha *= cloud_alpha;
+  }
+
+  // Straight alpha output — our canvas uses premultipliedAlpha: false.
+  // MapLibre's CanvasSource raster layer handles compositing onto the globe.
+  gl_FragColor = vec4(color.rgb, alpha);
 }

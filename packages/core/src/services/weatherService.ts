@@ -317,7 +317,10 @@ export const fetchPointForecast = async (lat: number, lng: number): Promise<Poin
       // Temperature & weather
       temp: tempData.current?.temperature_2m || 0,
       weatherCode: tempData.current?.weather_code || 0,
-      weatherDesc: getWeatherDescription(tempData.current?.weather_code || 0)
+      weatherDesc: getWeatherDescription(tempData.current?.weather_code || 0),
+      // Gusts & sea temp for activity layer popups
+      windGusts: tempData.current?.wind_gusts_10m || 0,
+      seaTemp: data.current?.sea_surface_temperature || 0,
     };
   } catch (error) {
     console.error("Point forecast error", error);

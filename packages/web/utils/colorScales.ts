@@ -455,6 +455,66 @@ function generateCloudCoverColorScale(): ColorScalePoint[] {
 }
 
 /**
+ * Swell particle color scale matching SWELL_PARTICLE_COLORS WebGL ramp (0 → 5+ m)
+ * Sky blue → teal → aqua-green → neon lime
+ */
+function generateSwellParticlesColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgba(0,0,0,0)',        label: 'Low'   },
+    { value: 0.5, color: 'rgb(80,180,230)',       label: '0.5m'  },
+    { value: 1,   color: 'rgb(120,220,220)',      label: '1'     },
+    { value: 2,   color: 'rgb(140,235,200)',      label: '2'     },
+    { value: 3,   color: 'rgb(170,245,180)',      label: '3'     },
+    { value: 4,   color: 'rgb(200,250,160)',      label: '4'     },
+    { value: 5,   color: 'rgb(240,255,140)',      label: 'High'  },
+  ];
+}
+
+/**
+ * Dive suitability color scale matching DIVE_SUITABILITY_COLORS WebGL ramp (0 → 100)
+ * Red (dangerous) → orange → yellow → green → cyan (excellent)
+ */
+function generateDiveSuitabilityColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgb(220,30,30)',        label: 'Poor'      },
+    { value: 25,  color: 'rgb(255,100,30)',       label: '25'        },
+    { value: 50,  color: 'rgb(255,200,40)',       label: '50'        },
+    { value: 75,  color: 'rgb(50,210,100)',       label: '75'        },
+    { value: 100, color: 'rgb(40,170,220)',       label: 'Excellent' },
+  ];
+}
+
+/**
+ * Chop level color scale matching CHOP_LEVEL_COLORS WebGL ramp (0 → 1)
+ * Blue (clean swell) → purple → red (pure wind chop)
+ */
+function generateChopLevelColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgb(40,170,225)',       label: 'Clean'  },
+    { value: 0.25, color: 'rgb(80,140,230)',      label: '0.25'   },
+    { value: 0.5, color: 'rgb(180,80,200)',       label: '0.5'    },
+    { value: 0.75, color: 'rgb(220,60,150)',      label: '0.75'   },
+    { value: 1,   color: 'rgb(255,40,40)',        label: 'Choppy' },
+  ];
+}
+
+/**
+ * Gust delta color scale matching GUST_DELTA_COLORS WebGL ramp (0 → 35+ km/h)
+ * Transparent (calm) → green → yellow → orange → red → magenta
+ */
+function generateGustDeltaColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgba(0,0,0,0)',        label: '0 km/h'  },
+    { value: 5,   color: 'rgb(60,200,120)',       label: '5'       },
+    { value: 10,  color: 'rgb(220,220,40)',       label: '10'      },
+    { value: 15,  color: 'rgb(255,170,30)',       label: '15'      },
+    { value: 20,  color: 'rgb(255,80,30)',        label: '20'      },
+    { value: 25,  color: 'rgb(230,30,30)',        label: '25'      },
+    { value: 35,  color: 'rgb(200,20,120)',       label: '35+'     },
+  ];
+}
+
+/**
  * Get all color scales for reference/legend display.
  *
  * Naming convention:
@@ -484,6 +544,11 @@ export const COLOR_SCALES = {
   airTemperature: generateAirTemperatureColorScale(),
   precipitation: generatePrecipitationColorScale(),
   cloudCover: generateCloudCoverColorScale(),
+  // Phase 7 activity layers
+  swellParticles: generateSwellParticlesColorScale(),
+  diveSuitability: generateDiveSuitabilityColorScale(),
+  chopLevel: generateChopLevelColorScale(),
+  gustDelta: generateGustDeltaColorScale(),
   // Other
   bathymetry: generateBathymetryColorScale(),
   marineAreas: generateMarineAreasColorScale(),

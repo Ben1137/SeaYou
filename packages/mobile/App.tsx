@@ -1,129 +1,136 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ScrollView, SafeAreaView, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useMarineData } from './hooks/useMarineData';
-import { MetricCard } from './components/MetricCard';
-import { TideCard } from './components/TideCard';
-import { HourlyForecast } from './components/HourlyForecast';
-import { Wind, Waves, Thermometer, Navigation } from 'lucide-react-native';
-import { generateTideData } from '@seame/core';
+import { NavigationContainer } from '@react-navigation/native';
+import { BottomTabNavigator } from './navigation/BottomTabNavigator';
+import { TsunamiBannerMobile } from './components/TsunamiBannerMobile';
+import { initOneSignalMobile, requestPushPermission } from './src/services/oneSignalMobile';
+import {
+  configureNotifications,
+  registerBackgroundTask,
+} from './src/tasks/backgroundFetchTask';
+import { fetchActiveTsunamis, checkTsunamiRisk, TsunamiRisk } from '@seame/core';
+import * as Location from 'expo-location';
 
-const queryClient = new QueryClient();
+// ─── React Query client ───
 
-function Dashboard() {
-  // Default coordinates (e.g., San Francisco)
-  const { data, isLoading, error } = useMarineData(37.7749, -122.4194);
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
+      retry: 2,
+    },
+  },
+});
 
-  if (isLoading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#0ea5e9" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.errorText}>Failed to load weather data</Text>
-      </View>
-    );
-  }
-
-  const current = data?.current;
-  const tideData = generateTideData(37.7749, -122.4194);
-
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.headerTitle}>SeaYou Mobile</Text>
-      <Text style={styles.subtitle}>San Francisco Bay</Text>
-
-      <View style={styles.grid}>
-        <MetricCard
-          title="Wind"
-          value={current?.windSpeed?.toFixed(1) || '0'}
-          unit="kts"
-          icon={Wind}
-          color="#0ea5e9"
-        />
-        <MetricCard
-          title="Waves"
-          value={current?.waveHeight?.toFixed(1) || '0'}
-          unit="m"
-          icon={Waves}
-          color="#3b82f6"
-        />
-        <MetricCard
-          title="Air Temp"
-          value={data?.general?.temperature?.toFixed(1) || '0'}
-          unit="°C"
-          icon={Thermometer}
-          color="#f59e0b"
-        />
-        <MetricCard
-          title="Direction"
-          value={current?.windDirection?.toFixed(0) || '0'}
-          unit="°"
-          icon={Navigation}
-          color="#8b5cf6"
-        />
-      </View>
-
-      {tideData && <TideCard tideData={tideData} />}
-      
-      {data?.hourly && <HourlyForecast hourlyData={data.hourly} />}
-
-      <StatusBar style="auto" />
-    </ScrollView>
-  );
-}
+// ─── Foreground polling interval (5 minutes, same as web) ───
+const TSUNAMI_POLL_MS = 5 * 60 * 1000;
 
 export default function App() {
+  const [tsunamiRisks, setTsunamiRisks] = useState<TsunamiRisk[]>([]);
+  const locationRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  // ─── Phase 4: Initialize OneSignal on mount ───
+  useEffect(() => {
+    initOneSignalMobile();
+    // Auto-request push permission (non-blocking)
+    requestPushPermission().catch(() => {/* non-critical */});
+  }, []);
+
+  // ─── Phase 5+6: Configure notifications + register unified background task ───
+  useEffect(() => {
+    configureNotifications();
+    registerBackgroundTask().catch((err) =>
+      console.warn('[App] Background task registration failed:', err)
+    );
+  }, []);
+
+  // ─── Phase 5: Get location + start foreground tsunami polling ───
+  useEffect(() => {
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval>;
+
+    const setup = async () => {
+      // Request location permission if not already granted
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('[App] Location permission not granted — tsunami check requires location');
+        return;
+      }
+
+      // Get current location
+      try {
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        locationRef.current = {
+          lat: loc.coords.latitude,
+          lng: loc.coords.longitude,
+        };
+      } catch (err) {
+        console.warn('[App] Failed to get location:', err);
+        // Fall back to last known
+        const last = await Location.getLastKnownPositionAsync();
+        if (last) {
+          locationRef.current = {
+            lat: last.coords.latitude,
+            lng: last.coords.longitude,
+          };
+        }
+      }
+
+      if (!locationRef.current || cancelled) return;
+
+      // Polling function
+      const poll = async () => {
+        const loc = locationRef.current;
+        if (!loc || cancelled) return;
+
+        try {
+          const events = await fetchActiveTsunamis();
+          if (cancelled) return;
+
+          if (events.length === 0) {
+            setTsunamiRisks([]);
+            return;
+          }
+
+          const risks = checkTsunamiRisk(loc.lat, loc.lng, events);
+          setTsunamiRisks(risks);
+
+          if (risks.length > 0) {
+            console.warn(
+              `[TsunamiPoll] ${risks.length} risks detected:`,
+              risks.map((r) => `${r.event.title} (${r.riskLevel}, ${Math.round(r.distanceKm)}km)`),
+            );
+          }
+        } catch (err) {
+          if (!cancelled) console.warn('[TsunamiPoll] Failed:', err);
+        }
+      };
+
+      // Initial fetch
+      poll();
+
+      // Poll every 5 minutes while app is in foreground
+      intervalId = setInterval(poll, TSUNAMI_POLL_MS);
+    };
+
+    setup();
+
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
-      <SafeAreaView style={styles.safeArea}>
-        <Dashboard />
-      </SafeAreaView>
+      <NavigationContainer>
+        {/* Phase 5 — Global tsunami banner (renders above navigation) */}
+        <TsunamiBannerMobile risks={tsunamiRisks} />
+        <BottomTabNavigator />
+      </NavigationContainer>
     </QueryClientProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#0f172a',
-    marginBottom: 4,
-    marginTop: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#64748b',
-    marginBottom: 24,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 16,
-  },
-});

@@ -1,231 +1,247 @@
-# SeaYou - Marine Weather Dashboard 🌊
+# SeaYou 1.0
 
-[![Deploy to GitHub Pages](https://github.com/Ben1137/SeaYou/actions/workflows/deploy.yml/badge.svg)](https://github.com/Ben1137/SeaYou/actions/workflows/deploy.yml)
+**Real-time Marine Weather Intelligence**
 
-SeaYou is a comprehensive, real-time marine weather dashboard designed for sailors, surfers, kite surfers, and beachgoers. It leverages the Open-Meteo API to provide high-resolution marine and atmospheric data, presented through a beautiful, interactive, and responsive UI.
+[![React 19](https://img.shields.io/badge/React-19.2-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![MapLibre GL JS 5](https://img.shields.io/badge/MapLibre_GL_JS-5.0-396CB2?logo=maplibre&logoColor=white)](https://maplibre.org/)
+[![WebGL GPGPU](https://img.shields.io/badge/WebGL-GPGPU-990000?logo=webgl&logoColor=white)](https://www.khronos.org/webgl/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4.1-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
 
-## 🌐 Live Demo
+---
 
-**Try it now:** [https://ben1137.github.io/SeaYou/](https://ben1137.github.io/SeaYou/)
+## Live Demo
 
-The app is deployed on GitHub Pages and updates automatically with every push to the main branch.
+**[https://ben1137.github.io/SeaYou1.0/](https://ben1137.github.io/SeaYou1.0/)**
 
-## 🚀 Features
+---
 
-### 🗺️ Interactive Map Visualization
+## Overview
 
-- **Real-Time Marine Layers**:
-  - **Wave Heatmap**: Canvas-based particle animation showing wave height and direction with smooth land masking
-  - **Rain Radar**: Live precipitation data from RainViewer with 16-frame animation (13 past + 3 forecast)
-  - **Wind/Current Velocity**: Animated vector field visualization using leaflet-velocity
-  - **Sea Temperature**: Color-coded surface temperature overlay
-  - **Bathymetry**: Ocean depth contours and seafloor topology
-  - **Ports & Reefs**: Marine navigation points of interest
-- **Point Forecast**: Click anywhere on the map to get detailed marine forecasts for that location
-- **Layer Controls**: Toggle multiple visualization layers simultaneously
-- **Smooth Performance**: Optimized rendering with intelligent layer caching (max 3 concurrent tile layers)
+SeaYou is a real-time marine weather dashboard built for sailors, surfers, kiters, and coastal professionals. It combines a glassmorphism UI design with WebGL GPU-accelerated particle animations that visualize wind and ocean currents in real time. The application renders interactive heatmaps for wave height, sea surface temperature, air temperature, precipitation, and cloud cover -- all powered by the Open-Meteo API. SeaYou delivers comprehensive marine forecasts with persona-based views, activity reports, and a multi-language interface across desktop and mobile devices.
 
-### 📊 Real-Time Marine Data
+---
 
-- **Activity Reports**: Dedicated summary cards for Sailing conditions, Surf ratings, Pole Surfing (Kite), and Beach comfort levels
-- **Dynamic Icons**: Visual indicators that update based on live conditions (e.g., Waves vs. Swell icons, detailed weather animations)
-- **Live Metrics**: Real-time display of:
-  - Wind Speed & Direction
-  - Wave Height & Period
-  - Swell Height, Direction & Period
-  - Air & Sea Temperatures
-- **Multi-Location Support**: Search and save multiple coastal locations, quick-switch between them
-- **Geolocation**: Automatic detection of your current position with reverse geocoding
+## Key Features
 
-### 📈 Interactive Graphs
+### Glassmorphism UI
 
-- **Tabbed Interface**: Seamlessly switch between **Tide Schedules**, **Wave Forecasts**, and **Swell Forecasts**
-- **Advanced Visualization**:
-  - Dual-axis charts combining height (Area) and period (Line)
-  - Tide charts with clear High/Low event markers and Mean Sea Level indication
-  - Interactive tooltips for precise data analysis
+- **Night Watch** (dark) and **Deep Ocean** (light) themes with Auto mode based on sunrise/sunset
+- Backdrop-blur glass panels with layered transparency
+- Responsive layout: sidebar navigation on desktop, bottom bar on mobile
+- Smooth theme transitions across all components
 
-### 📅 Detailed Forecasts
+### Interactive Map Layers (MapLibre GL JS 5 + MapTiler)
 
-- **Persona-Based Tables**: Tailored 24-hour forecast views for different users:
-  - **Mariner**: Pressure, Sea State, Visibility, Wind, Swell
-  - **Surfer**: Detailed Wave vs. Swell analysis, Period, and experimental Surf Ratings
-  - **Kite Surfer**: Wind Speed vs. Gusts, Direction, and riding conditions
-  - **Beachgoer**: UV Index, "Sand Wind" factor, Temperature, and general comfort
+| Layer | Engine | Description |
+|-------|--------|-------------|
+| Wind Particles | GPGPU ParticleEngine | Up to 262,144 animated particles on desktop |
+| Ocean Current Particles | GPGPU ParticleEngine | Velocity-field particle animation for surface currents |
+| Wave Heatmap | WebGL GenericHeatmapEngine | Color-mapped wave height visualization |
+| Sea Surface Temperature | WebGL GenericHeatmapEngine | Thermal gradient overlay of ocean surface |
+| Air Temperature | WebGL GenericHeatmapEngine | Atmospheric temperature heatmap |
+| Precipitation | WebGL GenericHeatmapEngine | Rainfall intensity overlay |
+| Cloud Cover | WebGL GenericHeatmapEngine | Cloud density visualization |
+| Sea Temp + Currents | Compound layer | Temperature heatmap with current particle overlay |
+| Sea Temp + Wind | Compound layer | Temperature heatmap with wind particle overlay |
+| Ports | MapLibre native | Marine port locations |
+| Reefs | MapLibre native | Coral reef markers |
+| Bathymetry | MapLibre native | Ocean depth contours |
+| Rain Radar | Tile overlay | Live precipitation radar from RainViewer |
+| Coastline | MapLibre native | Coastline boundary rendering |
+| Marine Areas | MapLibre native | Marine zone boundaries |
 
-### ⚡ Alert System
+### Dashboard
 
-- **Customizable Thresholds**: User-configurable settings for Wave Height and Wind Speed alerts
-- **Visual Warnings**:
-  - **Storm Warning**: Severe weather conditions
-  - **Rough Weather Advisory**: High winds/seas
-  - **Tsunami Simulation**: Experimental alert mode for high-impact wave events
+- **Weather Hero** -- animated weather condition display with live icons
+- **Conditions Grid** -- wave height, wind speed/direction, swell, air and sea temperature
+- **Forecast Charts** -- wave, swell, and tide charts with theme-aware colors (Recharts)
+- **Activity Report** -- condition ratings for surfing, kiteboarding, sailing, and beach/UV
+- **Mariner's Forecast** -- detailed 24-hour tabular forecast with 4 persona tabs:
+  - **Mariner** -- pressure, sea state, visibility, wind, swell
+  - **Surfer** -- wave vs. swell analysis, period, surf rating
+  - **Kite** -- wind speed vs. gusts, direction, riding conditions
+  - **Beach** -- UV index, sand wind factor, temperature, comfort
 
-### 🎨 User Experience
+### Atmosphere View
 
-- **Theme Support**: Dark mode, Light mode, and Auto mode (based on sunrise/sunset)
-- **Internationalization**: Multi-language support (i18n ready)
-- **PWA Support**: Install as a Progressive Web App with offline capabilities
-- **Responsive Design**: Optimized for mobile, tablet, and desktop
-- **Smart Caching**: Stale-while-revalidate pattern with React Query for instant loading
-- **Error Boundaries**: Graceful error handling with automatic recovery
+- 24-hour hourly forecast with drag-to-scroll horizontal layout
+- Lunar cycle SVG arc showing current moon phase
+- Sunrise and sunset times with visual indicators
 
-## 🛠️ Architecture
+### Multi-language Support
 
-This project is a **Monorepo** managed with `pnpm` workspaces and `TurboRepo`.
+7 languages: English, German, Spanish, French, Hebrew, Italian, Russian (via i18next)
 
-- **packages/core**: Shared business logic, services, utilities, and TypeScript interfaces.
-- **packages/web**: The main React web application (Vite).
-- **packages/mobile**: (Upcoming) React Native mobile app.
-- **packages/watch**: (Upcoming) Smartwatch companion app.
+### Progressive Web App
 
-## 🛠️ Tech Stack
+Installable on desktop and mobile with offline caching via Workbox service worker. API responses are cached with NetworkFirst and CacheFirst strategies for instant subsequent loads.
 
-- **Monorepo Tools**: [pnpm](https://pnpm.io/), [TurboRepo](https://turbo.build/)
-- **Frontend Framework**: [React 19](https://react.dev/) with [Vite](https://vitejs.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
-- **State Management**: [TanStack Query (React Query)](https://tanstack.com/query) for server state caching
-- **Maps**: [Leaflet.js](https://leafletjs.com/) with [React Leaflet](https://react-leaflet.js.org/)
-  - [leaflet-velocity](https://github.com/onaci/leaflet-velocity) for wind/current visualization
-- **Charts**: [Recharts](https://recharts.org/) for time-series graphs
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Color Manipulation**: [chroma-js](https://gka.github.io/chroma.js/) for heatmap gradients
-- **Internationalization**: [i18next](https://www.i18next.com/) with [react-i18next](https://react.i18next.com/)
-- **PWA**: [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) with [Workbox](https://developer.chrome.com/docs/workbox/)
-- **Data Sources**:
-  - [Open-Meteo API](https://open-meteo.com/) (Marine & Forecast APIs)
-  - [RainViewer API](https://www.rainviewer.com/api.html) for precipitation radar
-- **Date Handling**: [date-fns](https://date-fns.org/)
-- **Error Handling**: [react-error-boundary](https://github.com/bvaughn/react-error-boundary)
-- **Deployment**: GitHub Actions → GitHub Pages
+---
 
-## 📦 Local Development
+## Tech Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| React | 19.2 | UI framework |
+| MapLibre GL JS | 5.0.0 | Map rendering engine |
+| MapTiler | -- | Custom map styling (dark + light) |
+| WebGL / GPGPU | -- | GPU-accelerated particle system and heatmaps |
+| Vite | 6.2 | Build tool with GLSL shader loader |
+| Tailwind CSS | 4.1 | Utility-first styling |
+| TanStack Query | 5.x | Data fetching and caching |
+| Recharts | 2.x | Chart visualization |
+| i18next | 25.x | Internationalization |
+| Lucide React | -- | Icon library |
+| date-fns | -- | Date/time formatting |
+| Open-Meteo API | -- | Weather and marine data provider |
+| RainViewer API | -- | Live precipitation radar |
+
+---
+
+## WebGL Architecture
+
+All WebGL code lives in `packages/web/webgl/`.
+
+### GPGPU Particle System
+
+The `ParticleEngine` implements MapLibre's `CustomLayerInterface` and uses a ping-pong framebuffer object (FBO) pattern for GPU-side particle physics:
+
+1. **prerender()** -- reads current particle positions from FBO[read], runs the physics update shader, writes new positions to FBO[write]. Never touches the screen framebuffer.
+2. **render()** -- fades the trail FBO, draws new particle points onto it, then composites the trail onto the MapLibre canvas using premultiplied alpha blending.
+
+### Precision Modes
+
+| Mode | Requirement | Description |
+|------|-------------|-------------|
+| Float32 | `OES_texture_float` extension | Full-precision RGBA float textures |
+| Uint8 | Universal WebGL 1 | 16-bit position encoding in R8G8B8A8 textures |
+| Canvas 2D | No WebGL | `CanvasVectorLayer` fallback for basic vector rendering |
+
+### Heatmap Engines
+
+The `GenericHeatmapEngine` powers all heatmap layers (wave, sea temperature, air temperature, precipitation, cloud cover). Each engine uses an offscreen canvas managed by `OffscreenCanvasManager` to render color-mapped grid data without blocking the main map render pipeline.
+
+### Device Capability Tiers
+
+`DeviceCapabilities.ts` detects device class and scales particle count accordingly:
+
+| Device Tier | Particle Resolution | Particle Count |
+|-------------|--------------------:|---------------:|
+| Desktop / Laptop | 512 x 512 | 262,144 |
+| Mobile / Tablet | 256 x 256 | 65,536 |
+| Low-end (2 cores / 2 GB) | 128 x 128 | 16,384 |
+
+### Shader Files
+
+Located in `packages/web/webgl/shaders/`:
+
+- `quad.vert.glsl` -- fullscreen quad vertex shader (shared)
+- `fade.vert.glsl` / `fade.frag.glsl` -- trail fade pass (premultiplied alpha)
+- `particle-update.frag.glsl` / `particle-update-uint8.frag.glsl` -- GPGPU position update
+- `particle-draw.vert.glsl` / `particle-draw-uint8.vert.glsl` -- particle draw vertex
+- `particle-draw.frag.glsl` -- particle draw fragment with halo glow and age fade
+- `heatmap.vert.glsl` / `generic-heatmap.frag.glsl` / `generic-heatmap-uint8.frag.glsl` -- heatmap rendering
+
+---
+
+## Monorepo Structure
+
+```
+seame/
++-- packages/
+|   +-- web/           # @seame/web  -- React + MapLibre + WebGL (primary)
+|   +-- mobile/        # @seame/mobile -- Expo React Native (glassmorphism)
+|   +-- watch/         # @seame/watch  -- Expo Watch (Apple Watch / WearOS)
+|   +-- core/          # @seame/core   -- Shared types, services, utilities
++-- package.json       # pnpm@9 workspaces + Turborepo
++-- CLAUDE.md          # AI assistant context
++-- README.md
+```
+
+The web package is the primary development target. Mobile and watch packages share types and services from `@seame/core`.
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- pnpm (`npm install -g pnpm`)
+- pnpm 9+ (`npm install -g pnpm`)
 
-### Setup
+### Installation
 
-1.  **Clone the repository:**
+```bash
+git clone https://github.com/Ben1137/SeaYou1.0.git
+cd SeaYou1.0
+pnpm install
+```
 
-    ```bash
-    git clone https://github.com/Ben1137/SeaYou.git
-    cd SeaYou
-    ```
+### Development
 
-2.  **Install dependencies:**
+```bash
+pnpm dev                          # Start all packages via Turborepo
+pnpm --filter @seame/web dev      # Start web package only
+```
 
-    ```bash
-    pnpm install
-    ```
+Open your browser at `http://localhost:5173/SeaYou1.0/`
 
-3.  **Run the development server:**
+---
 
-    ```bash
-    pnpm dev
-    ```
+## Map Layer Controls
 
-4.  **Open in Browser:**
-    Navigate to `http://localhost:5173/SeaYou/`
+The map view includes a layer control panel that lets you switch between visualization modes. Select a single advanced layer at a time from the panel (wind particles, current particles, wave heatmap, sea temperature, air temperature, precipitation, cloud cover, or compound layers). Toggle overlay layers (ports, reefs, bathymetry, coastline, marine areas, rain radar) independently. Each layer loads its data on demand and scales rendering to your device's GPU capabilities. A color scale legend appears automatically for heatmap layers showing the value range and units.
+
+---
+
+## API
+
+All weather and marine data comes from the **Open-Meteo** free API. No API keys are required.
+
+| Endpoint | Data |
+|----------|------|
+| `marine-api.open-meteo.com/v1/marine` | Wave height, swell, sea temperature, ocean currents |
+| `api.open-meteo.com/v1/forecast` | Wind, air temperature, precipitation, cloud cover, UV |
+| `geocoding-api.open-meteo.com/v1/search` | Location search and reverse geocoding |
+| `api.rainviewer.com` | Live precipitation radar tiles |
+
+API responses are cached client-side with TanStack Query (stale-while-revalidate) and the PWA service worker. Rate limiting is handled with request deduplication, throttle queues, and negative caching to respect Open-Meteo's free tier limits.
+
+---
+
+## Deployment
 
 ### Build for Production
 
 ```bash
-pnpm build
+pnpm --filter @seame/web build
 ```
 
-The optimized production build will be in the `dist/` directory.
+The optimized production bundle is output to `packages/web/dist/`. The build targets ES2022 for native class field support and splits `maplibre-gl` into a separate chunk.
 
-## 🚀 Deployment
+### GitHub Pages
 
-This project uses **GitHub Actions** for automatic deployment to GitHub Pages.
+The application is deployed via GitHub Pages at:
 
-### How It Works
+**[https://ben1137.github.io/SeaYou1.0/](https://ben1137.github.io/SeaYou1.0/)**
 
-1. Push changes to the `main` branch
-2. GitHub Actions automatically builds the app
-3. Deploys to GitHub Pages (usually takes 2-3 minutes)
-4. Live site updates at: https://ben1137.github.io/SeaYou/
-
-### Deployment Configuration
-
-- **Workflow**: `.github/workflows/deploy.yml`
-- **Build Tool**: Vite with base path `/SeaYou/`
-- **Hosting**: GitHub Pages (free, HTTPS enabled)
-
-### Manual Deployment
-
-You can also trigger a deployment manually:
-
-1. Go to the [Actions tab](https://github.com/Ben1137/SeaYou/actions)
-2. Select "Deploy to GitHub Pages"
-3. Click "Run workflow"
-
-## 🌍 Configuration
-
-### API Integration
-
-No API keys are required. The app makes client-side requests to free, public APIs:
-
-**Open-Meteo** (Marine & Weather Data):
-- `https://marine-api.open-meteo.com/v1/marine` - Wave height, swell, sea temperature, currents
-- `https://api.open-meteo.com/v1/forecast` - Atmospheric conditions, wind, precipitation
-- `https://geocoding-api.open-meteo.com/v1/search` - Location search and reverse geocoding
-
-**RainViewer** (Rain Radar):
-- `https://api.rainviewer.com/public/weather-maps.json` - Live precipitation frames
-
-### Default Location
-
-The app attempts to use your browser's geolocation. If denied or unavailable, it defaults to Tel Aviv, Israel. You can:
-- Search for any coastal location worldwide
-- Save multiple locations for quick access
-- Switch between saved locations instantly
-
-### Customization
-
-To change default behavior, modify constants in:
-- `packages/core/constants.ts` - Default coordinates, refresh intervals
-- `packages/web/App.tsx` - Location initialization logic
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is open source and available for personal and educational use.
-
-## ⚡ Performance & Optimizations
-
-Recent improvements to ensure smooth performance:
-
-- **Rain Radar Memory Management**: Intelligent layer caching limits concurrent tile layers to 3 (current frame ±1), preventing memory overflow and network congestion during zoom operations
-- **Wave Heatmap Enhancements**:
-  - Smooth land masking with 4px blur radius to prevent particle overlap on coastlines
-  - Optimized particle animation speed and trail duration for better visibility
-  - Canvas-based rendering with WebGL fallback
-- **Canvas Stability**: Patched Leaflet Canvas renderer to handle rapid initialization/cleanup cycles without errors
-- **Smart Data Fetching**: React Query implementation with stale-while-revalidate pattern for instant loading and background updates
-- **Error Boundaries**: Component-level error isolation prevents full app crashes
-
-## 🙏 Acknowledgments
-
-- Marine and weather data provided by [Open-Meteo](https://open-meteo.com/)
-- Rain radar data by [RainViewer](https://www.rainviewer.com/)
-- Icons by [Lucide](https://lucide.dev/)
-- Charts powered by [Recharts](https://recharts.org/)
-- Maps powered by [Leaflet](https://leafletjs.com/)
+The Vite base path is configured to `/SeaYou1.0/` to match the repository name.
 
 ---
 
-**Live Demo:** [https://ben1137.github.io/SeaYou/](https://ben1137.github.io/SeaYou/) 🌊⛵
+## License
+
+MIT
+
+---
+
+## Credits
+
+- Weather and marine data by [Open-Meteo](https://open-meteo.com/)
+- Map tiles and styling by [MapTiler](https://www.maptiler.com/)
+- Map rendering engine by [MapLibre GL JS](https://maplibre.org/)
+- Rain radar data by [RainViewer](https://www.rainviewer.com/)
+- Charts by [Recharts](https://recharts.org/)
+- Icons by [Lucide](https://lucide.dev/)

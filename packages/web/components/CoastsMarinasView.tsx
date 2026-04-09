@@ -164,22 +164,22 @@ export const CoastsMarinasView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4">
+    <div className="min-h-screen bg-black/20 p-4 max-w-6xl mx-auto w-full box-border overflow-x-hidden">
       {/* Header */}
-      <div className="bg-slate-900 rounded-lg shadow-lg p-6 mb-4 border border-slate-800">
-        <h1 className="text-2xl font-bold flex items-center gap-2 mb-4 text-white">
-          <Anchor className="w-8 h-8 text-blue-400" />
+      <div className="glass-panel p-4 sm:p-6 mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 mb-4 text-white">
+          <Anchor className="w-7 h-7 sm:w-8 sm:h-8 text-blue-400 shrink-0" />
           Nearby Coasts & Marinas
         </h1>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-4 border-b border-slate-700">
+        <div className="flex gap-2 mb-4 border-b border-white/10">
           <button
             onClick={() => setActiveTab('nearby')}
             className={`px-4 py-2 font-semibold transition-colors ${
               activeTab === 'nearby'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'text-blue-400 border-b-2 border-blue-500'
+                : 'text-white/40 hover:text-white/80'
             }`}
           >
             Nearby
@@ -188,8 +188,8 @@ export const CoastsMarinasView: React.FC = () => {
             onClick={() => setActiveTab('search')}
             className={`px-4 py-2 font-semibold transition-colors ${
               activeTab === 'search'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'text-blue-400 border-b-2 border-blue-500'
+                : 'text-white/40 hover:text-white/80'
             }`}
           >
             Search
@@ -198,8 +198,8 @@ export const CoastsMarinasView: React.FC = () => {
             onClick={() => setActiveTab('favorites')}
             className={`px-4 py-2 font-semibold transition-colors ${
               activeTab === 'favorites'
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'text-blue-400 border-b-2 border-blue-500'
+                : 'text-white/40 hover:text-white/80'
             }`}
           >
             Favorites ({favorites.length})
@@ -216,12 +216,12 @@ export const CoastsMarinasView: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleNameSearch()}
                 placeholder="Search marinas by name..."
-                className="flex-1 p-3 border border-slate-700 rounded-lg bg-slate-950 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
               />
               <button
                 onClick={handleNameSearch}
                 disabled={isLoading}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:bg-slate-700 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-white/10 disabled:cursor-not-allowed"
               >
                 <Search className="w-5 h-5" />
               </button>
@@ -231,10 +231,10 @@ export const CoastsMarinasView: React.FC = () => {
 
         {/* Filters (visible in nearby tab) */}
         {activeTab === 'nearby' && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 w-full">
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700 flex items-center gap-2 text-white border border-slate-700"
+              className="h-10 px-3 sm:px-4 glass-panel rounded-lg hover:bg-white/10 flex items-center gap-2 text-white text-sm shrink-0"
             >
               <Filter className="w-4 h-4" />
               Filters
@@ -242,17 +242,17 @@ export const CoastsMarinasView: React.FC = () => {
             <button
               onClick={handleRefresh}
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 disabled:bg-slate-700"
+              className="h-10 px-3 sm:px-4 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:bg-white/10 shrink-0"
             >
               {isLoading ? 'Searching...' : 'Refresh'}
             </button>
-            <div className="ml-auto">
+            <div className="ml-auto min-w-0">
               <select
                 value={sortBy}
                 onChange={(e) =>
                   setSortBy(e.target.value as 'distance' | 'rating' | 'name')
                 }
-                className="px-4 py-2 border border-slate-700 rounded-lg bg-slate-950 text-white"
+                className="h-10 px-3 sm:px-4 glass-inner border border-white/10 rounded-lg text-white text-sm w-full"
               >
                 <option value="distance">Sort by Distance</option>
                 <option value="rating">Sort by Rating</option>
@@ -264,9 +264,9 @@ export const CoastsMarinasView: React.FC = () => {
 
         {/* Filter Panel */}
         {showFilters && activeTab === 'nearby' && (
-          <div className="mt-4 p-4 bg-slate-800/50 rounded-lg space-y-4 border border-slate-700">
+          <div className="mt-4 p-4 glass-inner rounded-lg space-y-4 border border-white/10">
             <div>
-              <label className="block text-sm font-semibold mb-2 text-slate-300">
+              <label className="block text-sm font-semibold mb-2 text-white/80">
                 Search Radius: {radius} NM
               </label>
               <input
@@ -294,18 +294,18 @@ export const CoastsMarinasView: React.FC = () => {
       </div>
 
       {/* Marina List */}
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         {error ? (
           <ErrorState error={error} onRetry={handleRefresh} />
         ) : isLoading ? (
           <div className="text-center py-12">
             <Loader className="inline-block animate-spin h-12 w-12 text-blue-400" />
-            <p className="mt-4 text-slate-400">Searching for marinas...</p>
+            <p className="mt-4 text-white/40">Searching for marinas...</p>
           </div>
         ) : displayMarinas().length === 0 ? (
-          <div className="bg-slate-900 rounded-lg shadow p-8 text-center border border-slate-800">
-            <Anchor className="w-16 h-16 text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-400">
+          <div className="glass-panel p-8 text-center">
+            <Anchor className="w-16 h-16 text-white/20 mx-auto mb-4" />
+            <p className="text-white/40">
               {activeTab === 'favorites'
                 ? 'No favorite marinas yet'
                 : 'No marinas found in this area'}
@@ -360,11 +360,11 @@ const MarinaCard: React.FC<{
   const eta = calculateETAToMarina(marina, currentSpeed);
 
   return (
-    <div className="bg-slate-900 rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow border border-slate-800">
+    <div className={`glass-panel p-6 hover:shadow-xl transition-shadow ${marina.type === 'beach' ? 'border-l-4 border-l-orange-500' : marina.type === 'marina' ? 'border-l-4 border-l-blue-500' : ''}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="text-xl font-bold text-white">{marina.name}</h3>
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 className="text-lg sm:text-xl font-bold text-white break-words">{marina.name}</h3>
             <span
               className={`px-2 py-1 rounded text-xs font-semibold ${
                 marina.type === 'marina'
@@ -391,7 +391,7 @@ const MarinaCard: React.FC<{
                   }`}
                 />
               ))}
-              <span className="text-sm text-slate-400 ml-1">
+              <span className="text-sm text-white/40 ml-1">
                 {marina.rating.toFixed(1)}
               </span>
             </div>
@@ -402,7 +402,7 @@ const MarinaCard: React.FC<{
           className={`p-2 rounded-full ${
             isFavorited
               ? 'bg-red-900/30 text-red-400 border border-red-700/50'
-              : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              : 'glass-inner text-white/40 hover:bg-white/10'
           }`}
         >
           <Heart
@@ -415,14 +415,14 @@ const MarinaCard: React.FC<{
         <div className="bg-blue-900/30 p-3 rounded-lg border border-blue-700/50">
           <div className="flex items-center gap-2 mb-1">
             <MapPin className="w-4 h-4 text-blue-400" />
-            <p className="text-xs text-slate-300">Distance</p>
+            <p className="text-xs text-white/80">Distance</p>
           </div>
           <p className="text-lg font-bold text-white">{formatDistance(marina.distance)}</p>
         </div>
         <div className="bg-green-900/30 p-3 rounded-lg border border-green-700/50">
           <div className="flex items-center gap-2 mb-1">
             <Navigation className="w-4 h-4 text-green-400" />
-            <p className="text-xs text-slate-300">ETA</p>
+            <p className="text-xs text-white/80">ETA</p>
           </div>
           <p className="text-lg font-bold text-white">{formatTime(eta)}</p>
         </div>
@@ -430,18 +430,18 @@ const MarinaCard: React.FC<{
 
       {marina.amenities.length > 0 && (
         <div className="mb-4">
-          <p className="text-sm font-semibold mb-2 text-slate-300">Amenities:</p>
+          <p className="text-sm font-semibold mb-2 text-white/80">Amenities:</p>
           <div className="flex flex-wrap gap-2">
             {marina.amenities.slice(0, 6).map((amenity) => (
               <span
                 key={amenity}
-                className="px-2 py-1 bg-slate-800 text-slate-300 text-xs rounded border border-slate-700"
+                className="px-2 py-1 glass-inner text-white/80 text-xs rounded border border-white/10"
               >
                 {amenity}
               </span>
             ))}
             {marina.amenities.length > 6 && (
-              <span className="px-2 py-1 bg-slate-700 text-slate-400 text-xs rounded">
+              <span className="px-2 py-1 bg-white/10 text-white/40 text-xs rounded">
                 +{marina.amenities.length - 6} more
               </span>
             )}
@@ -451,43 +451,43 @@ const MarinaCard: React.FC<{
 
       <div className="flex gap-3 mb-4">
         {marina.facilities.fuel && (
-          <Fuel className="w-5 h-5 text-slate-400" />
+          <Fuel className="w-5 h-5 text-white/40" />
         )}
         {marina.facilities.water && (
-          <Droplet className="w-5 h-5 text-slate-400" />
+          <Droplet className="w-5 h-5 text-white/40" />
         )}
         {marina.facilities.electricity && (
-          <Zap className="w-5 h-5 text-slate-400" />
+          <Zap className="w-5 h-5 text-white/40" />
         )}
         {marina.facilities.wifi && (
-          <Wifi className="w-5 h-5 text-slate-400" />
+          <Wifi className="w-5 h-5 text-white/40" />
         )}
         {marina.facilities.restaurant && (
-          <Utensils className="w-5 h-5 text-slate-400" />
+          <Utensils className="w-5 h-5 text-white/40" />
         )}
         {marina.facilities.repair && (
-          <Wrench className="w-5 h-5 text-slate-400" />
+          <Wrench className="w-5 h-5 text-white/40" />
         )}
       </div>
 
       <div className="flex gap-2">
         <button
           onClick={() => onNavigate('google')}
-          className="flex-1 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center justify-center gap-2"
+          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
         >
           <Navigation className="w-4 h-4" />
           Google Maps
         </button>
         <button
           onClick={() => onNavigate('waze')}
-          className="flex-1 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 flex items-center justify-center gap-2"
+          className="flex-1 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors"
         >
           <Navigation className="w-4 h-4" />
           Waze
         </button>
         <button
           onClick={onViewDetails}
-          className="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 border border-slate-700"
+          className="px-4 py-2 glass-inner text-white/80 rounded-lg hover:bg-white/10 border border-white/10"
         >
           <Info className="w-4 h-4" />
         </button>
@@ -516,18 +516,18 @@ const MarinaDetailsModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-700">
+      <div className="glass-panel max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           <div className="flex items-start justify-between mb-6">
             <div>
               <h2 className="text-2xl font-bold mb-2 text-white">{marina.name}</h2>
-              <p className="text-slate-400">
+              <p className="text-white/40">
                 {marina.lat.toFixed(4)}, {marina.lon.toFixed(4)}
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white"
+              className="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white"
             >
               <X className="w-6 h-6" />
             </button>
@@ -537,33 +537,33 @@ const MarinaDetailsModal: React.FC<{
             <div className="text-center p-4 bg-blue-900/30 rounded-lg border border-blue-700/50">
               <MapPin className="w-6 h-6 text-blue-400 mx-auto mb-2" />
               <p className="text-2xl font-bold text-white">{formatDistance(marina.distance)}</p>
-              <p className="text-sm text-slate-400">Distance</p>
+              <p className="text-sm text-white/40">Distance</p>
             </div>
             <div className="text-center p-4 bg-green-900/30 rounded-lg border border-green-700/50">
               <Navigation className="w-6 h-6 text-green-400 mx-auto mb-2" />
               <p className="text-2xl font-bold text-white">{formatTime(eta)}</p>
-              <p className="text-sm text-slate-400">ETA</p>
+              <p className="text-sm text-white/40">ETA</p>
             </div>
-            <div className="text-center p-4 bg-purple-900/30 rounded-lg border border-purple-700/50">
-              <Star className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+            <div className="text-center p-4 bg-amber-900/30 rounded-lg border border-amber-700/50">
+              <Star className="w-6 h-6 text-amber-400 mx-auto mb-2" />
               <p className="text-2xl font-bold text-white">
                 {marina.rating?.toFixed(1) || 'N/A'}
               </p>
-              <p className="text-sm text-slate-400">Rating</p>
+              <p className="text-sm text-white/40">Rating</p>
             </div>
           </div>
 
           {marina.description && (
             <div className="mb-6">
               <h3 className="font-semibold mb-2 text-white">Description</h3>
-              <p className="text-slate-300">{marina.description}</p>
+              <p className="text-white/80">{marina.description}</p>
             </div>
           )}
 
           <div className="mb-6 space-y-2">
             {marina.phone && (
               <div className="flex items-center gap-2">
-                <Phone className="w-5 h-5 text-slate-500" />
+                <Phone className="w-5 h-5 text-white/40" />
                 <a href={`tel:${marina.phone}`} className="text-blue-400 hover:underline">
                   {marina.phone}
                 </a>
@@ -571,7 +571,7 @@ const MarinaDetailsModal: React.FC<{
             )}
             {marina.website && (
               <div className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-slate-500" />
+                <Globe className="w-5 h-5 text-white/40" />
                 <a
                   href={marina.website}
                   target="_blank"
@@ -584,7 +584,7 @@ const MarinaDetailsModal: React.FC<{
             )}
             {marina.email && (
               <div className="flex items-center gap-2">
-                <Mail className="w-5 h-5 text-slate-500" />
+                <Mail className="w-5 h-5 text-white/40" />
                 <a href={`mailto:${marina.email}`} className="text-blue-400 hover:underline">
                   {marina.email}
                 </a>
@@ -595,14 +595,14 @@ const MarinaDetailsModal: React.FC<{
           <div className="space-y-3">
             <button
               onClick={() => onNavigate('google')}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
             >
               <Navigation className="w-5 h-5" />
               Navigate with Google Maps
             </button>
             <button
               onClick={() => onNavigate('waze')}
-              className="w-full py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 flex items-center justify-center gap-2"
+              className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg flex items-center justify-center gap-2 transition-colors"
             >
               <Navigation className="w-5 h-5" />
               Navigate with Waze
@@ -612,7 +612,7 @@ const MarinaDetailsModal: React.FC<{
               className={`w-full py-3 rounded-lg flex items-center justify-center gap-2 ${
                 isFavorited
                   ? 'bg-red-600 text-white hover:bg-red-500'
-                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  : 'glass-inner text-white/80 hover:bg-white/10 border border-white/10'
               }`}
             >
               <Heart className={`w-5 h-5 ${isFavorited ? 'fill-current' : ''}`} />

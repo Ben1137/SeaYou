@@ -1,20 +1,23 @@
 /**
- * CloudCoverLayerML - WebGL heatmap for cloud cover fraction
- * Phase 6B: Forecast layers using GenericHeatmapEngine
+ * CloudCoverLayerML - Canvas Source architecture for Cloud Cover
  *
  * Data source: Open-Meteo Forecast API — cloud_cover (0–100%)
- * Range: 0 (clear sky) → 100 (full overcast)
  * Normalization: 'range' (0 to 100)
- * Discard: < 5% (completely clear pixels invisible)
- * Fade range: 10% smoothstep for gentle cloud edge transition
+ * Discard: < 5% (clear sky invisible)
+ * Fade range: 10% smoothstep
  * Land mask: OFF — clouds are valid everywhere
+ *
+ * Uses FBM (Fractal Brownian Motion) procedural noise in the GPU shader
+ * to break up the flat grid data into realistic, fluffy cloud shapes.
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useMap } from '../useMap';
-import { createGenericHeatmapLayer, type GenericHeatmapLayer } from '../../../webgl/GenericHeatmapEngine';
+import { createGenericHeatmapEngine, type GenericHeatmapEngine } from '../../../webgl/GenericHeatmapEngine';
+import { createOffscreenCanvas, type OffscreenCanvasHandle } from '../../../webgl/OffscreenCanvasManager';
+import { useCanvasSourceLayer, boundsToCorners } from '../../../hooks/useCanvasSourceLayer';
 import { CLOUD_COVER_COLORS } from '../../../webgl/ColorRamps';
-import { getSafeBeforeId } from '../../../utils/mapLayerUtils';
+import { getAtmosphereBeforeId } from '../../../utils/mapLayerUtils';
 import type { ForecastGridData } from '@seame/core';
 
 export interface CloudCoverLayerMLProps {
@@ -23,21 +26,84 @@ export interface CloudCoverLayerMLProps {
   sharedGridData?: ForecastGridData | null;
 }
 
+const SOURCE_ID = 'cloud-cover-canvas-src';
+const LAYER_ID = 'cloud-cover-canvas-layer';
+
 export function CloudCoverLayerML({
   visible,
   opacity = 0.55,
   sharedGridData,
 }: CloudCoverLayerMLProps) {
   const map = useMap();
-  const layerRef = useRef<GenericHeatmapLayer | null>(null);
-  const layerAddedRef = useRef(false);
+  const mapRef = useRef(map);
+  mapRef.current = map;
+  const engineRef = useRef<GenericHeatmapEngine | null>(null);
+  const canvasHandleRef = useRef<OffscreenCanvasHandle | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const handle = createOffscreenCanvas('cloud-cover', 1024, 1024);
+    canvasHandleRef.current = handle;
+
+    const engine = createGenericHeatmapEngine({
+      logPrefix: '[CloudCover]',
+      colorRamp: CLOUD_COVER_COLORS,
+      normalization: 'range',
+      minValue: 0,
+      maxValue: 100,
+      opacity: 1.0, // Full internal alpha — raster-opacity controls visible opacity
+      useLandMask: false,
+      discardBelow: 5,
+      fadeRange: 10,
+    });
+    engine.init(handle.canvas);
+    engine.setCloudPattern(true); // Enable FBM noise for fluffy cloud shapes
+    engineRef.current = engine;
+    setCanvasElement(handle.canvas);
+
+    // Continuous render loop — ensures MapLibre captures the canvas after CanvasSource attaches
+    let destroyed = false;
+    const animate = () => {
+      if (destroyed) return;
+      if (engineRef.current) {
+        engineRef.current.render();
+        mapRef.current?.triggerRepaint();
+      }
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      destroyed = true;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      // Destroy immediately — free the WebGL context before a new layer can mount
+      engineRef.current?.destroy();
+      engineRef.current = null;
+      canvasHandleRef.current?.destroy();
+      canvasHandleRef.current = null;
+    };
+  }, []);
+
+  const beforeId = map ? getAtmosphereBeforeId(map) : undefined;
+  const { updateCoordinates } = useCanvasSourceLayer({
+    map,
+    sourceId: SOURCE_ID,
+    layerId: LAYER_ID,
+    canvas: canvasElement,
+    beforeId,
+    opacity,
+    visible,
+  });
 
   const processGridData = useCallback((gridData: ForecastGridData) => {
-    if (!gridData?.points?.length || !layerRef.current) return;
+    if (!gridData?.points?.length || !engineRef.current) return;
 
     const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
     const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
-
     if (lats.length < 2 || lons.length < 2) return;
 
     const cloudMap = new Map<string, number>();
@@ -56,101 +122,25 @@ export function CloudCoverLayerML({
       grid.push(row);
     }
 
-    layerRef.current.updateData(
-      grid,
-      lons[0], lons[lons.length - 1],
-      lats[0], lats[lats.length - 1]
-    );
+    const [minLon, maxLon] = [lons[0], lons[lons.length - 1]];
+    const [minLat, maxLat] = [lats[0], lats[lats.length - 1]];
+
+    const newCorners = boundsToCorners(minLon, maxLon, minLat, maxLat);
+    updateCoordinates(newCorners);
+
+    engineRef.current.updateData(grid, minLon, maxLon, minLat, maxLat);
+    engineRef.current.render();
+    map?.triggerRepaint();
 
     console.log('[CloudCoverLayerML] Data updated:', {
       gridSize: `${lons.length}x${lats.length}`,
     });
-  }, []);
+  }, [updateCoordinates, map]);
 
-  // Initialize layer
   useEffect(() => {
-    if (!map) return;
-
-    const setupLayer = () => {
-      if (layerAddedRef.current) return;
-
-      try {
-        const layer = createGenericHeatmapLayer('cloud-cover-webgl', {
-          logPrefix: '[CloudCover]',
-          colorRamp: CLOUD_COVER_COLORS,
-          normalization: 'range',
-          minValue: 0,
-          maxValue: 100,
-          opacity,
-          useLandMask: false,
-          discardBelow: 5,    // 5% threshold — fully clear sky stays transparent
-          fadeRange: 10,      // Smooth fade from 5% → 15% cloud cover
-        });
-
-        layerRef.current = layer;
-
-        const beforeId = getSafeBeforeId(map);
-        const safeBeforeId = beforeId && map.getLayer(beforeId) ? beforeId : undefined;
-
-        if (!map.getLayer('cloud-cover-webgl')) {
-          map.addLayer(layer, safeBeforeId);
-        }
-        layerAddedRef.current = true;
-
-        console.log('[CloudCoverLayerML] Layer added', safeBeforeId ? `before "${safeBeforeId}"` : '(top)');
-      } catch (error) {
-        console.error('[CloudCoverLayerML] Failed to add layer:', error);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      setupLayer();
-    } else {
-      map.once('style.load', setupLayer);
-    }
-
-    return () => {
-      if (map && layerAddedRef.current) {
-        try {
-          if (map.getLayer('cloud-cover-webgl')) {
-            map.removeLayer('cloud-cover-webgl');
-          }
-        } catch (_) { /* ignore */ }
-        layerAddedRef.current = false;
-        layerRef.current = null;
-      }
-    };
-  }, [map]);
-
-  // Visibility
-  useEffect(() => {
-    layerRef.current?.setVisibility(visible);
-  }, [visible]);
-
-  // Opacity
-  useEffect(() => {
-    layerRef.current?.setOpacity(opacity);
-  }, [opacity]);
-
-  // Force data upload + double-tap repaint on visibility or data change.
-  // When switching between layers that share the same cached gridData, React won't
-  // re-trigger if the reference is identical. Re-running processGridData explicitly
-  // on every visible=true ensures the WebGL texture is always populated.
-  useEffect(() => {
-    if (!visible || !sharedGridData || !layerRef.current) return;
-
-    // 1. Force data upload even if gridData reference hasn't changed
+    if (!visible || !sharedGridData) return;
     processGridData(sharedGridData);
-
-    // 2. Double-tap repaint — guarantees MapLibre catches the painted texture
-    const t1 = setTimeout(() => {
-      map?.triggerRepaint();
-    }, 50);
-    const t2 = setTimeout(() => {
-      map?.triggerRepaint();
-    }, 150);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [visible, sharedGridData, processGridData, map]);
+  }, [visible, sharedGridData, processGridData]);
 
   return null;
 }

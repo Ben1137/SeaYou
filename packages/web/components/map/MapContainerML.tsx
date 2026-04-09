@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast } from '@seame/core';
-import { Trash2, Navigation, MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud } from 'lucide-react';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -30,10 +30,24 @@ import { WaveParticleLayerML } from './layers/WaveParticleLayerML';
 // Sea Temperature Layer (Phase 5)
 import { SeaTemperatureLayerML } from './layers/SeaTemperatureLayerML';
 
+// Compound Layers (Phase 5+)
+import { CompoundSeaTempCurrentsML } from './layers/CompoundSeaTempCurrentsML';
+import { CompoundSeaTempWindML } from './layers/CompoundSeaTempWindML';
+
 // Atmospheric Forecast Layers (Phase 6B)
 import { AirTemperatureLayerML } from './layers/AirTemperatureLayerML';
 import { PrecipitationLayerML } from './layers/PrecipitationLayerML';
 import { CloudCoverLayerML } from './layers/CloudCoverLayerML';
+
+// Activity-specific Layers (Phase 7)
+import { SwellParticleLayerML } from './layers/SwellParticleLayerML';
+import { DiveSuitabilityLayerML } from './layers/DiveSuitabilityLayerML';
+import { ChopLevelLayerML } from './layers/ChopLevelLayerML';
+import { GustDeltaLayerML } from './layers/GustDeltaLayerML';
+
+// Tsunami Alert Layer (Phase 5 — GDACS)
+import { ActiveTsunamiLayerML } from './layers/ActiveTsunamiLayerML';
+import type { TsunamiRisk } from '@seame/core';
 
 // Shared data hooks
 import { useSharedMarineData } from '../../hooks/useSharedMarineData';
@@ -47,54 +61,23 @@ type AdvancedLayer =
   | 'CURRENT_PARTICLES'
   | 'WAVE_HEATMAP'
   | 'SEA_TEMP'
+  // Compound layers (Phase 5+)
+  | 'SEA_TEMP_CURRENTS'
+  | 'SEA_TEMP_WIND'
   // Phase 6B — atmospheric forecast layers
   | 'AIR_TEMP'
   | 'PRECIPITATION'
-  | 'CLOUD_COVER';
+  | 'CLOUD_COVER'
+  // Phase 7 — activity-specific layers
+  | 'SWELL_PARTICLES'
+  | 'DIVE_SUITABILITY'
+  | 'CHOP_LEVEL'
+  | 'GUST_DELTA';
 
 interface MapContainerMLProps {
   currentLocation: Coordinate;
+  tsunamiRisks?: TsunamiRisk[];
 }
-
-interface RouteLeg {
-  id: number;
-  distance: number;
-  bearing: number;
-  startIdx: number;
-  endIdx: number;
-}
-
-// Utility functions
-const toRad = (deg: number) => deg * Math.PI / 180;
-const toDeg = (rad: number) => rad * 180 / Math.PI;
-
-const calculateBearing = (startLat: number, startLng: number, destLat: number, destLng: number) => {
-  const startLatRad = toRad(startLat);
-  const destLatRad = toRad(destLat);
-  const dLng = toRad(destLng - startLng);
-
-  const y = Math.sin(dLng) * Math.cos(destLatRad);
-  const x = Math.cos(startLatRad) * Math.sin(destLatRad) -
-            Math.sin(startLatRad) * Math.cos(destLatRad) * Math.cos(dLng);
-
-  let brng = toDeg(Math.atan2(y, x));
-  return (brng + 360) % 360;
-};
-
-const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-  const R = 6371000; // Earth radius in meters
-  const phi1 = toRad(lat1);
-  const phi2 = toRad(lat2);
-  const deltaPhi = toRad(lat2 - lat1);
-  const deltaLambda = toRad(lng2 - lng1);
-
-  const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-            Math.cos(phi1) * Math.cos(phi2) *
-            Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-  return R * c;
-};
 
 const getWindColor = (speed: number) => {
   if (speed < 10) return '#60a5fa';
@@ -120,25 +103,108 @@ const getCurrentColor = (speed: number) => {
   return '#ef4444';
 };
 
-export function MapContainerML({ currentLocation }: MapContainerMLProps) {
+// Build popup HTML for the exploration tap-to-query feature (Issue 5)
+function buildQueryPopupHTML(
+  forecast: PointForecast,
+  layer: AdvancedLayer,
+  basicLayer: MapLayer
+): string {
+  const latStr = `${Math.abs(forecast.lat).toFixed(4)}\u00B0${forecast.lat >= 0 ? 'N' : 'S'}`;
+  const lngStr = `${Math.abs(forecast.lng).toFixed(4)}\u00B0${forecast.lng >= 0 ? 'E' : 'W'}`;
+
+  const rows: string[] = [];
+  const isGeneral = layer === 'NONE' && basicLayer === 'NONE';
+  const showWind = isGeneral || layer === 'WIND_PARTICLES' || layer === 'SEA_TEMP_WIND' || basicLayer === 'WIND';
+  const showWaves = isGeneral || layer === 'WAVE_HEATMAP' || basicLayer === 'WAVE' || basicLayer === 'SIGNIFICANT_WAVE' || basicLayer === 'WIND_WAVE' || basicLayer === 'SWELL';
+  const showCurrents = isGeneral || layer === 'CURRENT_PARTICLES' || layer === 'SEA_TEMP_CURRENTS' || basicLayer === 'CURRENTS';
+  const showSeaTemp = layer === 'SEA_TEMP' || layer === 'SEA_TEMP_CURRENTS' || layer === 'SEA_TEMP_WIND';
+  const showAirTemp = layer === 'AIR_TEMP';
+  const showPrecip = layer === 'PRECIPITATION';
+  const showCloud = layer === 'CLOUD_COVER';
+
+  const row = (label: string, value: string, extra?: string) =>
+    `<div class="seayou-popup-row">
+      <span class="seayou-popup-label">${label}</span>
+      <span class="seayou-popup-value">${value}${extra ? ` <span class="seayou-popup-extra">${extra}</span>` : ''}</span>
+    </div>`;
+
+  // Activity-specific layer popups
+  if (layer === 'DIVE_SUITABILITY') {
+    const waveP = Math.min(forecast.waveHeight / 2.5, 1) * 40;
+    const currP = Math.min((forecast.currentSpeed || 0) / 1.5, 1) * 35;
+    const tempB = forecast.seaTemp ? Math.max(0, Math.min((forecast.seaTemp - 15) / 15, 1)) * 25 : 0;
+    const diveScore = Math.round(Math.max(0, 100 - waveP - currP + tempB));
+    rows.push(row('Dive Score', `${diveScore}/100`));
+    if (forecast.seaTemp) rows.push(row('Sea Temp', `${forecast.seaTemp.toFixed(1)}°C`));
+    if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`));
+    rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`));
+  } else if (layer === 'CHOP_LEVEL') {
+    const windWaveH = forecast.windWaveHeight || 0;
+    const swellH = forecast.swellHeight || 0;
+    const total = windWaveH + swellH;
+    const chopRatio = total > 0.01 ? (windWaveH / total) : 0;
+    rows.push(row('Chop Ratio', `${(chopRatio * 100).toFixed(0)}%`));
+    rows.push(row('Wind Waves', `${windWaveH.toFixed(1)} m`));
+    rows.push(row('Swell', `${swellH.toFixed(1)} m`));
+  } else if (layer === 'GUST_DELTA') {
+    const gusts = forecast.windGusts || forecast.windSpeed * 1.3;
+    const delta = Math.max(0, gusts - forecast.windSpeed);
+    rows.push(row('Gust Delta', `${delta.toFixed(1)} km/h`));
+    rows.push(row('Sustained', `${forecast.windSpeed.toFixed(1)} km/h`));
+    rows.push(row('Gusts', `${gusts.toFixed(1)} km/h`));
+  } else if (layer === 'SWELL_PARTICLES') {
+    rows.push(row('Swell', `${forecast.swellHeight.toFixed(1)} m`, forecast.swellPeriod ? `${forecast.swellPeriod.toFixed(0)}s` : ''));
+    rows.push(row('Direction', `${forecast.swellDirection}\u00B0`));
+    if (forecast.waveHeight > 0.01) rows.push(row('Total Waves', `${forecast.waveHeight.toFixed(1)} m`));
+  } else {
+    // Standard layer popups
+    if (showWind) rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+    if (showWaves && forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, forecast.wavePeriod ? `${forecast.wavePeriod.toFixed(0)}s` : ''));
+    if (showCurrents && forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, `${forecast.currentDirection || 0}\u00B0`));
+    if (showSeaTemp) {
+      if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+      if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, ''));
+    }
+    if (showAirTemp || showPrecip || showCloud) {
+      rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+    }
+    if (rows.length === 0) {
+      rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
+      if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
+    }
+  }
+
+  return `<div class="seayou-popup-body">
+    <div class="seayou-popup-coords">${latStr}, ${lngStr}</div>
+    <div class="seayou-popup-rows">${rows.join('')}</div>
+    <button class="seayou-detail-btn">View Hourly Forecast</button>
+  </div>`;
+}
+
+export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContainerMLProps) {
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const { setMap } = useMapContext();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Route state
-  const [waypoints, setWaypoints] = useState<{lng: number, lat: number}[]>([]);
-  const [routeStats, setRouteStats] = useState({ count: 0, distance: 0 });
-  const [legs, setLegs] = useState<RouteLeg[]>([]);
-  const [speed, setSpeed] = useState<number>(15);
-  const [waypointForecasts, setWaypointForecasts] = useState<Record<number, PointForecast>>({});
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   // Layer state
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
   const [advancedLayer, setAdvancedLayer] = useState<AdvancedLayer>('NONE');
   const [isLayersPanelExpanded, setIsLayersPanelExpanded] = useState(false);
+
+  // Refs to avoid stale closures inside map event listeners
+  const advancedLayerRef = useRef<AdvancedLayer>(advancedLayer);
+  const activeLayerRef = useRef<MapLayer>(activeLayer);
+
+  // Popup ref for tap-to-query (single popup, reused)
+  const queryPopupRef = useRef<maplibregl.Popup | null>(null);
+
+  // Touch device detection (memoized once)
+  const isTouchDevice = useRef(
+    typeof window !== 'undefined' &&
+    ('ontouchstart' in window || navigator.maxTouchPoints > 0)
+  );
   const [loadingGrid, setLoadingGrid] = useState(false);
   const [loadingAdvancedLayer, setLoadingAdvancedLayer] = useState(false);
   const [gridForecasts, setGridForecasts] = useState<PointForecast[]>([]);
@@ -148,12 +214,21 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     advancedLayer === 'WIND_PARTICLES' ||
     advancedLayer === 'CURRENT_PARTICLES' ||
     advancedLayer === 'WAVE_HEATMAP' ||
-    advancedLayer === 'SEA_TEMP'
+    advancedLayer === 'SEA_TEMP' ||
+    advancedLayer === 'SEA_TEMP_CURRENTS' ||
+    advancedLayer === 'SEA_TEMP_WIND' ||
+    advancedLayer === 'SWELL_PARTICLES' ||
+    advancedLayer === 'DIVE_SUITABILITY' ||
+    advancedLayer === 'CHOP_LEVEL' ||
+    advancedLayer === 'GUST_DELTA'
   );
   const sharedMarineData = useSharedMarineData(mapRef.current, isMarineLayerActive);
 
   // Shared forecast data — single fetch for atmospheric layers (Phase 6B)
+  // Wind particles also use forecast data for global coverage (land + sea)
   const isForecastLayerActive = (
+    advancedLayer === 'WIND_PARTICLES' ||
+    advancedLayer === 'SEA_TEMP_WIND' ||
     advancedLayer === 'AIR_TEMP' ||
     advancedLayer === 'PRECIPITATION' ||
     advancedLayer === 'CLOUD_COVER'
@@ -176,9 +251,12 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Marker refs for cleanup
-  const markersRef = useRef<maplibregl.Marker[]>([]);
   const currentLocationMarkerRef = useRef<maplibregl.Marker | null>(null);
   const gridMarkersRef = useRef<maplibregl.Marker[]>([]);
+
+  // Keep refs in sync with state (prevents stale closures in map event handlers)
+  useEffect(() => { advancedLayerRef.current = advancedLayer; }, [advancedLayer]);
+  useEffect(() => { activeLayerRef.current = activeLayer; }, [activeLayer]);
 
   // Initialize map
   useEffect(() => {
@@ -186,7 +264,7 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+      style: 'https://api.maptiler.com/maps/019cdd5d-dd58-73ba-975e-3e2b92fca675/style.json?key=zyH9i3YVwxIqd1gD7bGK',
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 8,
       attributionControl: { compact: true },
@@ -215,6 +293,18 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
       mapRef.current = map;
       setMap(map);
 
+      // Fix land/water contrast — MapTiler style has land at 7% and water at 8% brightness
+      // which makes them indistinguishable. Brighten land to ~22% so continents are clear.
+      try {
+        const styleLayers = map.getStyle()?.layers ?? [];
+        for (const layer of styleLayers) {
+          const srcLayer = (layer as any)['source-layer'];
+          if (layer.type === 'fill' && srcLayer === 'land') {
+            map.setPaintProperty(layer.id, 'fill-color', '#252535');
+          }
+        }
+      } catch { /* non-critical */ }
+
       // Add current location marker
       const el = document.createElement('div');
       el.className = 'current-location-marker';
@@ -233,10 +323,108 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         .addTo(map);
     });
 
-    // Handle map click for route planning
-    map.on('click', (e) => {
-      addRoutePoint(e.lngLat);
+    // --- Exploration-only click handler: tap-to-query weather data ---
+    map.on('click', async (e) => {
+      // Close any existing query popup first
+      if (queryPopupRef.current) {
+        queryPopupRef.current.remove();
+        queryPopupRef.current = null;
+      }
+
+      try {
+        const forecast = await fetchPointForecast(e.lngLat.lat, e.lngLat.lng);
+
+        const html = buildQueryPopupHTML(
+          forecast,
+          advancedLayerRef.current,
+          activeLayerRef.current
+        );
+
+        const popup = new maplibregl.Popup({
+          closeButton: true,
+          closeOnClick: true,
+          maxWidth: '220px',
+          className: 'seayou-query-popup',
+        })
+          .setLngLat(e.lngLat)
+          .setHTML(html)
+          .addTo(map);
+
+        queryPopupRef.current = popup;
+
+        // Attach "View Hourly Forecast" button handler after DOM insertion
+        requestAnimationFrame(() => {
+          const btn = popup.getElement()?.querySelector('.seayou-detail-btn');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              popup.remove();
+              queryPopupRef.current = null;
+              handlePointClick(e.lngLat.lat, e.lngLat.lng);
+            });
+          }
+        });
+      } catch (err) {
+        console.error('[MapContainerML] Tap-to-query fetch failed:', err);
+      }
     });
+
+    // --- Issue 5: Desktop hover tooltip (non-touch devices only) ---
+    if (!isTouchDevice.current) {
+      let hoverPopup: maplibregl.Popup | null = null;
+      let hoverDebounce: ReturnType<typeof setTimeout> | null = null;
+      let lastHoverLngLat: { lng: number; lat: number } | null = null;
+
+      map.on('mousemove', (e) => {
+        // Debounce: only fetch if cursor settles for 600ms
+        lastHoverLngLat = { lng: e.lngLat.lng, lat: e.lngLat.lat };
+        if (hoverDebounce) clearTimeout(hoverDebounce);
+
+        hoverDebounce = setTimeout(async () => {
+          if (!lastHoverLngLat) return;
+          const { lng, lat } = lastHoverLngLat;
+
+          try {
+            const forecast = await fetchPointForecast(lat, lng);
+
+            // Dismiss if cursor has moved significantly since we started
+            if (lastHoverLngLat &&
+                (Math.abs(lastHoverLngLat.lng - lng) > 0.05 ||
+                 Math.abs(lastHoverLngLat.lat - lat) > 0.05)) return;
+
+            if (hoverPopup) hoverPopup.remove();
+
+            const latStr = `${Math.abs(forecast.lat).toFixed(2)}\u00B0${forecast.lat >= 0 ? 'N' : 'S'}`;
+            const lngStr = `${Math.abs(forecast.lng).toFixed(2)}\u00B0${forecast.lng >= 0 ? 'E' : 'W'}`;
+
+            let summary = `${forecast.windSpeed.toFixed(0)} km/h wind`;
+            if (forecast.waveHeight > 0.01) summary += ` \u00B7 ${forecast.waveHeight.toFixed(1)}m waves`;
+
+            hoverPopup = new maplibregl.Popup({
+              closeButton: false,
+              closeOnClick: false,
+              maxWidth: '200px',
+              className: 'seayou-hover-popup',
+              offset: 15,
+            })
+              .setLngLat([lng, lat])
+              .setHTML(`<div style="font-family:system-ui;font-size:11px;color:#cbd5e1;">
+                <div style="color:#64748b;font-size:10px;margin-bottom:2px;">${latStr}, ${lngStr}</div>
+                ${summary}
+              </div>`)
+              .addTo(map);
+          } catch { /* silently ignore hover fetch errors */ }
+        }, 600);
+      });
+
+      map.on('mouseout', () => {
+        if (hoverDebounce) clearTimeout(hoverDebounce);
+        lastHoverLngLat = null;
+        if (hoverPopup) {
+          hoverPopup.remove();
+          hoverPopup = null;
+        }
+      });
+    }
 
     // Listen for move end to refresh grid if layer is active
     map.on('moveend', () => {
@@ -260,12 +448,14 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     return () => {
       resizeObserver.disconnect();
       setMap(null);
-      markersRef.current.forEach(m => m.remove());
-      markersRef.current = [];
       gridMarkersRef.current.forEach(m => m.remove());
       gridMarkersRef.current = [];
       if (currentLocationMarkerRef.current) {
         currentLocationMarkerRef.current.remove();
+      }
+      if (queryPopupRef.current) {
+        queryPopupRef.current.remove();
+        queryPopupRef.current = null;
       }
       map.remove();
       mapRef.current = null;
@@ -436,156 +626,10 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
     });
   }, [activeLayer]);
 
-  // Route point handling
-  const addRoutePoint = useCallback(async (lngLat: maplibregl.LngLat) => {
-    if (!mapRef.current) return;
-
-    const newWaypoint = { lng: lngLat.lng, lat: lngLat.lat };
-    const newWaypoints = [...waypoints, newWaypoint];
-    setWaypoints(newWaypoints);
-    updateRouteStats(newWaypoints);
-
-    // Add marker
-    const el = document.createElement('div');
-    el.className = 'waypoint-marker';
-    el.style.cssText = `
-      width: 24px;
-      height: 24px;
-      background: #3b82f6;
-      border: 2px solid white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-    `;
-    el.textContent = String(waypoints.length + 1);
-
-    const marker = new maplibregl.Marker({ element: el, draggable: true })
-      .setLngLat([lngLat.lng, lngLat.lat])
-      .setPopup(new maplibregl.Popup().setHTML(`${t('map.waypoint')} ${waypoints.length + 1}`))
-      .addTo(mapRef.current);
-
-    markersRef.current.push(marker);
-
-    // Fetch weather for this point
-    try {
-      const forecast = await fetchPointForecast(lngLat.lat, lngLat.lng);
-      setWaypointForecasts(prev => ({ ...prev, [waypoints.length]: forecast }));
-    } catch (e) {
-      console.error('Failed to fetch waypoint forecast:', e);
-    }
-
-    // Auto-open sidebar on 2nd waypoint
-    if (waypoints.length === 1) {
-      setIsSidebarOpen(true);
-      setIsDetailSidebarOpen(false);
-    }
-  }, [waypoints, t]);
-
-  const updateRouteStats = useCallback((points: {lng: number, lat: number}[]) => {
-    let dist = 0;
-    const newLegs: RouteLeg[] = [];
-
-    for (let i = 0; i < points.length - 1; i++) {
-      const d = calculateDistance(points[i].lat, points[i].lng, points[i+1].lat, points[i+1].lng);
-      const distNM = d / 1852;
-      dist += distNM;
-
-      const bearing = calculateBearing(points[i].lat, points[i].lng, points[i+1].lat, points[i+1].lng);
-
-      newLegs.push({
-        id: i,
-        distance: parseFloat(distNM.toFixed(1)),
-        bearing: parseFloat(bearing.toFixed(0)),
-        startIdx: i,
-        endIdx: i + 1
-      });
-    }
-
-    setRouteStats({
-      count: points.length,
-      distance: parseFloat(dist.toFixed(1))
-    });
-    setLegs(newLegs);
-
-    // Update route line on map
-    updateRouteLine(points);
-  }, []);
-
-  const updateRouteLine = useCallback((points: {lng: number, lat: number}[]) => {
-    if (!mapRef.current) return;
-
-    const map = mapRef.current;
-    const sourceId = 'route-line';
-
-    if (map.getSource(sourceId)) {
-      (map.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: points.map(p => [p.lng, p.lat]),
-        },
-      });
-    } else if (points.length >= 2) {
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates: points.map(p => [p.lng, p.lat]),
-          },
-        },
-      });
-
-      map.addLayer({
-        id: 'route-line-layer',
-        type: 'line',
-        source: sourceId,
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#3b82f6',
-          'line-width': 4,
-          'line-dasharray': [2, 2],
-        },
-      });
-    }
-  }, []);
-
-  const clearRoute = useCallback(() => {
-    if (!mapRef.current) return;
-
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-
-    if (mapRef.current.getLayer('route-line-layer')) {
-      mapRef.current.removeLayer('route-line-layer');
-    }
-    if (mapRef.current.getSource('route-line')) {
-      mapRef.current.removeSource('route-line');
-    }
-
-    setWaypoints([]);
-    setRouteStats({ count: 0, distance: 0 });
-    setLegs([]);
-    setWaypointForecasts({});
-    setIsSidebarOpen(false);
-  }, []);
-
   // Handle point click for detailed forecast
   const handlePointClick = useCallback(async (lat: number, lng: number) => {
     setLoadingDetail(true);
     setIsDetailSidebarOpen(true);
-    setIsSidebarOpen(false);
 
     try {
       const data = await fetchHourlyPointForecast(lat, lng);
@@ -607,7 +651,7 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
   })) : [];
 
   return (
-    <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, overflow: 'hidden' }} className="bg-card">
+    <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, overflow: 'hidden' }}>
       {/* Map Container */}
       <div
         ref={mapContainerRef}
@@ -615,10 +659,10 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
       />
 
       {/* Layer Controls Panel */}
-      <div className="absolute top-4 right-4 z-[400] bg-elevated backdrop-blur border border-app rounded-lg shadow-xl text-xs w-36 animate-in fade-in slide-in-from-right-4 overflow-hidden">
+      <div className="absolute top-4 right-4 z-[400] glass-panel shadow-xl text-xs w-36 lg:w-44 animate-in fade-in slide-in-from-right-4 overflow-hidden">
         <button
           onClick={() => setIsLayersPanelExpanded(!isLayersPanelExpanded)}
-          className="w-full flex items-center justify-between gap-2 p-2 border-b border-subtle text-secondary font-bold uppercase bg-elevated hover:bg-hover transition-colors cursor-pointer"
+          className="w-full flex items-center justify-between gap-2 p-2 border-b border-white/5 text-white/60 font-bold uppercase glass-inner hover:bg-white/10 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <Layers size={14} /> {t('map.mapLayers')}
@@ -636,127 +680,168 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
             {/* Basic Layers */}
             <button
               onClick={() => setActiveLayer('NONE')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'NONE' ? 'bg-button-secondary text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'NONE' ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <div className={`w-2 h-2 rounded-full border ${activeLayer === 'NONE' ? 'border-primary bg-transparent' : 'border-muted'}`}></div> {t('map.none')}
+              <div className={`w-2 h-2 rounded-full border ${activeLayer === 'NONE' ? 'border-white bg-transparent' : 'border-white/40'}`}></div> {t('map.none')}
             </button>
             <button
               onClick={() => setActiveLayer('WIND')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND' ? 'bg-blue-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND' ? 'bg-blue-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Wind size={12} /> {t('map.wind')}
             </button>
             <button
               onClick={() => setActiveLayer('WAVE')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WAVE' ? 'bg-teal-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WAVE' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.sigWaves')}
             </button>
             <button
               onClick={() => setActiveLayer('WIND_WAVE')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND_WAVE' ? 'bg-cyan-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND_WAVE' ? 'bg-cyan-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.windWaves')}
             </button>
             <button
               onClick={() => setActiveLayer('SWELL')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'SWELL' ? 'bg-indigo-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'SWELL' ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('weather.swell')}
             </button>
             <button
               onClick={() => setActiveLayer('CURRENTS')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'CURRENTS' ? 'bg-emerald-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'CURRENTS' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> {t('map.currents')}
             </button>
 
             {/* Advanced Layers Divider */}
-            <div className="border-t border-subtle my-2 pt-2">
-              <div className="text-[10px] text-muted uppercase font-bold mb-1 px-2">Advanced Layers</div>
+            <div className="border-t border-white/5 my-2 pt-2">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">Advanced Layers</div>
             </div>
 
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'WIND_PARTICLES' ? 'NONE' : 'WIND_PARTICLES')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WIND_PARTICLES' ? 'bg-purple-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WIND_PARTICLES' ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Wind size={12} /> Wind Particles
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'CURRENT_PARTICLES' ? 'NONE' : 'CURRENT_PARTICLES')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-violet-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> Current Particles
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-pink-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-pink-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> Wave Heatmap
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP' ? 'NONE' : 'SEA_TEMP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP' ? 'bg-orange-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP' ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Droplets size={12} /> Sea Temperature
             </button>
             <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP_CURRENTS' ? 'NONE' : 'SEA_TEMP_CURRENTS')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_CURRENTS' ? 'bg-gradient-to-r from-orange-600 to-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Activity size={12} /> Sea Temp + Currents
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP_WIND' ? 'NONE' : 'SEA_TEMP_WIND')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_WIND' ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Wind size={12} /> Sea Temp + Wind
+            </button>
+            <button
               onClick={() => setAdvancedLayer(advancedLayer === 'AIR_TEMP' ? 'NONE' : 'AIR_TEMP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-red-500 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-red-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Thermometer size={12} /> Air Temperature
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'PRECIPITATION' ? 'NONE' : 'PRECIPITATION')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-sky-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <CloudRain size={12} /> Precipitation
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'CLOUD_COVER' ? 'NONE' : 'CLOUD_COVER')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-slate-500 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-slate-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Cloud size={12} /> Cloud Cover
             </button>
 
+            {/* Activity-specific Layers (Phase 7) */}
+            <div className="border-t border-white/5 my-2 pt-2">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.activityLayers') || 'Activity Layers'}</div>
+            </div>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Navigation size={12} /> {t('map.swellDirection') || 'Swell Direction'}
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Anchor size={12} /> {t('map.diveSuitability') || 'Dive Suitability'}
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'CHOP_LEVEL' ? 'NONE' : 'CHOP_LEVEL')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CHOP_LEVEL' ? 'bg-fuchsia-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Waves size={12} /> {t('map.chopLevel') || 'Chop Level'}
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'GUST_DELTA' ? 'NONE' : 'GUST_DELTA')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'GUST_DELTA' ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Wind size={12} /> {t('map.gustDelta') || 'Gust Delta'}
+            </button>
+
             {/* GeoJSON Overlay Layers Divider */}
-            <div className="border-t border-subtle my-2 pt-2">
-              <div className="text-[10px] text-muted uppercase font-bold mb-1 px-2">{t('map.geoJSONLayers') || 'Map Overlays'}</div>
+            <div className="border-t border-white/5 my-2 pt-2">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.geoJSONLayers') || 'Map Overlays'}</div>
             </div>
 
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, coastline: !prev.coastline }))}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.coastline ? 'bg-cyan-700 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.coastline ? 'bg-cyan-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <MapPin size={12} /> {t('map.coastline') || 'Coastline'}
             </button>
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, bathymetry: !prev.bathymetry }))}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.bathymetry ? 'bg-blue-700 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.bathymetry ? 'bg-blue-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Droplets size={12} /> {t('map.bathymetry') || 'Bathymetry'}
             </button>
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, reefs: !prev.reefs }))}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.reefs ? 'bg-orange-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.reefs ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.reefs') || 'Coral Reefs'}
             </button>
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, ports: !prev.ports }))}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.ports ? 'bg-amber-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.ports ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Navigation size={12} /> {t('map.ports') || 'Ports'}
             </button>
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, marineAreas: !prev.marineAreas }))}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.marineAreas ? 'bg-purple-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.marineAreas ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <MapPin size={12} /> {t('map.marineAreas') || 'Marine Areas'}
             </button>
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, radar: !prev.radar }))}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.radar ? 'bg-sky-600 text-primary' : 'text-muted hover:bg-hover'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.radar ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Droplets size={12} /> {t('map.rainRadar') || 'Rain Radar'}
             </button>
@@ -767,95 +852,17 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         </div>
       </div>
 
-      {/* Route Sidebar Toggle */}
-      {!isSidebarOpen && legs.length > 0 && (
-        <button
-          onClick={() => { setIsSidebarOpen(true); setIsDetailSidebarOpen(false); }}
-          className="absolute left-0 top-1/2 -translate-y-1/2 h-32 w-6 bg-elevated border-y border-r border-app rounded-r-xl flex items-center justify-center cursor-pointer hover:bg-button-secondary z-[400] shadow-xl transition-colors"
-        >
-          <div className="rotate-90 text-[10px] uppercase font-bold text-muted tracking-widest whitespace-nowrap">{t('map.routeInfo')}</div>
-        </button>
-      )}
-
-      {/* Route Sidebar */}
-      {isSidebarOpen && (
-        <div className="absolute top-0 left-0 bottom-0 w-80 bg-card/95 backdrop-blur shadow-2xl border-r border-app z-[500] flex flex-col animate-in slide-in-from-left duration-300">
-          <div className="p-4 border-b border-app flex justify-between items-center bg-card">
-            <div>
-              <h2 className="font-bold text-primary flex items-center gap-2"><Navigation size={18} className="text-accent"/> {t('map.routePlan')}</h2>
-              <p className="text-[10px] text-muted uppercase tracking-wider">{routeStats.count} {t('map.waypoints')} - {routeStats.distance} {t('units.nm')}</p>
-            </div>
-            <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-hover rounded text-muted transition-colors"><X size={20}/></button>
-          </div>
-
-          <div className="p-4 bg-elevated border-b border-app">
-            <label className="text-xs text-secondary flex justify-between mb-2">
-              {t('map.avgSpeed')}: <span className="text-primary font-bold">{speed} {t('units.knots')}</span>
-            </label>
-            <input type="range" min="1" max="40" value={speed} onChange={(e) => setSpeed(parseInt(e.target.value))} className="w-full h-1 bg-button-secondary rounded-lg appearance-none cursor-pointer" style={{ accentColor: 'var(--text-accent)' }} />
-            <div className="flex justify-between text-[10px] text-muted mt-1">
-              <span>1 {t('units.knots')}</span><span>40 {t('units.knots')}</span>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {legs.map((leg, idx) => {
-              const forecast = waypointForecasts[leg.startIdx];
-              const time = (leg.distance / speed) * 60;
-
-              return (
-                <div key={leg.id} className="bg-elevated border border-app rounded-lg p-3 relative group">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs font-bold text-primary">{t('map.leg')} {idx + 1}</div>
-                    <div className="text-[10px] text-muted">{leg.distance} {t('units.nm')} @ {leg.bearing}deg</div>
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="flex-1 h-1 bg-button-secondary rounded-full overflow-hidden">
-                      <div className="h-full bg-accent w-1/2"></div>
-                    </div>
-                    <div className="text-[10px] text-accent font-mono">~{Math.round(time)}{t('units.minutes')}</div>
-                  </div>
-
-                  {forecast && (
-                    <div className="grid grid-cols-2 gap-2 text-[10px] bg-card p-2 rounded border border-subtle">
-                      <div className="flex items-center gap-1 text-secondary">
-                        <Waves size={10} className="text-accent"/> {forecast.waveHeight.toFixed(1)}{t('units.meters')}
-                      </div>
-                      <div className="flex items-center gap-1 text-secondary">
-                        <Wind size={10} className="text-accent"/> {forecast.windSpeed.toFixed(0)} {t('units.knots')}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="absolute left-[-18px] top-1/2 -translate-y-1/2 w-4 flex flex-col items-center">
-                    <div className="w-2 h-2 rounded-full bg-accent border-2 border-card"></div>
-                    {idx < legs.length - 1 && <div className="w-0.5 h-full bg-button-secondary my-1"></div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="p-4 border-t border-app bg-card">
-            <button onClick={clearRoute} className="w-full py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold flex items-center justify-center gap-2 transition-colors">
-              <Trash2 size={14} /> {t('map.clearRoute')}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Detail Sidebar */}
       {isDetailSidebarOpen && (
-        <div className="absolute top-0 right-0 bottom-0 w-96 bg-card/95 backdrop-blur shadow-2xl border-l border-app z-[500] flex flex-col animate-in slide-in-from-right duration-300">
-          <div className="p-4 border-b border-app flex justify-between items-center bg-card">
+        <div className="absolute top-0 right-0 bottom-0 w-96 glass-panel !rounded-none shadow-2xl border-l border-white/10 z-[500] flex flex-col animate-in slide-in-from-right duration-300">
+          <div className="p-4 border-b border-white/10 flex justify-between items-center glass-inner">
             <div>
-              <h2 className="font-bold text-primary flex items-center gap-2"><Activity size={18} className="text-teal-400"/> {t('map.pointForecast')}</h2>
-              <p className="text-[10px] text-muted uppercase tracking-wider">
+              <h2 className="font-bold text-white flex items-center gap-2"><Activity size={18} className="text-teal-400"/> {t('map.pointForecast')}</h2>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">
                 {selectedPointDetail ? `${selectedPointDetail.lat.toFixed(4)}N, ${selectedPointDetail.lng.toFixed(4)}E` : t('map.loadingData')}
               </p>
             </div>
-            <button onClick={() => setIsDetailSidebarOpen(false)} className="p-1 hover:bg-hover rounded text-muted transition-colors"><X size={20}/></button>
+            <button onClick={() => setIsDetailSidebarOpen(false)} className="p-1 hover:bg-white/10 rounded text-white/40 transition-colors"><X size={20}/></button>
           </div>
 
           {loadingDetail ? (
@@ -866,8 +873,8 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
               {/* Wave & Swell Chart */}
               {(activeLayer === 'WAVE' || activeLayer === 'SWELL' || activeLayer === 'SIGNIFICANT_WAVE' || activeLayer === 'WIND_WAVE' || activeLayer === 'NONE') && (
-                <div className="bg-elevated/50 rounded-xl p-4 border border-app animate-in fade-in slide-in-from-right-8">
-                  <h3 className="text-xs font-bold text-secondary uppercase mb-4 flex items-center gap-2"><Waves size={14}/> {t('map.waveSwellHeight')}</h3>
+                <div className="glass-inner rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-right-8">
+                  <h3 className="text-xs font-bold text-white/60 uppercase mb-4 flex items-center gap-2"><Waves size={14}/> {t('map.waveSwellHeight')}</h3>
                   <div className="h-40 w-full min-h-[160px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={detailChartData}>
@@ -899,8 +906,8 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
 
               {/* Wind Chart */}
               {(activeLayer === 'WIND' || activeLayer === 'NONE') && (
-                <div className="bg-elevated/50 rounded-xl p-4 border border-app animate-in fade-in slide-in-from-right-10">
-                  <h3 className="text-xs font-bold text-secondary uppercase mb-4 flex items-center gap-2"><Wind size={14}/> {t('map.windSpeedChart')}</h3>
+                <div className="glass-inner rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-right-10">
+                  <h3 className="text-xs font-bold text-white/60 uppercase mb-4 flex items-center gap-2"><Wind size={14}/> {t('map.windSpeedChart')}</h3>
                   <div className="h-40 w-full min-h-[160px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={detailChartData}>
@@ -927,8 +934,8 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
 
               {/* Currents Chart */}
               {(activeLayer === 'CURRENTS' || activeLayer === 'NONE') && (
-                <div className="bg-elevated/50 rounded-xl p-4 border border-app animate-in fade-in slide-in-from-right-8">
-                  <h3 className="text-xs font-bold text-secondary uppercase mb-4 flex items-center gap-2"><Activity size={14}/> {t('map.currentVelocity')}</h3>
+                <div className="glass-inner rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-right-8">
+                  <h3 className="text-xs font-bold text-white/60 uppercase mb-4 flex items-center gap-2"><Activity size={14}/> {t('map.currentVelocity')}</h3>
                   <div className="h-40 w-full min-h-[160px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={detailChartData}>
@@ -995,6 +1002,40 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         />
       )}
 
+      {advancedLayer === 'SEA_TEMP_CURRENTS' && (
+        <>
+          <ColorScaleLegend
+            scale={COLOR_SCALES.seaTemperature}
+            unit="°C"
+            title={t('map.legend.seaTemperature') || 'Sea Temperature'}
+            position="bottomright"
+          />
+          <ColorScaleLegend
+            scale={COLOR_SCALES.currentParticles}
+            unit="m/s"
+            title={t('map.legend.currentVelocity') || 'Current Velocity'}
+            position="bottomleft"
+          />
+        </>
+      )}
+
+      {advancedLayer === 'SEA_TEMP_WIND' && (
+        <>
+          <ColorScaleLegend
+            scale={COLOR_SCALES.seaTemperature}
+            unit="°C"
+            title={t('map.legend.seaTemperature') || 'Sea Temperature'}
+            position="bottomright"
+          />
+          <ColorScaleLegend
+            scale={COLOR_SCALES.windParticles}
+            unit="km/h"
+            title={t('map.legend.windSpeed') || 'Wind Speed'}
+            position="bottomleft"
+          />
+        </>
+      )}
+
       {advancedLayer === 'AIR_TEMP' && (
         <ColorScaleLegend
           scale={COLOR_SCALES.airTemperature}
@@ -1028,6 +1069,40 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
           unit="m"
           title={t('map.legend.bathymetry')}
           position="bottomleft"
+        />
+      )}
+
+      {/* Activity layer legends (Phase 7) */}
+      {advancedLayer === 'SWELL_PARTICLES' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.swellParticles}
+          unit="m"
+          title={t('map.legend.swellHeight') || 'Swell Height'}
+          position="bottomright"
+        />
+      )}
+      {advancedLayer === 'DIVE_SUITABILITY' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.diveSuitability}
+          unit="score"
+          title={t('map.legend.diveSuitability') || 'Dive Suitability'}
+          position="bottomright"
+        />
+      )}
+      {advancedLayer === 'CHOP_LEVEL' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.chopLevel}
+          unit="ratio"
+          title={t('map.legend.chopLevel') || 'Chop Level'}
+          position="bottomright"
+        />
+      )}
+      {advancedLayer === 'GUST_DELTA' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.gustDelta}
+          unit="km/h"
+          title={t('map.legend.gustDelta') || 'Gust Delta'}
+          position="bottomright"
         />
       )}
 
@@ -1105,6 +1180,28 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         sharedGridData={sharedMarineData.gridData}
       />
 
+      {/* Compound Layers (Phase 5+) */}
+      {advancedLayer === 'SEA_TEMP_CURRENTS' && (
+        <CompoundSeaTempCurrentsML
+          visible
+          tempOpacity={0.45}
+          minTemp={0}
+          maxTemp={35}
+          sharedGridData={sharedMarineData.gridData}
+        />
+      )}
+
+      {advancedLayer === 'SEA_TEMP_WIND' && (
+        <CompoundSeaTempWindML
+          visible
+          tempOpacity={0.45}
+          minTemp={0}
+          maxTemp={35}
+          sharedGridData={sharedMarineData.gridData}
+          sharedForecastData={sharedForecastData.gridData}
+        />
+      )}
+
       {/* Atmospheric Forecast Layers (Phase 6B) — use sharedForecastData, not marine */}
       <AirTemperatureLayerML
         visible={advancedLayer === 'AIR_TEMP'}
@@ -1123,6 +1220,34 @@ export function MapContainerML({ currentLocation }: MapContainerMLProps) {
         visible={advancedLayer === 'CLOUD_COVER'}
         opacity={0.55}
         sharedGridData={sharedForecastData.gridData}
+      />
+
+      {/* Activity-specific Layers (Phase 7) */}
+      <SwellParticleLayerML
+        visible={advancedLayer === 'SWELL_PARTICLES'}
+        particleCount={192}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <DiveSuitabilityLayerML
+        visible={advancedLayer === 'DIVE_SUITABILITY'}
+        opacity={0.6}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <ChopLevelLayerML
+        visible={advancedLayer === 'CHOP_LEVEL'}
+        opacity={0.55}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <GustDeltaLayerML
+        visible={advancedLayer === 'GUST_DELTA'}
+        opacity={0.6}
+        sharedGridData={sharedMarineData.gridData}
+      />
+
+      {/* Phase 5 — Tsunami event epicenters (always visible when alerts exist) */}
+      <ActiveTsunamiLayerML
+        risks={tsunamiRisks}
+        visible={tsunamiRisks.length > 0}
       />
 
     </div>

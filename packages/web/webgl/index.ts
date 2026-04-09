@@ -1,6 +1,6 @@
 /**
  * WebGL Utilities and Engines
- * Phase 2+: Custom WebGL rendering for SeaYou
+ * Offscreen Canvas Source architecture — each engine owns its GL context
  */
 
 // Core WebGL Utilities
@@ -12,9 +12,6 @@ export {
   createFramebuffer,
   createQuadBuffer,
   createParticleIndexBuffer,
-  saveGLState,
-  restoreGLState,
-  type GLState,
 } from './GLUtils';
 
 // Data Encoding
@@ -37,23 +34,29 @@ export {
   CLOUD_COVER_COLORS,
 } from './ColorRamps';
 
-// Generic Heatmap Engine (Phase 6A — replaces WaveHeatmapEngine + SeaTemperatureEngine)
+// Generic Heatmap Engine (Offscreen Canvas)
 export {
-  createGenericHeatmapLayer,
+  createGenericHeatmapEngine,
   type HeatmapLayerConfig,
-  type GenericHeatmapLayer,
+  type GenericHeatmapEngine,
   type HeatmapMode,
   type NormalizationMode,
 } from './GenericHeatmapEngine';
 
-// Particle Engine (Phase 3)
+// Particle Engine (Offscreen Canvas)
 export {
-  createParticleLayer,
+  createParticleEngine,
   type ParticleEngineConfig,
-  type ParticleLayer,
+  type ParticleEngine,
 } from './ParticleEngine';
 
-// Device Capabilities (Phase 5)
+// Offscreen Canvas Manager
+export {
+  createOffscreenCanvas,
+  type OffscreenCanvasHandle,
+} from './OffscreenCanvasManager';
+
+// Device Capabilities
 export {
   isMobileDevice,
   isLowEndDevice,
