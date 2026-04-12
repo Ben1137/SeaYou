@@ -144,7 +144,7 @@ export default defineConfig({
       }
     })
   ],
-  base: '/SeaYou1.0/', // Must match GitHub repo name for GitHub Pages
+  base: '/', // Vercel serves from root
   build: {
     outDir: 'dist',
     sourcemap: true,
