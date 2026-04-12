@@ -8,6 +8,15 @@
 
 import { ActivityPersona } from './scoring';
 
+// ─── Saved location shape (lightweight — stored inside preferences) ───
+
+export interface SavedLocation {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
 // ─── Persisted User Preferences ───
 
 export interface UserPreferences {
@@ -26,6 +35,8 @@ export interface UserPreferences {
     strongWindsEnabled: boolean;
     /** Whether tsunami simulation is enabled (dev/testing) */
     tsunamiWarningEnabled: boolean;
+    /** Whether real tsunami push notifications are enabled (safety-critical) */
+    tsunamiAlertsEnabled: boolean;
   };
 
   /** Minimum activity score (0-100) to trigger push notification */
@@ -33,6 +44,12 @@ export interface UserPreferences {
 
   /** How many hours in advance to scan for best windows */
   notifyHoursInAdvance: number;
+
+  /** User's favorite locations — synced across devices via Supabase */
+  favoriteLocations: SavedLocation[];
+
+  /** Most recent search selections (max 3, newest first) */
+  recentSearches: SavedLocation[];
 }
 
 // ─── Defaults ───
@@ -45,9 +62,12 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
     highWavesEnabled: true,
     strongWindsEnabled: true,
     tsunamiWarningEnabled: false,
+    tsunamiAlertsEnabled: true,
   },
   minScore: 70,
   notifyHoursInAdvance: 6,
+  favoriteLocations: [],
+  recentSearches: [],
 };
 
 /** Storage key — same across platforms for consistency */
