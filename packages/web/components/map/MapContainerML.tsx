@@ -292,6 +292,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
   const [advancedLayer, setAdvancedLayer] = useState<AdvancedLayer>('NONE');
   const [isLayersPanelExpanded, setIsLayersPanelExpanded] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   // Refs to avoid stale closures inside map event listeners
   const advancedLayerRef = useRef<AdvancedLayer>(advancedLayer);
@@ -395,6 +396,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
       mapRef.current = map;
       setMap(map);
+      setMapLoaded(true);
 
       // Fix land/water contrast — MapTiler style has land at 7% and water at 8% brightness
       // which makes them indistinguishable. Brighten land to ~22% so continents are clear.
@@ -586,37 +588,105 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
   // ─── Favorite location markers ───
   const favoriteMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const favDataRef = useRef<Map<string, PointForecast>>(new Map());
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!map || !mapLoaded) return;
 
     // Clear existing favorite markers
     favoriteMarkersRef.current.forEach((m) => m.remove());
     favoriteMarkersRef.current = [];
 
-    favoriteLocations.forEach((fav) => {
-      const el = document.createElement('div');
-      el.className = 'favorite-location-marker';
-      el.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
-      el.style.cssText = 'cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));';
+    if (favoriteLocations.length === 0) return;
 
-      const popup = new maplibregl.Popup({ offset: 20, closeButton: false })
-        .setHTML(`<div style="font-weight:bold;font-size:13px;color:#0f172a;padding:2px 4px;">${fav.name}</div>`);
+    // Determine which metric to display based on active layers
+    const getMetricForFav = (fc: PointForecast | undefined): string => {
+      if (!fc) return '';
+      // Primary layer takes precedence
+      if (activeLayer === 'WIND') return `${Math.round(fc.windSpeed)} km/h`;
+      if (activeLayer === 'WAVE' || activeLayer === 'SIGNIFICANT_WAVE') return `${fc.waveHeight.toFixed(1)}m`;
+      if (activeLayer === 'SWELL') return `${(fc.swellHeight || 0).toFixed(1)}m`;
+      if (activeLayer === 'CURRENTS') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
+      if (activeLayer === 'WIND_WAVE') return `${(fc.windWaveHeight || 0).toFixed(1)}m`;
+      // Advanced layer fallback
+      if (advancedLayer === 'WIND_PARTICLES' || advancedLayer === 'SEA_TEMP_WIND') return `${Math.round(fc.windSpeed)} km/h`;
+      if (advancedLayer === 'WAVE_HEATMAP') return `${fc.waveHeight.toFixed(1)}m`;
+      if (advancedLayer === 'CURRENT_PARTICLES' || advancedLayer === 'SEA_TEMP_CURRENTS') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
+      if (advancedLayer === 'SEA_TEMP') return `${(fc.seaTemp ?? fc.temp ?? 0).toFixed(0)}°C`;
+      if (advancedLayer === 'AIR_TEMP') return `${fc.temp.toFixed(0)}°C`;
+      if (advancedLayer === 'SWELL_PARTICLES') return `${(fc.swellHeight || 0).toFixed(1)}m`;
+      return '';
+    };
 
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([fav.lng, fav.lat])
-        .setPopup(popup)
-        .addTo(map);
+    const createMarkers = (forecasts?: PointForecast[]) => {
+      // Build lookup by rounded coords
+      const fcMap = new Map<string, PointForecast>();
+      if (forecasts) {
+        forecasts.forEach((fc) => {
+          fcMap.set(`${fc.lat.toFixed(3)},${fc.lng.toFixed(3)}`, fc);
+        });
+      }
+      favDataRef.current = fcMap;
 
-      favoriteMarkersRef.current.push(marker);
-    });
+      favoriteLocations.forEach((fav) => {
+        const fc = fcMap.get(`${fav.lat.toFixed(3)},${fav.lng.toFixed(3)}`);
+        const metric = getMetricForFav(fc);
+
+        const el = document.createElement('div');
+        el.className = 'favorite-location-marker';
+
+        if (metric) {
+          // Pill with heart + data value
+          el.innerHTML = `
+            <div style="display:flex; align-items:center; gap:4px; background:rgba(15,23,42,0.85); border:1px solid rgba(245,158,11,0.6); border-radius:12px; padding:2px 8px 2px 4px; backdrop-filter:blur(4px); white-space:nowrap;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" stroke="#fff" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span style="font-size:11px; font-weight:700; color:#fbbf24; text-shadow:0 1px 2px rgba(0,0,0,0.5);">${metric}</span>
+            </div>`;
+        } else {
+          // Heart-only (no layer active)
+          el.innerHTML = `
+            <div style="display:flex; align-items:center; gap:3px; background:rgba(15,23,42,0.75); border:1px solid rgba(245,158,11,0.5); border-radius:12px; padding:3px 8px 3px 5px; backdrop-filter:blur(4px);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#f59e0b" stroke="#fff" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span style="font-size:10px; font-weight:600; color:#e2e8f0; max-width:60px; overflow:hidden; text-overflow:ellipsis;">${fav.name.length > 10 ? fav.name.slice(0, 10) + '…' : fav.name}</span>
+            </div>`;
+        }
+        el.style.cssText = 'cursor:pointer; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));';
+
+        const popup = new maplibregl.Popup({ offset: 20, closeButton: false })
+          .setHTML(`<div style="font-weight:bold;font-size:13px;color:#0f172a;padding:2px 4px;">${fav.name}${metric ? `<br/><span style="font-size:11px;color:#475569;">${metric}</span>` : ''}</div>`);
+
+        const marker = new maplibregl.Marker({ element: el })
+          .setLngLat([fav.lng, fav.lat])
+          .setPopup(popup)
+          .addTo(map);
+
+        favoriteMarkersRef.current.push(marker);
+      });
+    };
+
+    // If any layer is active, fetch weather data for favorites
+    const hasActiveLayer = activeLayer !== 'NONE' || advancedLayer !== 'NONE';
+    if (hasActiveLayer && favoriteLocations.length > 0) {
+      const coords = favoriteLocations.map((f) => ({ lat: f.lat, lng: f.lng }));
+      fetchBulkPointForecast(coords)
+        .then((forecasts) => {
+          // Only update if map is still alive and these are still our favorites
+          if (mapRef.current) createMarkers(forecasts);
+        })
+        .catch((err) => {
+          console.warn('[MapContainerML] Failed to fetch favorite forecasts:', err);
+          createMarkers(); // Fall back to no-data markers
+        });
+    } else {
+      createMarkers(); // No layer active — just show hearts
+    }
 
     return () => {
       favoriteMarkersRef.current.forEach((m) => m.remove());
       favoriteMarkersRef.current = [];
     };
-  }, [favoriteLocations]);
+  }, [favoriteLocations, mapLoaded, activeLayer, advancedLayer]);
 
   // Effect to trigger grid update when layer changes
   useEffect(() => {
