@@ -14,7 +14,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { TsunamiBanner } from './components/TsunamiBanner';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe, LogOut, Heart, Clock, Star } from 'lucide-react';
 import { searchLocations, reverseGeocode, SavedLocation } from '@seame/core';
-import { searchLocationsSmart, type LocationSearchResult } from './src/services/locationSearchService';
+import { searchLocationsSmart, resolvePlace, type LocationSearchResult } from './src/services/locationSearchService';
 import { useAlertConfig } from './src/contexts/AlertContext';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
@@ -325,12 +325,31 @@ const AppContent: React.FC = () => {
     setIsSearching(false);
   };
 
-  const selectSearchResult = (result: LocationSearchResult) => {
+  const selectSearchResult = async (result: LocationSearchResult) => {
+    let resolvedLat = result.lat;
+    let resolvedLng = result.lng;
+    let resolvedName = result.name;
+
+    // Resolve coordinates via Google Place Details if this came from Autocomplete
+    if (result.needsResolution && result.placeId) {
+      setIsSearching(true);
+      const resolved = await resolvePlace(result.placeId);
+      setIsSearching(false);
+      if (resolved) {
+        resolvedLat = resolved.lat;
+        resolvedLng = resolved.lng;
+        resolvedName = resolved.name || result.name;
+      } else {
+        console.warn('[App] Place Details resolution failed for', result.placeId);
+        return; // Can't navigate without coordinates
+      }
+    }
+
     const loc: Location = {
       id: typeof result.id === 'string' ? parseInt(result.id, 10) || Date.now() : (result.id as unknown as number),
-      name: result.name,
-      lat: result.lat,
-      lng: result.lng,
+      name: resolvedName,
+      lat: resolvedLat,
+      lng: resolvedLng,
     };
     if (!locations.some(l => l.id === loc.id)) {
       setLocations([...locations, loc]);
@@ -339,12 +358,12 @@ const AppContent: React.FC = () => {
     setShowLocationModal(false);
     setSearchQuery('');
     setSearchResults([]);
-    // Track as recent search (via preferences → cloud sync)
+    // Track as recent search with resolved coordinates (via preferences → cloud sync)
     alertConfig.addRecentSearch({
       id: result.id,
-      name: result.name,
-      lat: result.lat,
-      lng: result.lng,
+      name: resolvedName,
+      lat: resolvedLat,
+      lng: resolvedLng,
     });
   };
 
@@ -422,11 +441,26 @@ const AppContent: React.FC = () => {
   }, [pullDistance, isRefreshing, refetch]);
 
   // ─── Inline favorite toggle (used inside search modal) ───
-  const toggleFavoriteFor = useCallback((loc: SavedLocation) => {
-    if (alertConfig.isFavorite(loc.id)) {
-      alertConfig.removeFavorite(loc.id);
+  // Handles both resolved locations (recents/favorites) and unresolved
+  // Autocomplete results (resolves coordinates via Place Details first).
+  const toggleFavoriteFor = useCallback(async (loc: SavedLocation | LocationSearchResult) => {
+    let resolved: SavedLocation = { id: loc.id, name: loc.name, lat: loc.lat, lng: loc.lng };
+
+    // If this is an unresolved Autocomplete result, get exact coordinates first
+    if ('needsResolution' in loc && loc.needsResolution && 'placeId' in loc && loc.placeId) {
+      const details = await resolvePlace(loc.placeId);
+      if (details) {
+        resolved = { ...resolved, lat: details.lat, lng: details.lng, name: details.name || loc.name };
+      } else {
+        console.warn('[App] Cannot favorite — Place Details resolution failed');
+        return;
+      }
+    }
+
+    if (alertConfig.isFavorite(resolved.id)) {
+      alertConfig.removeFavorite(resolved.id);
     } else {
-      alertConfig.addFavorite(loc);
+      alertConfig.addFavorite(resolved);
     }
   }, [alertConfig]);
 
@@ -580,7 +614,7 @@ const AppContent: React.FC = () => {
                               <Plus size={16} className="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); toggleFavoriteFor({ id: res.id, name: res.name, lat: res.lat, lng: res.lng }); }}
+                              onClick={(e) => { e.stopPropagation(); toggleFavoriteFor(res); }}
                               className="p-2.5 rounded-xl hover:bg-white/10 transition-colors shrink-0"
                               aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
                             >
