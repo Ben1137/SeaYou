@@ -170,6 +170,7 @@ function buildQueryPopupHTML(
     if (showWaves && forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, forecast.wavePeriod ? `${forecast.wavePeriod.toFixed(0)}s` : ''));
     if (showCurrents && forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, `${forecast.currentDirection || 0}\u00B0`));
     if (showSeaTemp) {
+      if (forecast.seaTemp != null) rows.push(row('Sea Temp', `${forecast.seaTemp.toFixed(1)}°C`));
       if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
       if (forecast.currentSpeed != null) rows.push(row('Current', `${forecast.currentSpeed.toFixed(2)} m/s`, ''));
     }
@@ -609,11 +610,11 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       if (activeLayer === 'SWELL') return `${(fc.swellHeight || 0).toFixed(1)}m`;
       if (activeLayer === 'CURRENTS') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
       if (activeLayer === 'WIND_WAVE') return `${(fc.windWaveHeight || 0).toFixed(1)}m`;
-      // Advanced layer fallback
-      if (advancedLayer === 'WIND_PARTICLES' || advancedLayer === 'SEA_TEMP_WIND') return `${Math.round(fc.windSpeed)} km/h`;
+      // Advanced layer fallback — sea temp variants show temperature as primary metric
+      if (advancedLayer === 'SEA_TEMP' || advancedLayer === 'SEA_TEMP_CURRENTS' || advancedLayer === 'SEA_TEMP_WIND') return `${(fc.seaTemp ?? fc.temp ?? 0).toFixed(1)}°C`;
+      if (advancedLayer === 'WIND_PARTICLES') return `${Math.round(fc.windSpeed)} km/h`;
       if (advancedLayer === 'WAVE_HEATMAP') return `${fc.waveHeight.toFixed(1)}m`;
-      if (advancedLayer === 'CURRENT_PARTICLES' || advancedLayer === 'SEA_TEMP_CURRENTS') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
-      if (advancedLayer === 'SEA_TEMP') return `${(fc.seaTemp ?? fc.temp ?? 0).toFixed(0)}°C`;
+      if (advancedLayer === 'CURRENT_PARTICLES') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
       if (advancedLayer === 'AIR_TEMP') return `${fc.temp.toFixed(0)}°C`;
       if (advancedLayer === 'SWELL_PARTICLES') return `${(fc.swellHeight || 0).toFixed(1)}m`;
       return '';
@@ -978,62 +979,62 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
             {/* Advanced Layers Divider */}
             <div className="border-t border-white/5 my-2 pt-2">
-              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">Advanced Layers</div>
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.advancedLayers', 'Advanced Layers')}</div>
             </div>
 
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'WIND_PARTICLES' ? 'NONE' : 'WIND_PARTICLES')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WIND_PARTICLES' ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Wind size={12} /> Wind Particles
+              <Wind size={12} /> {t('map.windParticles', 'Wind Particles')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'CURRENT_PARTICLES' ? 'NONE' : 'CURRENT_PARTICLES')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Activity size={12} /> Current Particles
+              <Activity size={12} /> {t('map.currentParticles', 'Current Particles')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-pink-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Waves size={12} /> Wave Heatmap
+              <Waves size={12} /> {t('map.waveHeatmap', 'Wave Heatmap')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP' ? 'NONE' : 'SEA_TEMP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP' ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Droplets size={12} /> Sea Temperature
+              <Droplets size={12} /> {t('map.seaTemperature', 'Sea Temperature')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP_CURRENTS' ? 'NONE' : 'SEA_TEMP_CURRENTS')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_CURRENTS' ? 'bg-gradient-to-r from-orange-600 to-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Activity size={12} /> Sea Temp + Currents
+              <Activity size={12} /> {t('map.seaTempCurrents', 'Sea Temp + Currents')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP_WIND' ? 'NONE' : 'SEA_TEMP_WIND')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_WIND' ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Wind size={12} /> Sea Temp + Wind
+              <Wind size={12} /> {t('map.seaTempWind', 'Sea Temp + Wind')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'AIR_TEMP' ? 'NONE' : 'AIR_TEMP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-red-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Thermometer size={12} /> Air Temperature
+              <Thermometer size={12} /> {t('map.airTemperature', 'Air Temperature')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'PRECIPITATION' ? 'NONE' : 'PRECIPITATION')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <CloudRain size={12} /> Precipitation
+              <CloudRain size={12} /> {t('map.precipitation', 'Precipitation')}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'CLOUD_COVER' ? 'NONE' : 'CLOUD_COVER')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-slate-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Cloud size={12} /> Cloud Cover
+              <Cloud size={12} /> {t('map.cloudCover', 'Cloud Cover')}
             </button>
 
             {/* Activity-specific Layers (Phase 7) */}
@@ -1308,7 +1309,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         <ColorScaleLegend
           scale={COLOR_SCALES.airTemperature}
           unit="°C"
-          title="Air Temperature"
+          title={t('map.airTemperature', 'Air Temperature')}
           position="bottomright"
         />
       )}
@@ -1317,7 +1318,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         <ColorScaleLegend
           scale={COLOR_SCALES.precipitation}
           unit="mm/h"
-          title="Precipitation"
+          title={t('map.precipitation', 'Precipitation')}
           position="bottomright"
         />
       )}
@@ -1326,7 +1327,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         <ColorScaleLegend
           scale={COLOR_SCALES.cloudCover}
           unit="%"
-          title="Cloud Cover"
+          title={t('map.cloudCover', 'Cloud Cover')}
           position="bottomright"
         />
       )}
