@@ -64,6 +64,9 @@ export interface UserPreferences {
 
   /** Most recent search selections (max 3, newest first) */
   recentSearches: SavedLocation[];
+
+  /** Whether the user has completed the post-onboarding app tour */
+  hasCompletedTour: boolean;
 }
 
 // ─── Defaults ───
@@ -84,6 +87,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   notifyHoursInAdvance: 6,
   favoriteLocations: [],
   recentSearches: [],
+  hasCompletedTour: false,
 };
 
 /** Storage key — same across platforms for consistency */

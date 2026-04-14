@@ -67,6 +67,10 @@ interface AlertContextType {
   dismiss: () => void;
   resetDismiss: () => void;
 
+  /** App tour completion */
+  hasCompletedTour: boolean;
+  setHasCompletedTour: (done: boolean) => void;
+
   /** Cloud sync status (informational) */
   cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   cloudSyncError: string | null;
@@ -395,6 +399,12 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
   }, [update]);
 
+  // ─── App tour ───
+
+  const setHasCompletedTour = useCallback((done: boolean) => {
+    update((p) => ({ ...p, hasCompletedTour: done }));
+  }, [update]);
+
   const dismiss = useCallback(() => setIsDismissed(true), []);
   const resetDismiss = useCallback(() => setIsDismissed(false), []);
 
@@ -429,6 +439,8 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         isDismissed,
         dismiss,
         resetDismiss,
+        hasCompletedTour: preferences.hasCompletedTour ?? false,
+        setHasCompletedTour,
         cloudSyncStatus,
         cloudSyncError,
       }}

@@ -314,7 +314,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Location Pill (centered) ─── */}
       <div className="flex justify-center">
-        <button onClick={onLocationClick} className="glass-panel flex items-center px-4 py-1.5 space-x-2 !rounded-full cursor-pointer hover:bg-white/20 transition-colors">
+        <button id="tour-search-bar" onClick={onLocationClick} className="glass-panel flex items-center px-4 py-1.5 space-x-2 !rounded-full cursor-pointer hover:bg-white/20 transition-colors">
           <Navigation size={14} className="text-white" />
           <span className="text-sm font-semibold">{locationName}</span>
           <ChevronDown size={12} className="opacity-70" />
@@ -364,7 +364,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* ─── Activity Report (Persona-filtered Grid with Scores) ─── */}
-      <section>
+      <section id="tour-dashboard-scores">
         <h3 className="text-xs font-bold tracking-widest text-white/70 mb-3 uppercase flex items-center"><Flag size={12} className="mr-2" /> {t('activity.report')}</h3>
         <div className={`grid gap-3 ${!persona ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
           {(() => {

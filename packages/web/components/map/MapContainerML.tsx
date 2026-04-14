@@ -940,7 +940,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       />
 
       {/* Layer Controls Panel */}
-      <div className="absolute top-4 right-4 z-[400] glass-panel shadow-xl text-xs w-36 lg:w-44 animate-in fade-in slide-in-from-right-4 overflow-hidden">
+      <div id="tour-map-layers" className="absolute top-4 right-4 z-[400] glass-panel shadow-xl text-xs w-36 lg:w-44 animate-in fade-in slide-in-from-right-4 overflow-hidden">
         <button
           onClick={() => setIsLayersPanelExpanded(!isLayersPanelExpanded)}
           className="w-full flex items-center justify-between gap-2 p-2 border-b border-white/5 text-white/60 font-bold uppercase glass-inner hover:bg-white/10 transition-colors cursor-pointer"

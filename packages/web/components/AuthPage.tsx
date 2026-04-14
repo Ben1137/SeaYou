@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, Anchor, Mail } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../src/contexts/AuthContext';
@@ -32,7 +32,7 @@ export const AuthPage: React.FC = () => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<Mode>('signin');
+  const [mode, setMode] = useState<Mode>('signup');
   const [busy, setBusy] = useState(false);
   const [magicSent, setMagicSent] = useState(false);
 
@@ -62,6 +62,32 @@ export const AuthPage: React.FC = () => {
     });
   };
 
+  const toggleMode = () => {
+    setMode(mode === 'signin' ? 'signup' : 'signin');
+    clearError();
+    setMagicSent(false);
+  };
+
+  // Mode-aware labels
+  const title = mode === 'signup'
+    ? t('auth.createYourAccount', 'Create your Account')
+    : t('auth.welcomeBack', 'Welcome Back');
+  const subtitle = mode === 'signup'
+    ? t('auth.signUpSubtitle', 'Join thousands of ocean lovers worldwide')
+    : t('auth.signInSubtitle', 'Good to see you again');
+  const googleLabel = mode === 'signup'
+    ? t('auth.signUpWithGoogle', 'Sign up with Google')
+    : t('auth.logInWithGoogle', 'Log in with Google');
+  const emailLabel = mode === 'signup'
+    ? t('auth.createAccount', 'Create Account')
+    : t('auth.signIn', 'Sign In');
+  const toggleText = mode === 'signup'
+    ? t('auth.haveAccount', 'Already have an account?')
+    : t('auth.noAccount', "Don't have an account?");
+  const toggleAction = mode === 'signup'
+    ? t('auth.logIn', 'Log In')
+    : t('auth.signUp', 'Sign Up');
+
   return (
     <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center relative overflow-hidden"
       style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 30%, #0f3a5e 50%, #0d2847 70%, #0a1628 100%)' }}>
@@ -82,7 +108,7 @@ export const AuthPage: React.FC = () => {
       >
         {/* Logo */}
         <motion.div
-          className="flex flex-col items-center mb-10"
+          className="flex flex-col items-center mb-8"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
@@ -93,6 +119,45 @@ export const AuthPage: React.FC = () => {
           <h1 className="text-4xl font-black tracking-tight text-white">SeaYou</h1>
           <p className="text-xs font-bold tracking-[0.3em] text-blue-300/60 mt-1 uppercase">Sea's Intelligence</p>
         </motion.div>
+
+        {/* Mode-aware title */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={mode}
+            className="text-center mb-8"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25 }}
+          >
+            <h2 className="text-xl font-bold text-white mb-1">{title}</h2>
+            <p className="text-sm text-white/40">{subtitle}</p>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Mode tabs */}
+        <div className="w-full flex rounded-2xl bg-white/[0.06] border border-white/10 p-1 mb-6">
+          <button
+            onClick={() => { if (mode !== 'signup') toggleMode(); }}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              mode === 'signup'
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            {t('auth.signUp', 'Sign Up')}
+          </button>
+          <button
+            onClick={() => { if (mode !== 'signin') toggleMode(); }}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              mode === 'signin'
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20'
+                : 'text-white/40 hover:text-white/60'
+            }`}
+          >
+            {t('auth.logIn', 'Log In')}
+          </button>
+        </div>
 
         {/* Error */}
         {error && (
@@ -122,7 +187,7 @@ export const AuthPage: React.FC = () => {
             style={{ height: '52px' }}
           >
             {busy ? <Loader2 size={18} className="animate-spin" /> : <GoogleIcon />}
-            {t('auth.continueWithGoogle', 'Continue with Google')}
+            {googleLabel}
           </button>
 
           <div className="flex gap-3">
@@ -184,7 +249,7 @@ export const AuthPage: React.FC = () => {
             className="w-full h-12 rounded-2xl font-semibold text-sm bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-500 hover:to-cyan-400 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             {busy && <Loader2 size={14} className="animate-spin" />}
-            {mode === 'signin' ? t('auth.signIn', 'Sign In') : t('auth.createAccount', 'Create Account')}
+            {emailLabel}
           </button>
 
           <button
@@ -198,19 +263,19 @@ export const AuthPage: React.FC = () => {
           </button>
         </motion.form>
 
-        {/* Toggle mode */}
+        {/* Toggle mode link */}
         <motion.p
           className="text-sm text-white/40 text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7, duration: 0.5 }}
         >
-          {mode === 'signin' ? t('auth.noAccount', "Don't have an account?") : t('auth.haveAccount', 'Already have an account?')}{' '}
+          {toggleText}{' '}
           <button
-            onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); clearError(); setMagicSent(false); }}
+            onClick={toggleMode}
             className="font-semibold text-blue-400 hover:text-blue-300 transition-colors"
           >
-            {mode === 'signin' ? t('auth.signUp', 'Sign Up') : t('auth.signIn', 'Sign In')}
+            {toggleAction}
           </button>
         </motion.p>
       </motion.div>

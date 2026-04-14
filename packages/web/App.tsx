@@ -18,6 +18,7 @@ import { searchLocationsSmart, resolvePlace, type LocationSearchResult } from '.
 import { useAlertConfig } from './src/contexts/AlertContext';
 import { AuthPage } from './components/AuthPage';
 import { OnboardingModal } from './components/OnboardingModal';
+import { InteractiveTour } from './components/onboarding/InteractiveTour';
 import { UserProfileModal } from './components/profile/UserProfileModal';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
@@ -77,6 +78,7 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, onOpenPr
 
   return (
     <button
+      id="tour-profile-menu"
       onClick={handleClick}
       className={buttonClass}
       aria-label={signedIn ? t('auth.profile', 'Profile') : t('auth.signIn', 'Sign In')}
@@ -116,6 +118,9 @@ const AppContent: React.FC = () => {
     () => localStorage.getItem(ONBOARDING_FLAG) === '1'
   );
   const showOnboarding = !hasCompletedOnboarding;
+
+  // ─── App Tour state — shows after onboarding, persisted to preferences/Supabase ───
+  const showAppTour = hasCompletedOnboarding && alertConfig.persona !== null && !alertConfig.hasCompletedTour;
 
   // ─── Pull-to-refresh state ───
   const [pullDistance, setPullDistance] = useState(0);
@@ -832,6 +837,12 @@ const AppContent: React.FC = () => {
           localStorage.setItem(ONBOARDING_FLAG, '1');
           setHasCompletedOnboarding(true);
         }} />
+
+        {/* Post-onboarding Interactive Tour — react-joyride coach marks */}
+        <InteractiveTour
+          run={showAppTour}
+          onFinish={() => alertConfig.setHasCompletedTour(true)}
+        />
       </div>
     </>
   );
