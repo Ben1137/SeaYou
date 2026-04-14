@@ -538,5 +538,32 @@
     "noAccount": "Non hai un account?",
     "haveAccount": "Hai già un account?",
     "or": "o"
+  },
+  "profile": {
+    "premium": "Premium",
+    "free": "Gratuito",
+    "synced": "Sincronizzato",
+    "syncing": "Sincronizzazione...",
+    "upgradeToPremium": "Passa a Premium",
+    "personalization": "Personalizzazione",
+    "language": "Lingua",
+    "favoriteLocations": "Luoghi preferiti",
+    "saved": "salvati",
+    "noFavorites": "Nessun luogo preferito ancora",
+    "account": "Account",
+    "deleteAccount": "Elimina account",
+    "deleteConfirmTitle": "Sei sicuro?",
+    "deleteConfirmDesc": "Questo eliminerà permanentemente il tuo account e tutti i dati sincronizzati. Questa azione non può essere annullata.",
+    "deleteConfirm": "Sì, elimina",
+    "persona": {
+      "mariner": "Marinaio",
+      "marinerDesc": "Navigazione, rotte e condizioni del mare",
+      "surfer": "Surfista",
+      "surferDesc": "Onde, mareggiata e previsioni del vento",
+      "beachgoer": "Bagnante",
+      "beachgoerDesc": "Meteo spiaggia, UV e orari delle maree",
+      "diver": "Subacqueo",
+      "diverDesc": "Visibilità, correnti e temperatura dell'acqua"
+    }
   }
 }

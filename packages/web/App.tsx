@@ -18,6 +18,7 @@ import { searchLocationsSmart, resolvePlace, type LocationSearchResult } from '.
 import { useAlertConfig } from './src/contexts/AlertContext';
 import { AuthPage } from './components/AuthPage';
 import { OnboardingModal } from './components/OnboardingModal';
+import { UserProfileModal } from './components/profile/UserProfileModal';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
@@ -45,92 +46,49 @@ const NAV_ITEMS = [
   { view: ViewState.COASTS_MARINAS, icon: Anchor, labelKey: 'nav.marinas' },
 ] as const;
 
-// ─── Profile button — opens AuthModal when signed out, shows profile menu when signed in ───
+// ─── Profile button — opens AuthModal when signed out, opens UserProfileModal when signed in ───
 interface ProfileButtonProps {
   onOpenAuthModal: () => void;
+  onOpenProfile: () => void;
   variant: 'desktop' | 'mobile';
 }
 
-const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, variant }) => {
-  const { user, signOut } = useAuth();
+const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, onOpenProfile, variant }) => {
+  const { user } = useAuth();
   const { t } = useTranslation();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu on outside click
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, [menuOpen]);
+  const signedIn = !!user;
+  const displayName = user?.email?.split('@')[0] ?? '';
+  const avatarUrl = user?.user_metadata?.avatar_url;
+  const initial = displayName.charAt(0).toUpperCase();
 
   const handleClick = () => {
-    if (user) {
-      setMenuOpen((v) => !v);
+    if (signedIn) {
+      onOpenProfile();
     } else {
       onOpenAuthModal();
     }
   };
 
-  const handleSignOut = async () => {
-    setMenuOpen(false);
-    await signOut();
-  };
-
-  const signedIn = !!user;
-  const displayName = user?.email?.split('@')[0] ?? '';
-  const initial = displayName.charAt(0).toUpperCase();
-
   const buttonClass =
     variant === 'desktop'
-      ? 'w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10'
-      : 'lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors';
+      ? 'w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10 overflow-hidden'
+      : 'lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors overflow-hidden';
 
   return (
-    <div ref={menuRef} className="relative">
-      <button
-        onClick={handleClick}
-        className={buttonClass}
-        aria-label={signedIn ? t('auth.profile', 'Profile') : t('auth.signIn', 'Sign In')}
-      >
-        {signedIn && initial ? (
-          <span className="text-sm font-bold text-white">{initial}</span>
-        ) : (
-          <User size={variant === 'desktop' ? 16 : 16} className="text-white" />
-        )}
-      </button>
-
-      {menuOpen && signedIn && (
-        <div
-          className={`absolute z-50 glass-panel rounded-xl shadow-2xl overflow-hidden animate-in fade-in min-w-[220px] ${
-            variant === 'desktop' ? 'left-12 bottom-0' : 'left-0 top-12'
-          }`}
-          style={{ backgroundColor: 'color-mix(in srgb, var(--app-bg-card) 95%, transparent)' }}
-        >
-          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--app-border)' }}>
-            <div className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
-              {t('auth.signedInAs', 'Signed in as')}
-            </div>
-            <div className="text-sm font-bold mt-0.5 truncate" style={{ color: 'var(--text-primary)' }}>
-              {user?.email}
-            </div>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-white/10 transition-colors text-left"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <LogOut size={14} />
-            {t('auth.signOut', 'Sign out')}
-          </button>
-        </div>
+    <button
+      onClick={handleClick}
+      className={buttonClass}
+      aria-label={signedIn ? t('auth.profile', 'Profile') : t('auth.signIn', 'Sign In')}
+    >
+      {signedIn && avatarUrl ? (
+        <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+      ) : signedIn && initial ? (
+        <span className="text-sm font-bold text-white">{initial}</span>
+      ) : (
+        <User size={variant === 'desktop' ? 16 : 16} className="text-white" />
       )}
-    </div>
+    </button>
   );
 };
 
@@ -150,6 +108,7 @@ const AppContent: React.FC = () => {
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // ─── Onboarding state — local-only flag (cloud sync cannot override) ───
   const ONBOARDING_FLAG = 'seayou_onboarding_done';
@@ -506,7 +465,7 @@ const AppContent: React.FC = () => {
           </div>
 
           <div className="flex flex-col items-center gap-3 pb-6 px-2">
-            <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} variant="desktop" />
+            <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} onOpenProfile={() => setIsProfileOpen(true)} variant="desktop" />
             <button
               onClick={toggleTheme}
               className="w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10"
@@ -524,7 +483,7 @@ const AppContent: React.FC = () => {
           <header className="relative flex items-center justify-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 w-full min-w-0 max-w-[100vw] box-border">
             {/* Left: Profile icon — absolutely positioned so title stays true-center */}
             <div className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2">
-              <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} variant="mobile" />
+              <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} onOpenProfile={() => setIsProfileOpen(true)} variant="mobile" />
             </div>
 
             {/* Center: App title */}
@@ -864,6 +823,9 @@ const AppContent: React.FC = () => {
 
         {/* Auth Modal */}
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+        {/* User Profile Modal */}
+        <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
 
         {/* First-time Onboarding — local-only flag prevents cloud sync from skipping */}
         <OnboardingModal isOpen={showOnboarding} onComplete={() => {

@@ -560,5 +560,32 @@
     "noAccount": "אין לך חשבון?",
     "haveAccount": "כבר יש לך חשבון?",
     "or": "או"
+  },
+  "profile": {
+    "premium": "פרימיום",
+    "free": "חינם",
+    "synced": "מסונכרן",
+    "syncing": "מסנכרן...",
+    "upgradeToPremium": "שדרג לפרימיום",
+    "personalization": "התאמה אישית",
+    "language": "שפה",
+    "favoriteLocations": "מיקומים מועדפים",
+    "saved": "שמורים",
+    "noFavorites": "אין עדיין מיקומים מועדפים",
+    "account": "חשבון",
+    "deleteAccount": "מחק חשבון",
+    "deleteConfirmTitle": "האם אתה בטוח?",
+    "deleteConfirmDesc": "פעולה זו תמחק לצמיתות את החשבון שלך ואת כל הנתונים המסונכרנים. לא ניתן לבטל פעולה זו.",
+    "deleteConfirm": "כן, מחק",
+    "persona": {
+      "mariner": "ימאי",
+      "marinerDesc": "ניווט, מסלולים ומצב הים",
+      "surfer": "גולש",
+      "surferDesc": "גלים, סוול ותחזיות רוח",
+      "beachgoer": "חובב חוף",
+      "beachgoerDesc": "מזג אוויר בחוף, UV וזמני גאות",
+      "diver": "צולל",
+      "diverDesc": "נראות, זרמים וטמפרטורת הים"
+    }
   }
 }

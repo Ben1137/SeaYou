@@ -520,5 +520,32 @@
     "noAccount": "¿No tienes cuenta?",
     "haveAccount": "¿Ya tienes cuenta?",
     "or": "o"
+  },
+  "profile": {
+    "premium": "Premium",
+    "free": "Gratis",
+    "synced": "Sincronizado",
+    "syncing": "Sincronizando...",
+    "upgradeToPremium": "Pasar a Premium",
+    "personalization": "Personalización",
+    "language": "Idioma",
+    "favoriteLocations": "Lugares favoritos",
+    "saved": "guardados",
+    "noFavorites": "Aún no hay lugares favoritos",
+    "account": "Cuenta",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteConfirmTitle": "¿Estás seguro?",
+    "deleteConfirmDesc": "Esto eliminará permanentemente tu cuenta y todos los datos sincronizados. Esta acción no se puede deshacer.",
+    "deleteConfirm": "Sí, eliminar",
+    "persona": {
+      "mariner": "Marinero",
+      "marinerDesc": "Navegación, rutas y condiciones del mar",
+      "surfer": "Surfista",
+      "surferDesc": "Olas, oleaje y pronósticos de viento",
+      "beachgoer": "Playero",
+      "beachgoerDesc": "Clima de playa, UV y horarios de mareas",
+      "diver": "Buceador",
+      "diverDesc": "Visibilidad, corrientes y temperatura del agua"
+    }
   }
 }
