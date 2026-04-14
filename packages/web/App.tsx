@@ -16,6 +16,8 @@ import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plu
 import { searchLocations, reverseGeocode, SavedLocation } from '@seame/core';
 import { searchLocationsSmart, resolvePlace, type LocationSearchResult } from './src/services/locationSearchService';
 import { useAlertConfig } from './src/contexts/AlertContext';
+import { AuthPage } from './components/AuthPage';
+import { OnboardingModal } from './components/OnboardingModal';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
@@ -148,6 +150,13 @@ const AppContent: React.FC = () => {
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  // ─── Onboarding state — local-only flag (cloud sync cannot override) ───
+  const ONBOARDING_FLAG = 'seayou_onboarding_done';
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(
+    () => localStorage.getItem(ONBOARDING_FLAG) === '1'
+  );
+  const showOnboarding = !hasCompletedOnboarding;
 
   // ─── Pull-to-refresh state ───
   const [pullDistance, setPullDistance] = useState(0);
@@ -855,12 +864,42 @@ const AppContent: React.FC = () => {
 
         {/* Auth Modal */}
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+        {/* First-time Onboarding — local-only flag prevents cloud sync from skipping */}
+        <OnboardingModal isOpen={showOnboarding} onComplete={() => {
+          localStorage.setItem(ONBOARDING_FLAG, '1');
+          setHasCompletedOnboarding(true);
+        }} />
       </div>
     </>
   );
 };
 
-// ─── Root App — wraps providers around AppContent ───
+// ─── Auth Gate — shows AuthPage when not signed in ───
+
+const AuthGate: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  // Show nothing while restoring session (prevents flash)
+  if (loading) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 50%, #0a1628 100%)' }}>
+        <div className="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Not authenticated → full-page sign-in
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  // Authenticated → main app (with onboarding gate inside)
+  return <AppContent />;
+};
+
+// ─── Root App — wraps providers around AuthGate ───
 
 const App: React.FC = () => (
   <ErrorBoundary
@@ -870,7 +909,7 @@ const App: React.FC = () => (
   >
     <AuthProvider>
       <AlertProvider>
-        <AppContent />
+        <AuthGate />
       </AlertProvider>
     </AuthProvider>
   </ErrorBoundary>

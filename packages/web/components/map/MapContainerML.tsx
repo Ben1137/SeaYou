@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, toTelHref } from '@seame/core';
 import type { MarinaDetails } from '@seame/core';
-import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass } from 'lucide-react';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -57,6 +57,10 @@ import type { TsunamiRisk } from '@seame/core';
 // Shared data hooks
 import { useSharedMarineData } from '../../hooks/useSharedMarineData';
 import { useSharedForecastGridData } from '../../hooks/useSharedForecastGridData';
+
+// Premium paywall
+import { PremiumPaywallModal } from '../PremiumPaywallModal';
+import { useAlertConfig } from '../../src/contexts/AlertContext';
 
 // Types
 type MapLayer = 'NONE' | 'WIND' | 'WAVE' | 'SWELL' | 'CURRENTS' | 'WIND_WAVE' | 'SIGNIFICANT_WAVE';
@@ -288,6 +292,21 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const mapRef = useRef<maplibregl.Map | null>(null);
   const { setMap } = useMapContext();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Premium / paywall state
+  const { subscriptionTier, setSubscriptionTier } = useAlertConfig();
+  const isFreeUser = subscriptionTier !== 'premium';
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  /** Attempt to activate an advanced layer — gated by subscription tier */
+  const trySetAdvancedLayer = useCallback((layer: AdvancedLayer) => {
+    if (layer === 'NONE' || !isFreeUser) {
+      setAdvancedLayer(layer);
+      return;
+    }
+    // Free user trying to enable a premium layer → show paywall
+    setShowPaywall(true);
+  }, [isFreeUser]);
 
   // Layer state
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
@@ -983,58 +1002,58 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             </div>
 
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'WIND_PARTICLES' ? 'NONE' : 'WIND_PARTICLES')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'WIND_PARTICLES' ? 'NONE' : 'WIND_PARTICLES')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WIND_PARTICLES' ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Wind size={12} /> {t('map.windParticles', 'Wind Particles')}
+              <Wind size={12} /> <span className="flex-1">{t('map.windParticles', 'Wind Particles')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'CURRENT_PARTICLES' ? 'NONE' : 'CURRENT_PARTICLES')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'CURRENT_PARTICLES' ? 'NONE' : 'CURRENT_PARTICLES')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Activity size={12} /> {t('map.currentParticles', 'Current Particles')}
+              <Activity size={12} /> <span className="flex-1">{t('map.currentParticles', 'Current Particles')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-pink-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Waves size={12} /> {t('map.waveHeatmap', 'Wave Heatmap')}
+              <Waves size={12} /> <span className="flex-1">{t('map.waveHeatmap', 'Wave Heatmap')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP' ? 'NONE' : 'SEA_TEMP')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'SEA_TEMP' ? 'NONE' : 'SEA_TEMP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP' ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Droplets size={12} /> {t('map.seaTemperature', 'Sea Temperature')}
+              <Droplets size={12} /> <span className="flex-1">{t('map.seaTemperature', 'Sea Temperature')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP_CURRENTS' ? 'NONE' : 'SEA_TEMP_CURRENTS')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'SEA_TEMP_CURRENTS' ? 'NONE' : 'SEA_TEMP_CURRENTS')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_CURRENTS' ? 'bg-gradient-to-r from-orange-600 to-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Activity size={12} /> {t('map.seaTempCurrents', 'Sea Temp + Currents')}
+              <Activity size={12} /> <span className="flex-1">{t('map.seaTempCurrents', 'Sea Temp + Currents')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'SEA_TEMP_WIND' ? 'NONE' : 'SEA_TEMP_WIND')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'SEA_TEMP_WIND' ? 'NONE' : 'SEA_TEMP_WIND')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_WIND' ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Wind size={12} /> {t('map.seaTempWind', 'Sea Temp + Wind')}
+              <Wind size={12} /> <span className="flex-1">{t('map.seaTempWind', 'Sea Temp + Wind')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'AIR_TEMP' ? 'NONE' : 'AIR_TEMP')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'AIR_TEMP' ? 'NONE' : 'AIR_TEMP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-red-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Thermometer size={12} /> {t('map.airTemperature', 'Air Temperature')}
+              <Thermometer size={12} /> <span className="flex-1">{t('map.airTemperature', 'Air Temperature')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'PRECIPITATION' ? 'NONE' : 'PRECIPITATION')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'PRECIPITATION' ? 'NONE' : 'PRECIPITATION')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <CloudRain size={12} /> {t('map.precipitation', 'Precipitation')}
+              <CloudRain size={12} /> <span className="flex-1">{t('map.precipitation', 'Precipitation')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'CLOUD_COVER' ? 'NONE' : 'CLOUD_COVER')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'CLOUD_COVER' ? 'NONE' : 'CLOUD_COVER')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-slate-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Cloud size={12} /> {t('map.cloudCover', 'Cloud Cover')}
+              <Cloud size={12} /> <span className="flex-1">{t('map.cloudCover', 'Cloud Cover')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
 
             {/* Activity-specific Layers (Phase 7) */}
@@ -1042,28 +1061,28 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.activityLayers') || 'Activity Layers'}</div>
             </div>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Navigation size={12} /> {t('map.swellDirection') || 'Swell Direction'}
+              <Navigation size={12} /> <span className="flex-1">{t('map.swellDirection') || 'Swell Direction'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Anchor size={12} /> {t('map.diveSuitability') || 'Dive Suitability'}
+              <Anchor size={12} /> <span className="flex-1">{t('map.diveSuitability') || 'Dive Suitability'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'CHOP_LEVEL' ? 'NONE' : 'CHOP_LEVEL')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'CHOP_LEVEL' ? 'NONE' : 'CHOP_LEVEL')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CHOP_LEVEL' ? 'bg-fuchsia-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Waves size={12} /> {t('map.chopLevel') || 'Chop Level'}
+              <Waves size={12} /> <span className="flex-1">{t('map.chopLevel') || 'Chop Level'}</span> {isFreeUser && <Lock size={10} className="text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setAdvancedLayer(advancedLayer === 'GUST_DELTA' ? 'NONE' : 'GUST_DELTA')}
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'GUST_DELTA' ? 'NONE' : 'GUST_DELTA')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'GUST_DELTA' ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Wind size={12} /> {t('map.gustDelta') || 'Gust Delta'}
+              <Wind size={12} /> <span className="flex-1">{t('map.gustDelta') || 'Gust Delta'}</span> {isFreeUser && <Lock size={10} className="text-amber-400/60" />}
             </button>
 
             {/* GeoJSON Overlay Layers Divider */}
@@ -1523,6 +1542,15 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         visible={tsunamiRisks.length > 0}
       />
 
+      {/* Premium Paywall Modal — shown when free user taps a locked layer */}
+      <PremiumPaywallModal
+        isOpen={showPaywall}
+        onClose={() => setShowPaywall(false)}
+        onUpgrade={() => {
+          setSubscriptionTier('premium');
+          setShowPaywall(false);
+        }}
+      />
     </div>
   );
 }

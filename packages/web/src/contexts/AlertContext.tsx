@@ -10,6 +10,7 @@ import {
   subscribeToPreferences,
   mergePreferences,
 } from '@seame/core';
+import type { OnboardingPersona, SubscriptionTier } from '@seame/core';
 import { registerUserTags } from '../services/oneSignalWeb';
 import { useAuth } from './AuthContext';
 
@@ -31,9 +32,17 @@ interface AlertContextType {
   /** Legacy convenience accessor for threshold values */
   thresholds: AlertThresholds;
 
-  /** Persona */
+  /** Activity persona (detailed — for scoring) */
   primaryPersona: ActivityPersona;
   setPrimaryPersona: (persona: ActivityPersona) => void;
+
+  /** Onboarding persona (simplified — set during first-time flow) */
+  persona: OnboardingPersona | null;
+  setPersona: (persona: OnboardingPersona) => void;
+
+  /** Subscription tier */
+  subscriptionTier: SubscriptionTier;
+  setSubscriptionTier: (tier: SubscriptionTier) => void;
 
   /** Threshold setters */
   setWaveThreshold: (value: number) => void;
@@ -78,6 +87,8 @@ function loadPreferences(): UserPreferences {
         ...DEFAULT_PREFERENCES,
         ...parsed,
         alerts: { ...DEFAULT_PREFERENCES.alerts, ...(parsed.alerts ?? {}) },
+        persona: parsed.persona ?? null,
+        subscriptionTier: parsed.subscriptionTier ?? 'free',
         favoriteLocations: parsed.favoriteLocations ?? [],
         recentSearches: parsed.recentSearches ?? [],
       };
@@ -244,6 +255,8 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         ...DEFAULT_PREFERENCES,
         ...cloudPrefs,
         alerts: { ...DEFAULT_PREFERENCES.alerts, ...(cloudPrefs.alerts ?? {}) },
+        persona: cloudPrefs.persona ?? null,
+        subscriptionTier: cloudPrefs.subscriptionTier ?? 'free',
         favoriteLocations: cloudPrefs.favoriteLocations ?? [],
         recentSearches: cloudPrefs.recentSearches ?? [],
       });
@@ -306,6 +319,18 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       syncToOneSignal(next);
       return next;
     });
+  }, [update]);
+
+  // ─── Onboarding persona ───
+
+  const setPersona = useCallback((persona: OnboardingPersona) => {
+    update((p) => ({ ...p, persona }));
+  }, [update]);
+
+  // ─── Subscription tier ───
+
+  const setSubscriptionTier = useCallback((tier: SubscriptionTier) => {
+    update((p) => ({ ...p, subscriptionTier: tier }));
   }, [update]);
 
   // ─── Alert thresholds ───
@@ -383,6 +408,10 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         thresholds,
         primaryPersona: preferences.primaryPersona,
         setPrimaryPersona,
+        persona: preferences.persona ?? null,
+        setPersona,
+        subscriptionTier: preferences.subscriptionTier ?? 'free',
+        setSubscriptionTier,
         setWaveThreshold,
         setWindThreshold,
         setMinScore,

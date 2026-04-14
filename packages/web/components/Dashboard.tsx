@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
@@ -64,7 +64,7 @@ const getWeatherConditionKey = (code: number): string => {
 
 const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, onRetry, onLocationClick }) => {
   const { t } = useTranslation();
-  const { thresholds, isDismissed, dismiss } = useAlertConfig();
+  const { thresholds, isDismissed, dismiss, persona } = useAlertConfig();
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
@@ -363,22 +363,36 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}
       <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
-      {/* ─── Activity Report (5-Column Grid with Scores) ─── */}
+      {/* ─── Activity Report (Persona-filtered Grid with Scores) ─── */}
       <section>
         <h3 className="text-xs font-bold tracking-widest text-white/70 mb-3 uppercase flex items-center"><Flag size={12} className="mr-2" /> {t('activity.report')}</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {([
-            { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
-            { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
-            { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
-            { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
-            { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
-            { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
-          ] as const).map(({ persona, icon: Icon, iconColor, labelKey }) => {
-            const score = activityScores?.[persona];
-            const bw = bestWindows?.[persona];
+        <div className={`grid gap-3 ${!persona ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
+          {(() => {
+            const ALL_CARDS: { persona: ActivityPersona; icon: typeof Sailboat; iconColor: string; labelKey: string }[] = [
+              { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
+              { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
+              { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
+              { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
+              { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
+              { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
+            ];
+
+            // Map onboarding persona → which ActivityPersona cards to show
+            const PERSONA_CARD_MAP: Record<OnboardingPersona, ActivityPersona[]> = {
+              mariner: [ActivityPersona.SAILOR],
+              surfer: [ActivityPersona.WAVE_SURFER, ActivityPersona.WIND_SURFER, ActivityPersona.KITE_SURFER, ActivityPersona.BEACHGOER],
+              diver: [ActivityPersona.DIVER],
+              beachgoer: [ActivityPersona.BEACHGOER],
+            };
+
+            const allowed = persona ? PERSONA_CARD_MAP[persona] : null;
+            const cards = allowed ? ALL_CARDS.filter(c => allowed.includes(c.persona)) : ALL_CARDS;
+            return cards;
+          })().map(({ persona: cardPersona, icon: Icon, iconColor, labelKey }) => {
+            const score = activityScores?.[cardPersona];
+            const bw = bestWindows?.[cardPersona];
             return (
-              <div key={persona} className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-[120px]">
+              <div key={cardPersona} className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-[120px]">
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-lg glass-inner flex items-center justify-center">
                     <Icon size={18} className={iconColor} />
@@ -404,7 +418,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 )}
                 {weatherData && (
                   <ActivityTimeline
-                    persona={persona}
+                    persona={cardPersona}
                     weatherData={weatherData}
                     startHourIndex={currentHourIndex}
                   />

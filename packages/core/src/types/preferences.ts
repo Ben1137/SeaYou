@@ -17,11 +17,25 @@ export interface SavedLocation {
   lng: number;
 }
 
+// ─── Onboarding persona (simplified top-level identity) ───
+
+export type OnboardingPersona = 'mariner' | 'surfer' | 'beachgoer' | 'diver';
+
+// ─── Subscription tier ───
+
+export type SubscriptionTier = 'free' | 'premium';
+
 // ─── Persisted User Preferences ───
 
 export interface UserPreferences {
   /** Primary activity persona for scoring, hype alerts, and push targeting */
   primaryPersona: ActivityPersona;
+
+  /** Onboarding persona — null until the user completes first-time onboarding */
+  persona: OnboardingPersona | null;
+
+  /** Subscription tier — defaults to 'free', unlocked via purchase */
+  subscriptionTier: SubscriptionTier;
 
   /** Alert threshold configuration */
   alerts: {
@@ -56,6 +70,8 @@ export interface UserPreferences {
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
   primaryPersona: ActivityPersona.WAVE_SURFER,
+  persona: null,
+  subscriptionTier: 'free',
   alerts: {
     waveHeightThreshold: 2.0,
     windSpeedThreshold: 40,
