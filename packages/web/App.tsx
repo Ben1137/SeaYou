@@ -78,7 +78,7 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, onOpenPr
 
   return (
     <button
-      id="tour-profile-menu"
+      id={variant === 'desktop' ? 'tour-profile-menu-desktop' : 'tour-profile-menu-mobile'}
       onClick={handleClick}
       className={buttonClass}
       aria-label={signedIn ? t('auth.profile', 'Profile') : t('auth.signIn', 'Sign In')}
@@ -456,6 +456,7 @@ const AppContent: React.FC = () => {
             {NAV_ITEMS.map(({ view: navView, icon: Icon, labelKey }) => (
               <button
                 key={navView}
+                id={navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-desktop' : navView === ViewState.MAP ? 'tour-nav-map-desktop' : undefined}
                 onClick={() => handleNavClick(navView)}
                 className={`flex flex-col items-center gap-1 w-full py-3 rounded-xl transition-all ${
                   view === navView
@@ -793,6 +794,7 @@ const AppContent: React.FC = () => {
                 {NAV_ITEMS.map(({ view: navView, icon: Icon, labelKey }) => (
                   <button
                     key={navView}
+                    id={navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-mobile' : navView === ViewState.MAP ? 'tour-nav-map-mobile' : undefined}
                     onClick={() => handleNavClick(navView)}
                     className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
                       view === navView
