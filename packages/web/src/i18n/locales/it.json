@@ -10,7 +10,8 @@
     "atmosphere": "Atmosfera",
     "map": "Mappa",
     "routes": "Rotte",
-    "marinas": "Marine"
+    "marinas": "Marine",
+    "nearby": "Nelle vicinanze"
   },
   "location": {
     "manage": "Gestisci posizioni",

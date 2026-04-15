@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ViewState, Location, UI_CONSTANTS, NAVIGATION_CONSTANTS, TsunamiRisk, fetchActiveTsunamis, checkTsunamiRisk } from '@seame/core';
 import Dashboard from './components/Dashboard';
 import { MapProvider } from './components/map/MapProvider';
@@ -20,6 +20,7 @@ import { AuthPage } from './components/AuthPage';
 import { OnboardingModal } from './components/OnboardingModal';
 import { InteractiveTour } from './components/onboarding/InteractiveTour';
 import { UserProfileModal } from './components/profile/UserProfileModal';
+import { WaveLoader } from './components/ui/WaveLoader';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
@@ -40,11 +41,11 @@ const DEFAULT_LOC: Location = {
 const GEO_PROMPT_KEY = 'seayou_geo_prompt_dismissed';
 
 const NAV_ITEMS = [
-  { view: ViewState.DASHBOARD, icon: LayoutDashboard, labelKey: 'nav.dashboard' },
-  { view: ViewState.ATMOSPHERE, icon: Cloud, labelKey: 'nav.atmosphere' },
-  { view: ViewState.MAP, icon: MapIcon, labelKey: 'nav.map' },
-  { view: ViewState.ROUTE_PLANNING, icon: Navigation, labelKey: 'nav.routes' },
-  { view: ViewState.COASTS_MARINAS, icon: Anchor, labelKey: 'nav.marinas' },
+  { view: ViewState.DASHBOARD, icon: LayoutDashboard, labelKey: 'nav.dashboard', marinerOnly: false },
+  { view: ViewState.ATMOSPHERE, icon: Cloud, labelKey: 'nav.atmosphere', marinerOnly: false },
+  { view: ViewState.MAP, icon: MapIcon, labelKey: 'nav.map', marinerOnly: false },
+  { view: ViewState.ROUTE_PLANNING, icon: Navigation, labelKey: 'nav.routes', marinerOnly: true },
+  { view: ViewState.COASTS_MARINAS, icon: Anchor, labelKey: 'nav.nearby', marinerOnly: false },
 ] as const;
 
 // ─── Profile button — opens AuthModal when signed out, opens UserProfileModal when signed in ───
@@ -121,6 +122,14 @@ const AppContent: React.FC = () => {
 
   // ─── App Tour state — shows after onboarding, persisted to preferences/Supabase ───
   const showAppTour = hasCompletedOnboarding && alertConfig.persona !== null && !alertConfig.hasCompletedTour;
+
+  // ─── Persona-filtered navigation — "Routes" tab only visible to mariners ───
+  const visibleNavItems = useMemo(
+    () => NAV_ITEMS.filter(item => !item.marinerOnly || alertConfig.persona === 'mariner'),
+    [alertConfig.persona]
+  );
+
+  // (mainScrollRef is declared further down for pull-to-refresh / re-tap scroll)
 
   // ─── Pull-to-refresh state ───
   const [pullDistance, setPullDistance] = useState(0);
@@ -371,6 +380,12 @@ const AppContent: React.FC = () => {
     }
   }, [view]);
 
+  // ─── Auto-scroll to top whenever the active view changes ───
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    mainScrollRef.current?.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  }, [view]);
+
   // ─── Pull-to-refresh touch handlers ───
   const PULL_THRESHOLD = 80;
   const PULL_MAX = 120;
@@ -453,7 +468,7 @@ const AppContent: React.FC = () => {
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1 px-2 py-4">
-            {NAV_ITEMS.map(({ view: navView, icon: Icon, labelKey }) => (
+            {visibleNavItems.map(({ view: navView, icon: Icon, labelKey }) => (
               <button
                 key={navView}
                 id={navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-desktop' : navView === ViewState.MAP ? 'tour-nav-map-desktop' : undefined}
@@ -486,17 +501,20 @@ const AppContent: React.FC = () => {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
           {/* ============ Header ============ */}
-          <header className="relative flex items-center justify-center px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 w-full min-w-0 max-w-[100vw] box-border">
-            {/* Left: Profile icon — absolutely positioned so title stays true-center */}
-            <div className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2">
+          <header className="flex items-center justify-between gap-2 px-3 sm:px-5 pt-4 pb-3 shrink-0 z-20 w-full min-w-0 max-w-[100vw] box-border">
+            {/* Left: Profile icon */}
+            <div className="flex-shrink-0">
               <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} onOpenProfile={() => setIsProfileOpen(true)} variant="mobile" />
             </div>
 
-            {/* Center: App title */}
-            <h1 className="text-xl sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap text-center">SeaYou</h1>
+            {/* Center: App title with anchor logo — flex-1 so it gets its fair share */}
+            <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 sm:gap-2">
+              <Anchor size={18} className="text-white/90 shrink-0" aria-hidden="true" />
+              <h1 className="text-lg sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap truncate">SeaYou</h1>
+            </div>
 
-            {/* Right: Language + Theme toggle — absolutely positioned */}
-            <div className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 flex items-center gap-2 sm:gap-3">
+            {/* Right: Language + Theme toggle */}
+            <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
               <LanguageSelector />
 
               <button
@@ -791,7 +809,7 @@ const AppContent: React.FC = () => {
               }}
             >
               <div className="flex justify-around items-center max-w-lg mx-auto">
-                {NAV_ITEMS.map(({ view: navView, icon: Icon, labelKey }) => (
+                {visibleNavItems.map(({ view: navView, icon: Icon, labelKey }) => (
                   <button
                     key={navView}
                     id={navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-mobile' : navView === ViewState.MAP ? 'tour-nav-map-mobile' : undefined}
@@ -860,7 +878,7 @@ const AuthGate: React.FC = () => {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center"
         style={{ background: 'linear-gradient(135deg, #0a1628 0%, #0d2847 50%, #0a1628 100%)' }}>
-        <div className="w-8 h-8 border-2 border-white/20 border-t-blue-400 rounded-full animate-spin" />
+        <WaveLoader size={72} />
       </div>
     );
   }

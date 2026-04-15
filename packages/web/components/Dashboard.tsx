@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -269,12 +269,33 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return blocks;
   }, [weatherData, currentHourIndex]);
 
-  const FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'diver', 'beach'];
+  const ALL_FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'diver', 'beach'];
+  // Filter forecast tabs to only those relevant to the user's onboarding persona
+  const PERSONA_TAB_MAP: Record<OnboardingPersona, ForecastTab[]> = {
+    mariner: ['mariner'],
+    surfer: ['wave_surfer', 'wind_surfer', 'kite_surfer', 'beach'],
+    diver: ['diver'],
+    beachgoer: ['beach'],
+  };
+  const FORECAST_TABS: ForecastTab[] = useMemo(
+    () => (persona ? PERSONA_TAB_MAP[persona] : ALL_FORECAST_TABS),
+    [persona]
+  );
+  // Ensure the active tab is always valid for the current persona
+  useEffect(() => {
+    if (!FORECAST_TABS.includes(forecastTab)) {
+      setForecastTab(FORECAST_TABS[0]);
+    }
+  }, [FORECAST_TABS, forecastTab]);
   const handleNextTab = () => {
-    setForecastTab(FORECAST_TABS[(FORECAST_TABS.indexOf(forecastTab) + 1) % FORECAST_TABS.length]);
+    if (FORECAST_TABS.length === 0) return;
+    const idx = FORECAST_TABS.indexOf(forecastTab);
+    setForecastTab(FORECAST_TABS[(idx + 1) % FORECAST_TABS.length]);
   };
   const handlePrevTab = () => {
-    setForecastTab(FORECAST_TABS[(FORECAST_TABS.indexOf(forecastTab) - 1 + FORECAST_TABS.length) % FORECAST_TABS.length]);
+    if (FORECAST_TABS.length === 0) return;
+    const idx = FORECAST_TABS.indexOf(forecastTab);
+    setForecastTab(FORECAST_TABS[(idx - 1 + FORECAST_TABS.length) % FORECAST_TABS.length]);
   };
 
   const forecastTabLabel = (tab: ForecastTab): string => {
@@ -466,17 +487,34 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
         </div>
 
-        {/* Temperature (Air + Sea combined) — row-based grid for strict baseline alignment */}
-        <div className="glass-panel p-4 h-full grid grid-cols-2 gap-x-4 content-between">
+        {/* Temperature (Air + Sea combined) — row-based grid for strict baseline alignment.
+            Content centered within each column on mobile so the widget doesn't look
+            lopsided; divider moves to a center column on ≥sm viewports. */}
+        <div className="glass-panel p-4 h-full grid grid-cols-2 content-between relative">
+          {/* Vertical divider — centered column separator */}
+          <div className="absolute top-4 bottom-4 left-1/2 -translate-x-px w-px bg-white/10 pointer-events-none" aria-hidden="true" />
+
           {/* Row 1: Headers */}
-          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center"><Thermometer size={12} className="mr-1.5" /> {t('weather.air')}</h3>
-          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center pl-4 border-l border-white/10"><Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}</h3>
+          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
+            <Thermometer size={12} className="mr-1.5" /> {t('weather.air')}
+          </h3>
+          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
+            <Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}
+          </h3>
+
           {/* Row 2: Temperature values */}
-          <div className="flex items-baseline mt-4"><span className="text-4xl font-bold leading-none">{weatherData.general?.temperature.toFixed(0)}</span><span className="text-lg ml-0.5">°C</span></div>
-          <div className="flex items-baseline mt-4 pl-4 border-l border-white/10"><span className="text-4xl font-bold leading-none">{currentConditions.seaTemp?.toFixed(0)}</span><span className="text-lg ml-0.5">°C</span></div>
+          <div className="flex items-baseline justify-center mt-4">
+            <span className="text-4xl font-bold leading-none">{weatherData.general?.temperature.toFixed(0)}</span>
+            <span className="text-lg ml-0.5">°C</span>
+          </div>
+          <div className="flex items-baseline justify-center mt-4">
+            <span className="text-4xl font-bold leading-none">{currentConditions.seaTemp?.toFixed(0)}</span>
+            <span className="text-lg ml-0.5">°C</span>
+          </div>
+
           {/* Row 3: Subtext */}
-          <p className="text-[10px] text-white/60 mt-1">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
-          <p className="text-[10px] text-transparent mt-1 pl-4 border-l border-white/10 select-none" aria-hidden="true">-</p>
+          <p className="text-[10px] text-white/60 mt-1 text-center">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
+          <p className="text-[10px] text-transparent mt-1 select-none text-center" aria-hidden="true">-</p>
         </div>
       </section>
 
@@ -561,10 +599,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             <Compass size={14} className="mr-1.5" />
             {forecastTabLabel(forecastTab)}
           </h3>
-          <div className="flex space-x-2">
-            <button onClick={handlePrevTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronLeft size={10} /></button>
-            <button onClick={handleNextTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronRight size={10} /></button>
-          </div>
+          {FORECAST_TABS.length > 1 && (
+            <div className="flex space-x-2">
+              <button onClick={handlePrevTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronLeft size={10} /></button>
+              <button onClick={handleNextTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronRight size={10} /></button>
+            </div>
+          )}
         </div>
         <div className="w-full overflow-x-auto hide-scrollbar">
           <table className="w-full text-[10px] text-left whitespace-nowrap">
@@ -604,11 +644,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             </tbody>
           </table>
         </div>
-        <div className="p-2 flex gap-1 justify-center">
-          {FORECAST_TABS.map((tab) => (
-            <button key={tab} onClick={() => setForecastTab(tab)} className={`w-2 h-2 rounded-full transition-colors ${forecastTab === tab ? 'bg-blue-500' : 'bg-white/20 hover:bg-white/40'}`} />
-          ))}
-        </div>
+        {FORECAST_TABS.length > 1 && (
+          <div className="p-2 flex gap-1 justify-center">
+            {FORECAST_TABS.map((tab) => (
+              <button key={tab} onClick={() => setForecastTab(tab)} className={`w-2 h-2 rounded-full transition-colors ${forecastTab === tab ? 'bg-blue-500' : 'bg-white/20 hover:bg-white/40'}`} />
+            ))}
+          </div>
+        )}
       </section>
 
     </div>

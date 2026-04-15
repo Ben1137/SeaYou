@@ -10,7 +10,8 @@
     "atmosphere": "Atmosphäre",
     "map": "Karte",
     "routes": "Routen",
-    "marinas": "Marinas"
+    "marinas": "Marinas",
+    "nearby": "In der Nähe"
   },
   "location": {
     "manage": "Orte verwalten",

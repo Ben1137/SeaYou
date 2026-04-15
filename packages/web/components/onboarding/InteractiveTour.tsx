@@ -173,6 +173,18 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({ run, onFinish 
     spotlight: {
       borderRadius: 16,
     },
+    // Beacon (pulsing dot) — ensure high contrast on dark night-mode UI
+    beacon: {
+      outline: 'none',
+    },
+    beaconInner: {
+      backgroundColor: '#0ea5e9', // cyan accent — visible on dark bg
+      boxShadow: '0 0 0 2px rgba(255,255,255,0.9)',
+    },
+    beaconOuter: {
+      borderColor: '#0ea5e9',
+      backgroundColor: 'rgba(14, 165, 233, 0.25)',
+    },
   };
 
   const handleCallback = (data: CallBackProps) => {

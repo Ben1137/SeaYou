@@ -10,7 +10,8 @@
     "atmosphere": "אטמוספרה",
     "map": "מפה",
     "routes": "מסלולים",
-    "marinas": "מרינות"
+    "marinas": "מרינות",
+    "nearby": "בקרבת מקום"
   },
   "location": {
     "manage": "ניהול מיקומים",

@@ -294,24 +294,41 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Premium / paywall state
-  const { subscriptionTier, setSubscriptionTier } = useAlertConfig();
+  const { subscriptionTier, setSubscriptionTier, persona } = useAlertConfig();
   const isFreeUser = subscriptionTier !== 'premium';
   const [showPaywall, setShowPaywall] = useState(false);
 
-  /** Attempt to activate an advanced layer — gated by subscription tier */
+  // Layer state
+  const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
+  const [advancedLayer, setAdvancedLayer] = useState<AdvancedLayer>('NONE');
+  const [isLayersPanelExpanded, setIsLayersPanelExpanded] = useState(false);
+
+  /** Attempt to activate an advanced layer — gated by subscription tier. Auto-closes panel on success. */
   const trySetAdvancedLayer = useCallback((layer: AdvancedLayer) => {
     if (layer === 'NONE' || !isFreeUser) {
       setAdvancedLayer(layer);
+      setIsLayersPanelExpanded(false);
       return;
     }
     // Free user trying to enable a premium layer → show paywall
     setShowPaywall(true);
   }, [isFreeUser]);
 
-  // Layer state
-  const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
-  const [advancedLayer, setAdvancedLayer] = useState<AdvancedLayer>('NONE');
-  const [isLayersPanelExpanded, setIsLayersPanelExpanded] = useState(false);
+  /** Toggle a base layer and auto-close panel */
+  const selectBaseLayer = useCallback((layer: MapLayer) => {
+    setActiveLayer(layer);
+    setIsLayersPanelExpanded(false);
+  }, []);
+
+  /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
+  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc') => {
+    if (isFreeUser) {
+      setShowPaywall(true);
+      return;
+    }
+    setGeoJSONLayers(prev => ({ ...prev, [key]: !prev[key] }));
+    setIsLayersPanelExpanded(false);
+  }, [isFreeUser]);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Refs to avoid stale closures inside map event listeners
@@ -960,37 +977,37 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
           <div className="space-y-1 p-2">
             {/* Basic Layers */}
             <button
-              onClick={() => setActiveLayer('NONE')}
+              onClick={() => selectBaseLayer('NONE')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'NONE' ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <div className={`w-2 h-2 rounded-full border ${activeLayer === 'NONE' ? 'border-white bg-transparent' : 'border-white/40'}`}></div> {t('map.none')}
             </button>
             <button
-              onClick={() => setActiveLayer('WIND')}
+              onClick={() => selectBaseLayer('WIND')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND' ? 'bg-blue-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Wind size={12} /> {t('map.wind')}
             </button>
             <button
-              onClick={() => setActiveLayer('WAVE')}
+              onClick={() => selectBaseLayer('WAVE')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WAVE' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.sigWaves')}
             </button>
             <button
-              onClick={() => setActiveLayer('WIND_WAVE')}
+              onClick={() => selectBaseLayer('WIND_WAVE')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND_WAVE' ? 'bg-cyan-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.windWaves')}
             </button>
             <button
-              onClick={() => setActiveLayer('SWELL')}
+              onClick={() => selectBaseLayer('SWELL')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'SWELL' ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('weather.swell')}
             </button>
             <button
-              onClick={() => setActiveLayer('CURRENTS')}
+              onClick={() => selectBaseLayer('CURRENTS')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'CURRENTS' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> {t('map.currents')}
@@ -1056,34 +1073,57 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               <Cloud size={12} /> <span className="flex-1">{t('map.cloudCover', 'Cloud Cover')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
 
-            {/* Activity-specific Layers (Phase 7) */}
-            <div className="border-t border-white/5 my-2 pt-2">
-              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.activityLayers') || 'Activity Layers'}</div>
-            </div>
-            <button
-              onClick={() => trySetAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
-            >
-              <Navigation size={12} /> <span className="flex-1">{t('map.swellDirection') || 'Swell Direction'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
-            </button>
-            <button
-              onClick={() => trySetAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
-            >
-              <Anchor size={12} /> <span className="flex-1">{t('map.diveSuitability') || 'Dive Suitability'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
-            </button>
-            <button
-              onClick={() => trySetAdvancedLayer(advancedLayer === 'CHOP_LEVEL' ? 'NONE' : 'CHOP_LEVEL')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CHOP_LEVEL' ? 'bg-fuchsia-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
-            >
-              <Waves size={12} /> <span className="flex-1">{t('map.chopLevel') || 'Chop Level'}</span> {isFreeUser && <Lock size={10} className="text-amber-400/60" />}
-            </button>
-            <button
-              onClick={() => trySetAdvancedLayer(advancedLayer === 'GUST_DELTA' ? 'NONE' : 'GUST_DELTA')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'GUST_DELTA' ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
-            >
-              <Wind size={12} /> <span className="flex-1">{t('map.gustDelta') || 'Gust Delta'}</span> {isFreeUser && <Lock size={10} className="text-amber-400/60" />}
-            </button>
+            {/* Activity-specific Layers (Phase 7) — filtered by persona */}
+            {(() => {
+              // Map onboarding persona → relevant activity layers (ordered by priority)
+              const personaLayers: Record<string, Array<'SWELL_PARTICLES' | 'DIVE_SUITABILITY' | 'CHOP_LEVEL' | 'GUST_DELTA'>> = {
+                mariner: ['GUST_DELTA', 'CHOP_LEVEL'],
+                surfer: ['SWELL_PARTICLES', 'CHOP_LEVEL', 'GUST_DELTA'],
+                diver: ['DIVE_SUITABILITY', 'CHOP_LEVEL'],
+                beachgoer: ['CHOP_LEVEL'],
+              };
+              const relevant = persona ? personaLayers[persona] ?? ['SWELL_PARTICLES', 'DIVE_SUITABILITY', 'CHOP_LEVEL', 'GUST_DELTA'] : ['SWELL_PARTICLES', 'DIVE_SUITABILITY', 'CHOP_LEVEL', 'GUST_DELTA'];
+              if (relevant.length === 0) return null;
+              return (
+                <>
+                  <div className="border-t border-white/5 my-2 pt-2">
+                    <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.activityLayers') || 'Activity Layers'}</div>
+                  </div>
+                  {relevant.includes('SWELL_PARTICLES') && (
+                    <button
+                      onClick={() => trySetAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
+                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+                    >
+                      <Navigation size={12} /> <span className="flex-1">{t('map.swellDirection') || 'Swell Direction'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+                    </button>
+                  )}
+                  {relevant.includes('DIVE_SUITABILITY') && (
+                    <button
+                      onClick={() => trySetAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
+                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+                    >
+                      <Anchor size={12} /> <span className="flex-1">{t('map.diveSuitability') || 'Dive Suitability'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+                    </button>
+                  )}
+                  {relevant.includes('CHOP_LEVEL') && (
+                    <button
+                      onClick={() => trySetAdvancedLayer(advancedLayer === 'CHOP_LEVEL' ? 'NONE' : 'CHOP_LEVEL')}
+                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CHOP_LEVEL' ? 'bg-fuchsia-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+                    >
+                      <Waves size={12} /> <span className="flex-1">{t('map.chopLevel') || 'Chop Level'}</span> {isFreeUser && <Lock size={10} className="text-amber-400/60" />}
+                    </button>
+                  )}
+                  {relevant.includes('GUST_DELTA') && (
+                    <button
+                      onClick={() => trySetAdvancedLayer(advancedLayer === 'GUST_DELTA' ? 'NONE' : 'GUST_DELTA')}
+                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'GUST_DELTA' ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+                    >
+                      <Wind size={12} /> <span className="flex-1">{t('map.gustDelta') || 'Gust Delta'}</span> {isFreeUser && <Lock size={10} className="text-amber-400/60" />}
+                    </button>
+                  )}
+                </>
+              );
+            })()}
 
             {/* GeoJSON Overlay Layers Divider */}
             <div className="border-t border-white/5 my-2 pt-2">
@@ -1091,47 +1131,47 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             </div>
 
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, coastline: !prev.coastline }))}
+              onClick={() => tryToggleOverlay('coastline')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.coastline ? 'bg-cyan-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <MapPin size={12} /> {t('map.coastline') || 'Coastline'}
+              <MapPin size={12} /> <span className="flex-1">{t('map.coastline') || 'Coastline'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, bathymetry: !prev.bathymetry }))}
+              onClick={() => tryToggleOverlay('bathymetry')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.bathymetry ? 'bg-blue-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Droplets size={12} /> {t('map.bathymetry') || 'Bathymetry'}
+              <Droplets size={12} /> <span className="flex-1">{t('map.bathymetry') || 'Bathymetry'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, reefs: !prev.reefs }))}
+              onClick={() => tryToggleOverlay('reefs')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.reefs ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Waves size={12} /> {t('map.reefs') || 'Coral Reefs'}
+              <Waves size={12} /> <span className="flex-1">{t('map.reefs') || 'Coral Reefs'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, ports: !prev.ports }))}
+              onClick={() => tryToggleOverlay('ports')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.ports ? 'bg-amber-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Navigation size={12} /> {t('map.ports') || 'Ports'}
+              <Navigation size={12} /> <span className="flex-1">{t('map.ports') || 'Ports'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, marineAreas: !prev.marineAreas }))}
+              onClick={() => tryToggleOverlay('marineAreas')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.marineAreas ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <MapPin size={12} /> {t('map.marineAreas') || 'Marine Areas'}
+              <MapPin size={12} /> <span className="flex-1">{t('map.marineAreas') || 'Marine Areas'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, radar: !prev.radar }))}
+              onClick={() => tryToggleOverlay('radar')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.radar ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Droplets size={12} /> {t('map.rainRadar') || 'Rain Radar'}
+              <Droplets size={12} /> <span className="flex-1">{t('map.rainRadar') || 'Rain Radar'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
-              onClick={() => setGeoJSONLayers(prev => ({ ...prev, enc: !prev.enc }))}
+              onClick={() => tryToggleOverlay('enc')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.enc ? 'bg-rose-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
               title="OpenSeaMap navigational marks (buoys, beacons, lighthouses, channel markers)"
             >
-              <Compass size={12} /> {t('map.navCharts') || 'Navigational Charts (ENC)'}
+              <Compass size={12} /> <span className="flex-1">{t('map.navCharts') || 'Navigational Charts (ENC)'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
           </div>
           {(loadingGrid || sharedMarineData.loading || sharedForecastData.loading) && (

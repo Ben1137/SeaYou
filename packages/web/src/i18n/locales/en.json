@@ -10,7 +10,8 @@
     "atmosphere": "Atmosphere",
     "map": "Map",
     "routes": "Routes",
-    "marinas": "Marinas"
+    "marinas": "Marinas",
+    "nearby": "Nearby"
   },
   "location": {
     "manage": "Manage Locations",
