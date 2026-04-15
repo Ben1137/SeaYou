@@ -25,6 +25,7 @@ export interface HourlyConditions {
   uvIndex?: number;
   weatherCode?: number;
   pressure?: number;
+  isDay?: boolean; // true = daylight hour, false = night
 }
 
 export interface ActivityScore {

@@ -226,7 +226,10 @@ function buildMarinaSkeletonHTML(port: PortFeature): string {
  * Falls back gracefully if `details` is null.
  */
 function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null): string {
-  const safeName = escapeHtml(port.name || 'Marina');
+  const osmName = port.name || 'Marina';
+  // Prefer Google's official name when available, fall back to the OSM label
+  const displayName = details?.name || osmName;
+  const safeName = escapeHtml(displayName);
   const websiteFromPort = (port.properties?.website as string | undefined) || undefined;
 
   const phone = details?.formatted_phone_number || details?.international_phone_number;
@@ -237,13 +240,21 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
   const openNow = details?.opening_hours?.open_now;
   const address = details?.formatted_address;
 
+  // Coordinates (OSM fallback) — always present
+  const [lng, lat] = port.coordinates;
+  const lngStr = typeof lng === 'number' ? lng.toFixed(5) : '';
+  const latStr = typeof lat === 'number' ? lat.toFixed(5) : '';
+
+  // "Open in Google Maps" — prefer Google's canonical URL, else construct one from coords + name
+  const gmapsUrl = details?.url
+    ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${osmName} ${latStr},${lngStr}`)}`;
+
   const rows: string[] = [];
 
   if (rating != null) {
-    const stars = '\u2605'.repeat(Math.round(rating)) + '\u2606'.repeat(5 - Math.round(rating));
     rows.push(`<div class="seayou-marina-row">
-      <span class="seayou-marina-stars">${stars}</span>
-      <span class="seayou-marina-rating-text">${rating.toFixed(1)}${ratingCount ? ` (${ratingCount})` : ''}</span>
+      <span class="seayou-marina-stars">\u2B50</span>
+      <span class="seayou-marina-rating-text">${rating.toFixed(1)}${ratingCount ? ` (${ratingCount.toLocaleString()})` : ''}</span>
     </div>`);
   }
 
@@ -255,13 +266,16 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
 
   if (address) {
     rows.push(`<div class="seayou-marina-row seayou-marina-address">${escapeHtml(address)}</div>`);
+  } else if (!details && latStr && lngStr) {
+    // OSM-only fallback — no Google data at all. Show the coords so the user has SOMETHING.
+    rows.push(`<div class="seayou-marina-row seayou-marina-address">\uD83D\uDCCD ${latStr}, ${lngStr}</div>`);
   }
 
   // CTA buttons
   const buttons: string[] = [];
   if (telHref && phone) {
     buttons.push(
-      `<a href="${escapeHtml(telHref)}" class="seayou-marina-call-btn">\u260E Call Marina to Book<br/><span class="seayou-marina-phone">${escapeHtml(phone)}</span></a>`,
+      `<a href="${escapeHtml(telHref)}" class="seayou-marina-call-btn">\u260E Call<br/><span class="seayou-marina-phone">${escapeHtml(phone)}</span></a>`,
     );
   }
   if (website) {
@@ -269,20 +283,25 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
       `<a href="${escapeHtml(website)}" target="_blank" rel="noopener" class="seayou-marina-website-btn">\uD83C\uDF10 Visit Website</a>`,
     );
   }
+  // Always offer "Open in Google Maps" — works even with zero Google enrichment
+  buttons.push(
+    `<a href="${escapeHtml(gmapsUrl)}" target="_blank" rel="noopener" class="seayou-marina-gmaps-btn">\uD83D\uDDFA\uFE0F Open in Google Maps</a>`,
+  );
 
-  // Empty-state when no Google details came back
-  if (rows.length === 0 && buttons.length === 0) {
+  // Graceful empty-state messaging when Google gave us nothing
+  if (!details) {
     rows.push(
-      `<div class="seayou-marina-row seayou-marina-empty">No public booking details available for this marina.</div>`,
+      `<div class="seayou-marina-row seayou-marina-empty">No Google listing found. Using OpenStreetMap data.</div>`,
     );
   }
 
   return `<div class="seayou-popup-body seayou-marina-popup">
     <div class="seayou-marina-header">
       <div class="seayou-marina-name">${safeName}</div>
+      ${details?.name && osmName !== details.name ? `<div class="seayou-marina-sub">${escapeHtml(osmName)} (OSM)</div>` : ''}
     </div>
     <div class="seayou-marina-rows">${rows.join('')}</div>
-    ${buttons.length > 0 ? `<div class="seayou-marina-buttons">${buttons.join('')}</div>` : ''}
+    <div class="seayou-marina-buttons">${buttons.join('')}</div>
   </div>`;
 }
 

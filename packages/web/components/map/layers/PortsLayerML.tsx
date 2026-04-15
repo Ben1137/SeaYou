@@ -262,14 +262,21 @@ export function PortsLayerML({ visible, onPortClick }: PortsLayerMLProps) {
       }
     };
 
-    map.on('click', CIRCLE_LAYER_ID, handleClick);
-    map.on('mouseenter', CIRCLE_LAYER_ID, handleMouseEnter);
-    map.on('mouseleave', CIRCLE_LAYER_ID, handleMouseLeave);
+    // Wire up click + hover on both the circle and the label so a tap on the
+    // text or the dot both open the rich Google-Places popup.
+    const layerIds = [CIRCLE_LAYER_ID, SYMBOL_LAYER_ID];
+    layerIds.forEach(id => {
+      map.on('click', id, handleClick);
+      map.on('mouseenter', id, handleMouseEnter);
+      map.on('mouseleave', id, handleMouseLeave);
+    });
 
     return () => {
-      map.off('click', CIRCLE_LAYER_ID, handleClick);
-      map.off('mouseenter', CIRCLE_LAYER_ID, handleMouseEnter);
-      map.off('mouseleave', CIRCLE_LAYER_ID, handleMouseLeave);
+      layerIds.forEach(id => {
+        map.off('click', id, handleClick);
+        map.off('mouseenter', id, handleMouseEnter);
+        map.off('mouseleave', id, handleMouseLeave);
+      });
     };
   }, [map, onPortClick]);
 

@@ -56,6 +56,7 @@ export interface MarineWeatherHourly {
   wind_wave_period?: number[];
   ocean_current_velocity?: number[];
   ocean_current_direction?: number[];
+  is_day?: number[]; // 1 = daylight, 0 = night (per Open-Meteo)
 }
 
 export interface MarineWeatherDaily {

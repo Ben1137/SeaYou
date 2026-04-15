@@ -487,34 +487,34 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
         </div>
 
-        {/* Temperature (Air + Sea combined) — row-based grid for strict baseline alignment.
-            Content centered within each column on mobile so the widget doesn't look
-            lopsided; divider moves to a center column on ≥sm viewports. */}
-        <div className="glass-panel p-4 h-full grid grid-cols-2 content-between relative">
-          {/* Vertical divider — centered column separator */}
-          <div className="absolute top-4 bottom-4 left-1/2 -translate-x-px w-px bg-white/10 pointer-events-none" aria-hidden="true" />
-
-          {/* Row 1: Headers */}
-          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
-            <Thermometer size={12} className="mr-1.5" /> {t('weather.air')}
-          </h3>
-          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
-            <Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}
-          </h3>
-
-          {/* Row 2: Temperature values */}
-          <div className="flex items-baseline justify-center mt-4">
-            <span className="text-4xl font-bold leading-none">{weatherData.general?.temperature.toFixed(0)}</span>
-            <span className="text-lg ml-0.5">°C</span>
-          </div>
-          <div className="flex items-baseline justify-center mt-4">
-            <span className="text-4xl font-bold leading-none">{currentConditions.seaTemp?.toFixed(0)}</span>
-            <span className="text-lg ml-0.5">°C</span>
+        {/* Temperature (Air + Sea combined) — strict 2-column flex with divide-x.
+            Each column is flex-1 with items-center so the values align perfectly
+            regardless of text width. */}
+        <div className="glass-panel p-4 h-full flex divide-x divide-white/10">
+          {/* Air column */}
+          <div className="flex-1 min-w-0 flex flex-col items-center justify-between px-2">
+            <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
+              <Thermometer size={12} className="mr-1.5" /> {t('weather.air')}
+            </h3>
+            <div className="flex items-baseline justify-center mt-3">
+              <span className="text-3xl sm:text-4xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
+              <span className="text-base sm:text-lg ml-0.5">°C</span>
+            </div>
+            <p className="text-[10px] text-white/60 mt-1 text-center truncate w-full">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
           </div>
 
-          {/* Row 3: Subtext */}
-          <p className="text-[10px] text-white/60 mt-1 text-center">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
-          <p className="text-[10px] text-transparent mt-1 select-none text-center" aria-hidden="true">-</p>
+          {/* Sea column */}
+          <div className="flex-1 min-w-0 flex flex-col items-center justify-between px-2">
+            <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
+              <Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}
+            </h3>
+            <div className="flex items-baseline justify-center mt-3">
+              <span className="text-3xl sm:text-4xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0)}</span>
+              <span className="text-base sm:text-lg ml-0.5">°C</span>
+            </div>
+            {/* Invisible spacer to match Air's "feels like" row height */}
+            <p className="text-[10px] text-transparent mt-1 select-none" aria-hidden="true">-</p>
+          </div>
         </div>
       </section>
 

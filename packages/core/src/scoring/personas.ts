@@ -154,11 +154,21 @@ export function scoreBeachgoer(c: HourlyConditions): ActivityScore {
     warnings.push('Thunderstorm — leave the beach immediately');
   }
 
-  const overall = factors.weather * 0.30      // sunshine is king for beachgoers
-    + factors.windSpeed * 0.25                 // nobody likes sand in their eyes
-    + factors.waveHeight * 0.15                // calm enough for a swim
-    + factors.seaTemp * 0.15                   // warm enough to get in
-    + factors.uvIndex * 0.15;                  // not scorching
+  let overall = factors.weather * 0.30      // sunshine is king for beachgoers
+    + factors.windSpeed * 0.25               // nobody likes sand in their eyes
+    + factors.waveHeight * 0.15              // calm enough for a swim
+    + factors.seaTemp * 0.15                 // warm enough to get in
+    + factors.uvIndex * 0.15;                // not scorching
+
+  // Nighttime override — beach-going is intrinsically a daylight activity.
+  // If it's night, cap the score at "Poor" regardless of other factors.
+  if (c.isDay === false) {
+    overall = Math.min(overall, 10);
+    factors.daylight = 0;
+    warnings.unshift('Nighttime — no sun, limited visibility');
+  } else {
+    factors.daylight = 100;
+  }
 
   return buildScore(overall, factors, warnings);
 }

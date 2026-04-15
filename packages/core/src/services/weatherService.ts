@@ -191,7 +191,8 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
       relative_humidity_2m: hourly.relative_humidity_2m || [],
       uv_index: hourly.uv_index || [],
       weather_code: hourly.weather_code || [],
-      precipitation_probability: hourly.precipitation_probability || []
+      precipitation_probability: hourly.precipitation_probability || [],
+      is_day: hourly.is_day || []
     };
 
     // Construct the daily object with merged data from marine and forecast APIs

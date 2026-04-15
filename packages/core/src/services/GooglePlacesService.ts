@@ -54,6 +54,8 @@ export interface MarinaDetails {
   opening_hours?: MarinaOpeningHours;
   /** Resolved address as Google formats it */
   formatted_address?: string;
+  /** Google Maps canonical URL for "Open in Google Maps" links */
+  url?: string;
 }
 
 interface FindPlaceResponse {
@@ -61,6 +63,17 @@ interface FindPlaceResponse {
   candidates?: Array<{
     place_id: string;
     name?: string;
+  }>;
+  error_message?: string;
+}
+
+interface NearbySearchResponse {
+  status: string;
+  results?: Array<{
+    place_id: string;
+    name?: string;
+    geometry?: { location?: { lat: number; lng: number } };
+    types?: string[];
   }>;
   error_message?: string;
 }
@@ -77,6 +90,7 @@ interface PlaceDetailsResponse {
     user_ratings_total?: number;
     opening_hours?: MarinaOpeningHours;
     formatted_address?: string;
+    url?: string;
   };
   error_message?: string;
 }
@@ -119,63 +133,123 @@ function buildDetailsUrl(apiBase: string, placeId: string, apiKey: string): stri
       'user_ratings_total',
       'opening_hours',
       'formatted_address',
+      'url',
     ].join(','),
     key: apiKey,
   });
   return `${apiBase}/details/json?${params.toString()}`;
 }
 
+/**
+ * Build a Nearby Search URL for the closest marina/port to lat/lon.
+ * Prioritises the `marina` type, falls back to `port` via a keyword sweep.
+ */
+function buildNearbySearchUrl(
+  apiBase: string,
+  lat: number,
+  lon: number,
+  apiKey: string,
+  keyword: string = 'marina',
+): string {
+  const params = new URLSearchParams({
+    location: `${lat},${lon}`,
+    radius: String(LOCATION_BIAS_RADIUS_M),
+    keyword,
+    key: apiKey,
+  });
+  return `${apiBase}/nearbysearch/json?${params.toString()}`;
+}
+
 // ─── Public API ───
+
+/**
+ * Resolve a Google place_id for a marina/port at the given coordinates.
+ * Strategy:
+ *   1. If `marinaName` supplied → Find Place from Text (location-biased).
+ *   2. Else → Nearby Search for "marina"; fall back to "port" keyword.
+ */
+async function resolvePlaceId(
+  lat: number,
+  lon: number,
+  marinaName: string | undefined,
+  apiKey: string,
+  apiBase: string,
+): Promise<string | null> {
+  // Strategy 1 — Find Place from Text
+  if (marinaName && marinaName.trim().length > 0) {
+    try {
+      const findUrl = buildFindPlaceUrl(apiBase, marinaName, lat, lon, apiKey);
+      const findResp = await deduplicatedFetch<FindPlaceResponse>(
+        findUrl,
+        { method: 'GET' },
+        { ttl: 60_000, logRetries: false },
+      );
+      if (findResp.status === 'OK' && findResp.candidates && findResp.candidates.length > 0) {
+        const placeId = findResp.candidates[0].place_id;
+        if (placeId) return placeId;
+      } else if (findResp.status && findResp.status !== 'ZERO_RESULTS') {
+        console.warn(
+          `[GooglePlacesService] Find Place failed for "${marinaName}": ${findResp.status} ${findResp.error_message ?? ''}`,
+        );
+      }
+    } catch (err) {
+      console.warn('[GooglePlacesService] Find Place error:', err);
+    }
+  }
+
+  // Strategy 2 — Nearby Search (marina → port keyword fallback)
+  for (const keyword of ['marina', 'port']) {
+    try {
+      const nearbyUrl = buildNearbySearchUrl(apiBase, lat, lon, apiKey, keyword);
+      const nearbyResp = await deduplicatedFetch<NearbySearchResponse>(
+        nearbyUrl,
+        { method: 'GET' },
+        { ttl: 60_000, logRetries: false },
+      );
+      if (nearbyResp.status === 'OK' && nearbyResp.results && nearbyResp.results.length > 0) {
+        const first = nearbyResp.results[0];
+        if (first.place_id) return first.place_id;
+      }
+    } catch (err) {
+      console.warn(`[GooglePlacesService] Nearby Search (${keyword}) error:`, err);
+    }
+  }
+
+  return null;
+}
 
 /**
  * Fetch enriched marina details from Google Places.
  *
  * @param lat         Marina latitude (decimal degrees)
  * @param lon         Marina longitude (decimal degrees)
- * @param marinaName  Marina display name (used for the text query)
+ * @param marinaName  Optional display name — when supplied, uses the Text Search
+ *                    endpoint for a more precise match. When omitted, falls back
+ *                    to Nearby Search for the closest "marina" or "port".
  * @param apiKey      Google Places API key (passed in by the web caller)
  * @param apiBase     Optional base URL — pass a Vite proxy path here if CORS
  *                    blocks the direct request. Defaults to Google's host.
- * @returns           MarinaDetails on success, `null` if the marina was not
- *                    found OR if the API key is missing / blocked.
+ * @returns           MarinaDetails on success, `null` if nothing was found OR
+ *                    if the API key is missing / blocked.
  */
 export async function fetchMarinaDetails(
   lat: number,
   lon: number,
-  marinaName: string,
-  apiKey: string,
+  marinaName?: string,
+  apiKey: string = '',
   apiBase: string = DEFAULT_API_BASE,
 ): Promise<MarinaDetails | null> {
   if (!apiKey) {
     console.warn('[GooglePlacesService] No API key supplied — skipping lookup');
     return null;
   }
-  if (!marinaName || marinaName.trim().length === 0) {
-    console.warn('[GooglePlacesService] No marina name supplied — skipping lookup');
-    return null;
-  }
 
   try {
-    // Step 1 — Find Place from Text
-    const findUrl = buildFindPlaceUrl(apiBase, marinaName, lat, lon, apiKey);
-    const findResp = await deduplicatedFetch<FindPlaceResponse>(
-      findUrl,
-      { method: 'GET' },
-      { ttl: 60_000, logRetries: false },
-    );
-
-    if (findResp.status !== 'OK' || !findResp.candidates || findResp.candidates.length === 0) {
-      if (findResp.status && findResp.status !== 'ZERO_RESULTS') {
-        console.warn(
-          `[GooglePlacesService] Find Place failed for "${marinaName}": ${findResp.status} ${findResp.error_message ?? ''}`,
-        );
-      }
+    // Step 1 — Resolve a place_id via Text Search (with name) or Nearby Search
+    const placeId = await resolvePlaceId(lat, lon, marinaName, apiKey, apiBase);
+    if (!placeId) {
       return null;
     }
-
-    const candidate = findResp.candidates[0];
-    const placeId = candidate.place_id;
-    if (!placeId) return null;
 
     // Step 2 — Place Details
     const detailsUrl = buildDetailsUrl(apiBase, placeId, apiKey);
@@ -187,7 +261,7 @@ export async function fetchMarinaDetails(
 
     if (detailsResp.status !== 'OK' || !detailsResp.result) {
       console.warn(
-        `[GooglePlacesService] Place Details failed for "${marinaName}": ${detailsResp.status} ${detailsResp.error_message ?? ''}`,
+        `[GooglePlacesService] Place Details failed: ${detailsResp.status} ${detailsResp.error_message ?? ''}`,
       );
       return null;
     }
@@ -203,6 +277,7 @@ export async function fetchMarinaDetails(
       user_ratings_total: r.user_ratings_total,
       opening_hours: r.opening_hours,
       formatted_address: r.formatted_address,
+      url: r.url,
     };
   } catch (err) {
     console.warn('[GooglePlacesService] Lookup failed:', err);

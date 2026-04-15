@@ -557,3 +557,171 @@ input[type=range]::-webkit-slider-runnable-track {
   border-color: rgba(59, 130, 246, 0.2);
   color: #2563eb;
 }
+
+/* ──────────────────────────────────────────────────────────────────────
+   Marina / Port Popup — Google Places enriched
+   ────────────────────────────────────────────────────────────────────── */
+.seayou-marina-popup-wrap .maplibregl-popup-content {
+  padding: 0;
+  background: rgba(15, 23, 42, 0.96);
+  color: #f1f5f9;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  min-width: 240px;
+}
+.seayou-marina-popup-wrap .maplibregl-popup-tip {
+  border-top-color: rgba(15, 23, 42, 0.96) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.96) !important;
+}
+.seayou-marina-popup-wrap .maplibregl-popup-close-button {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+  padding: 4px 8px;
+}
+.seayou-marina-popup {
+  padding: 14px 16px 12px;
+  font-family: inherit;
+}
+.seayou-marina-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+.seayou-marina-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+}
+.seayou-marina-sub {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+.seayou-marina-loading {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+}
+.seayou-marina-spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: seayou-marina-spin 0.8s linear infinite;
+}
+@keyframes seayou-marina-spin {
+  to { transform: rotate(360deg); }
+}
+.seayou-marina-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.seayou-marina-row {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.seayou-marina-stars {
+  font-size: 14px;
+}
+.seayou-marina-rating-text {
+  font-weight: 600;
+  color: #fbbf24;
+}
+.seayou-marina-open {
+  color: #34d399;
+  font-weight: 600;
+  font-size: 11px;
+}
+.seayou-marina-closed {
+  color: #f87171;
+  font-weight: 600;
+  font-size: 11px;
+}
+.seayou-marina-address {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.seayou-marina-empty {
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  font-size: 11px;
+}
+.seayou-marina-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.seayou-marina-call-btn,
+.seayou-marina-website-btn,
+.seayou-marina-gmaps-btn {
+  display: block;
+  text-align: center;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 80ms ease, background-color 120ms ease;
+}
+.seayou-marina-call-btn:hover,
+.seayou-marina-website-btn:hover,
+.seayou-marina-gmaps-btn:hover {
+  transform: translateY(-1px);
+}
+.seayou-marina-call-btn {
+  background: linear-gradient(90deg, #059669, #10b981);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+}
+.seayou-marina-phone {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.85;
+  margin-top: 2px;
+}
+.seayou-marina-website-btn {
+  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.25);
+}
+.seayou-marina-gmaps-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.seayou-marina-gmaps-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Light-mode tweaks */
+.light .seayou-marina-popup-wrap .maplibregl-popup-content {
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+.light .seayou-marina-popup-wrap .maplibregl-popup-tip {
+  border-top-color: #ffffff !important;
+  border-bottom-color: #ffffff !important;
+}
+.light .seayou-marina-header {
+  border-bottom-color: rgba(15, 23, 42, 0.08);
+}
+.light .seayou-marina-name { color: #111827; }
+.light .seayou-marina-sub { color: #6b7280; }
+.light .seayou-marina-row { color: #374151; }
+.light .seayou-marina-address { color: #6b7280; }
+.light .seayou-marina-gmaps-btn {
+  background: rgba(15, 23, 42, 0.05);
+  color: #1f2937;
+  border-color: rgba(15, 23, 42, 0.12);
+}

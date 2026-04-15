@@ -1,5 +1,23 @@
 import { MarineWeatherData, HourlyConditions } from '../types';
 
+/**
+ * Resolve whether a given hour is daylight.
+ * Priority: hourly `is_day` array (Open-Meteo) → hour-of-day fallback (6am–8pm).
+ */
+function resolveIsDay(data: MarineWeatherData, hourIndex: number): boolean {
+  const raw = data.hourly.is_day?.[hourIndex];
+  if (raw !== undefined) return raw === 1;
+  // Fallback: parse hour from ISO timestamp and assume day between 06:00 and 20:00
+  const iso = data.hourly.time?.[hourIndex] || '';
+  const match = iso.match(/T(\d{2}):/);
+  if (match) {
+    const hour = parseInt(match[1], 10);
+    return hour >= 6 && hour < 20;
+  }
+  // Final fallback — assume day
+  return true;
+}
+
 export function extractHourlyConditions(
   data: MarineWeatherData,
   hourIndex: number
@@ -23,6 +41,7 @@ export function extractHourlyConditions(
     uvIndex: h.uv_index?.[hourIndex],
     weatherCode: h.weather_code?.[hourIndex],
     pressure: h.pressure_msl?.[hourIndex],
+    isDay: resolveIsDay(data, hourIndex),
   };
 }
 
