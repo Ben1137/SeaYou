@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
-import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast } from '@seame/core';
-import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor } from 'lucide-react';
+import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, toTelHref } from '@seame/core';
+import type { MarinaDetails } from '@seame/core';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +14,15 @@ import { DARK_MAP_CONFIG } from '../../utils/particleConfig';
 
 // MapLibre Native Layers (Phase 1)
 import { PortsLayerML } from './layers/PortsLayerML';
+import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
 import { RainRadarLayerML } from './layers/RainRadarLayerML';
 import { CoastlineLayerML } from './layers/CoastlineLayerML';
 import { MarineAreasLayerML } from './layers/MarineAreasLayerML';
+
+// Pro Navigation Engine — OpenSeaMap ENC overlay (Phase 8)
+import { OpenSeaMapLayerML } from './layers/OpenSeaMapLayerML';
 
 // Custom WebGL Layers (Phase 2)
 import { WaveHeatmapLayerML } from './layers/WaveHeatmapLayerML';
@@ -44,6 +49,7 @@ import { SwellParticleLayerML } from './layers/SwellParticleLayerML';
 import { DiveSuitabilityLayerML } from './layers/DiveSuitabilityLayerML';
 import { ChopLevelLayerML } from './layers/ChopLevelLayerML';
 import { GustDeltaLayerML } from './layers/GustDeltaLayerML';
+import { CurrentHeatmapLayerML } from './layers/CurrentHeatmapLayerML';
 
 // Tsunami Alert Layer (Phase 5 — GDACS)
 import { ActiveTsunamiLayerML } from './layers/ActiveTsunamiLayerML';
@@ -72,11 +78,15 @@ type AdvancedLayer =
   | 'SWELL_PARTICLES'
   | 'DIVE_SUITABILITY'
   | 'CHOP_LEVEL'
-  | 'GUST_DELTA';
+  | 'GUST_DELTA'
+  | 'CURRENT_HEATMAP';
+
+import type { SavedLocation } from '@seame/core';
 
 interface MapContainerMLProps {
   currentLocation: Coordinate;
   tsunamiRisks?: TsunamiRisk[];
+  favoriteLocations?: SavedLocation[];
 }
 
 const getWindColor = (speed: number) => {
@@ -181,7 +191,99 @@ function buildQueryPopupHTML(
   </div>`;
 }
 
-export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContainerMLProps) {
+// ─── Marina popup builders (Phase 8 — Marina Booking) ───
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Skeleton popup shown immediately on port click while we wait for Google Places.
+ */
+function buildMarinaSkeletonHTML(port: PortFeature): string {
+  const safeName = escapeHtml(port.name || 'Marina');
+  return `<div class="seayou-popup-body seayou-marina-popup">
+    <div class="seayou-marina-header">
+      <div class="seayou-marina-name">${safeName}</div>
+      <div class="seayou-marina-sub">Loading marina details\u2026</div>
+    </div>
+    <div class="seayou-marina-loading">
+      <div class="seayou-marina-spinner"></div>
+    </div>
+  </div>`;
+}
+
+/**
+ * Final popup with Google Places enrichment + Call-to-Book CTA.
+ * Falls back gracefully if `details` is null.
+ */
+function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null): string {
+  const safeName = escapeHtml(port.name || 'Marina');
+  const websiteFromPort = (port.properties?.website as string | undefined) || undefined;
+
+  const phone = details?.formatted_phone_number || details?.international_phone_number;
+  const telHref = toTelHref(phone);
+  const website = details?.website || websiteFromPort;
+  const rating = details?.rating;
+  const ratingCount = details?.user_ratings_total;
+  const openNow = details?.opening_hours?.open_now;
+  const address = details?.formatted_address;
+
+  const rows: string[] = [];
+
+  if (rating != null) {
+    const stars = '\u2605'.repeat(Math.round(rating)) + '\u2606'.repeat(5 - Math.round(rating));
+    rows.push(`<div class="seayou-marina-row">
+      <span class="seayou-marina-stars">${stars}</span>
+      <span class="seayou-marina-rating-text">${rating.toFixed(1)}${ratingCount ? ` (${ratingCount})` : ''}</span>
+    </div>`);
+  }
+
+  if (openNow != null) {
+    const cls = openNow ? 'seayou-marina-open' : 'seayou-marina-closed';
+    const label = openNow ? 'Open now' : 'Closed';
+    rows.push(`<div class="seayou-marina-row"><span class="${cls}">${label}</span></div>`);
+  }
+
+  if (address) {
+    rows.push(`<div class="seayou-marina-row seayou-marina-address">${escapeHtml(address)}</div>`);
+  }
+
+  // CTA buttons
+  const buttons: string[] = [];
+  if (telHref && phone) {
+    buttons.push(
+      `<a href="${escapeHtml(telHref)}" class="seayou-marina-call-btn">\u260E Call Marina to Book<br/><span class="seayou-marina-phone">${escapeHtml(phone)}</span></a>`,
+    );
+  }
+  if (website) {
+    buttons.push(
+      `<a href="${escapeHtml(website)}" target="_blank" rel="noopener" class="seayou-marina-website-btn">\uD83C\uDF10 Visit Website</a>`,
+    );
+  }
+
+  // Empty-state when no Google details came back
+  if (rows.length === 0 && buttons.length === 0) {
+    rows.push(
+      `<div class="seayou-marina-row seayou-marina-empty">No public booking details available for this marina.</div>`,
+    );
+  }
+
+  return `<div class="seayou-popup-body seayou-marina-popup">
+    <div class="seayou-marina-header">
+      <div class="seayou-marina-name">${safeName}</div>
+    </div>
+    <div class="seayou-marina-rows">${rows.join('')}</div>
+    ${buttons.length > 0 ? `<div class="seayou-marina-buttons">${buttons.join('')}</div>` : ''}
+  </div>`;
+}
+
+export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLocations = [] }: MapContainerMLProps) {
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -199,6 +301,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
 
   // Popup ref for tap-to-query (single popup, reused)
   const queryPopupRef = useRef<maplibregl.Popup | null>(null);
+  // Separate popup ref for marina detail popup so it doesn't fight tap-to-query
+  const marinaPopupRef = useRef<maplibregl.Popup | null>(null);
 
   // Touch device detection (memoized once)
   const isTouchDevice = useRef(
@@ -220,7 +324,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
     advancedLayer === 'SWELL_PARTICLES' ||
     advancedLayer === 'DIVE_SUITABILITY' ||
     advancedLayer === 'CHOP_LEVEL' ||
-    advancedLayer === 'GUST_DELTA'
+    advancedLayer === 'GUST_DELTA' ||
+    advancedLayer === 'CURRENT_HEATMAP'
   );
   const sharedMarineData = useSharedMarineData(mapRef.current, isMarineLayerActive);
 
@@ -235,7 +340,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
   );
   const sharedForecastData = useSharedForecastGridData(mapRef.current, isForecastLayerActive);
 
-  // GeoJSON overlay state
+  // GeoJSON / raster overlay state
   const [geoJSONLayers, setGeoJSONLayers] = useState({
     coastline: false,
     bathymetry: false,
@@ -243,6 +348,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
     ports: false,
     marineAreas: false,
     radar: false,
+    enc: false, // OpenSeaMap navigational charts
   });
 
   // Detail view state
@@ -457,6 +563,10 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
         queryPopupRef.current.remove();
         queryPopupRef.current = null;
       }
+      if (marinaPopupRef.current) {
+        marinaPopupRef.current.remove();
+        marinaPopupRef.current = null;
+      }
       map.remove();
       mapRef.current = null;
     };
@@ -476,6 +586,40 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
       }
     }
   }, [currentLocation.lat, currentLocation.lng]);
+
+  // ─── Favorite location markers ───
+  const favoriteMarkersRef = useRef<maplibregl.Marker[]>([]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    // Clear existing favorite markers
+    favoriteMarkersRef.current.forEach((m) => m.remove());
+    favoriteMarkersRef.current = [];
+
+    favoriteLocations.forEach((fav) => {
+      const el = document.createElement('div');
+      el.className = 'favorite-location-marker';
+      el.innerHTML = `<svg width="28" height="28" viewBox="0 0 24 24" fill="#f59e0b" stroke="#ffffff" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>`;
+      el.style.cssText = 'cursor: pointer; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));';
+
+      const popup = new maplibregl.Popup({ offset: 20, closeButton: false })
+        .setHTML(`<div style="font-weight:bold;font-size:13px;color:#0f172a;padding:2px 4px;">${fav.name}</div>`);
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([fav.lng, fav.lat])
+        .setPopup(popup)
+        .addTo(map);
+
+      favoriteMarkersRef.current.push(marker);
+    });
+
+    return () => {
+      favoriteMarkersRef.current.forEach((m) => m.remove());
+      favoriteMarkersRef.current = [];
+    };
+  }, [favoriteLocations]);
 
   // Effect to trigger grid update when layer changes
   useEffect(() => {
@@ -641,6 +785,56 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
     }
   }, []);
 
+  // Handle port click — opens an enriched marina-booking popup
+  const handlePortClick = useCallback(async (port: PortFeature) => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    // Tear down any open popups (tap-to-query + previous marina popup)
+    if (queryPopupRef.current) {
+      queryPopupRef.current.remove();
+      queryPopupRef.current = null;
+    }
+    if (marinaPopupRef.current) {
+      marinaPopupRef.current.remove();
+      marinaPopupRef.current = null;
+    }
+
+    const [lng, lat] = port.coordinates;
+
+    // 1. Show skeleton popup immediately so the tap feels responsive
+    const popup = new maplibregl.Popup({
+      closeButton: true,
+      closeOnClick: true,
+      maxWidth: '280px',
+      className: 'seayou-marina-popup-wrap',
+    })
+      .setLngLat([lng, lat])
+      .setHTML(buildMarinaSkeletonHTML(port))
+      .addTo(map);
+
+    marinaPopupRef.current = popup;
+
+    // 2. Read API key from Vite env (cast trick: core is compiled by tsc, web by Vite)
+    const apiKey =
+      (import.meta as unknown as { env?: Record<string, string> }).env
+        ?.VITE_GOOGLE_PLACES_API_KEY ?? '';
+
+    // 3. Fetch enriched details (returns null on missing key / no match / CORS)
+    let details: MarinaDetails | null = null;
+    try {
+      details = await fetchMarinaDetails(lat, lng, port.name, apiKey);
+    } catch (err) {
+      console.warn('[MapContainerML] Marina details fetch failed:', err);
+    }
+
+    // 4. If the user already closed the popup, abort
+    if (marinaPopupRef.current !== popup) return;
+
+    // 5. Replace popup HTML with enriched content
+    popup.setHTML(buildMarinaPopupHTML(port, details));
+  }, []);
+
   // Detail chart data
   const detailChartData = selectedPointDetail ? selectedPointDetail.hourly.time.map((t, i) => ({
     time: format(parseISO(t), 'HH:mm'),
@@ -731,6 +925,12 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> Current Particles
+            </button>
+            <button
+              onClick={() => setAdvancedLayer(advancedLayer === 'CURRENT_HEATMAP' ? 'NONE' : 'CURRENT_HEATMAP')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_HEATMAP' ? 'bg-cyan-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Activity size={12} /> {t('map.currentHeatmap') || 'Current Speed'}
             </button>
             <button
               onClick={() => setAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
@@ -844,6 +1044,13 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.radar ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Droplets size={12} /> {t('map.rainRadar') || 'Rain Radar'}
+            </button>
+            <button
+              onClick={() => setGeoJSONLayers(prev => ({ ...prev, enc: !prev.enc }))}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.enc ? 'bg-rose-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              title="OpenSeaMap navigational marks (buoys, beacons, lighthouses, channel markers)"
+            >
+              <Compass size={12} /> {t('map.navCharts') || 'Navigational Charts (ENC)'}
             </button>
           </div>
           {(loadingGrid || sharedMarineData.loading || sharedForecastData.loading) && (
@@ -984,6 +1191,15 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
         />
       )}
 
+      {advancedLayer === 'CURRENT_HEATMAP' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.currentHeatmap}
+          unit="m/s"
+          title={t('map.legend.currentHeatmap') || 'Current Speed'}
+          position="bottomright"
+        />
+      )}
+
       {advancedLayer === 'WAVE_HEATMAP' && (
         <ColorScaleLegend
           scale={COLOR_SCALES.waveHeatmap}
@@ -1109,9 +1325,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
       {/* MapLibre Native Layers (Phase 1) */}
       <PortsLayerML
         visible={geoJSONLayers.ports}
-        onPortClick={(port) => {
-          console.log('[MapContainerML] Port clicked:', port.name);
-        }}
+        onPortClick={handlePortClick}
       />
       <ReefLayerML
         visible={geoJSONLayers.reefs}
@@ -1133,6 +1347,12 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
         visible={geoJSONLayers.radar}
         opacity={0.5}
         animated={false}
+      />
+
+      {/* OpenSeaMap ENC overlay (Phase 8 — Pro Navigation) */}
+      <OpenSeaMapLayerML
+        visible={geoJSONLayers.enc}
+        opacity={0.85}
       />
 
       {/*
@@ -1168,6 +1388,12 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [] }: MapContai
         particleCount={192}
         speedFactor={6.0}
         pointSize={2.5}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      <CurrentHeatmapLayerML
+        visible={advancedLayer === 'CURRENT_HEATMAP'}
+        opacity={0.65}
+        maxSpeed={2.0}
         sharedGridData={sharedMarineData.gridData}
       />
 

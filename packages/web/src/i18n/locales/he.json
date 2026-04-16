@@ -50,7 +50,10 @@
     "tsunamiMessage": "פקודת פינוי מיידית. פגיעת גלים גבוהים קרובה.",
     "highWaves": "גלים גבוהים",
     "strongWinds": "רוחות חזקות",
+    "tsunamiAlerts": "התראות צונאמי",
+    "tsunamiAlertsDesc": "קבל התראות דחופות על אזהרות צונאמי באזורך",
     "tsunamiDesc": "הדמיית באנר אזהרת צונאמי",
+    "tsunamiSimDesc": "הדמיית באנר אזהרת צונאמי (פיתוח בלבד)",
     "pushNotifications": "התראות דחיפה",
     "pushDesc": "קבל התראות כשהתנאים מושלמים",
     "pushEnabled": "מופעל",
@@ -340,7 +343,8 @@
       "significantWaveHeight": "גובה גלים משמעותי",
       "diveSuitability": "התאמה לצלילה",
       "chopLevel": "רמת סערה",
-      "gustDelta": "הפרש משבי רוח"
+      "gustDelta": "הפרש משבי רוח",
+      "currentHeatmap": "מהירות זרם"
     },
     "geoJSONLayers": "שכבות מפה",
     "coastline": "קו החוף",
@@ -353,7 +357,8 @@
     "swellDirection": "כיוון גלישה",
     "diveSuitability": "התאמה לצלילה",
     "chopLevel": "רמת סערה",
-    "gustDelta": "הפרש משבי רוח"
+    "gustDelta": "הפרש משבי רוח",
+    "currentHeatmap": "מהירות זרם"
   },
   "units": {
     "meters": "מ׳",

@@ -50,7 +50,10 @@
     "tsunamiMessage": "Sofortige Evakuierung angeordnet. Hohe Wellenauswirkung steht bevor.",
     "highWaves": "Hohe Wellen",
     "strongWinds": "Starke Winde",
+    "tsunamiAlerts": "Tsunami-Warnungen",
+    "tsunamiAlertsDesc": "Erhalten Sie kritische Push-Benachrichtigungen bei Tsunami-Warnungen in Ihrer Nähe",
     "tsunamiDesc": "Simuliert Tsunami-Warnbanner",
+    "tsunamiSimDesc": "Simuliert Tsunami-Warnbanner (nur Entwicklung)",
     "pushNotifications": "Push-Benachrichtigungen",
     "pushDesc": "Benachrichtigungen bei perfekten Bedingungen",
     "pushEnabled": "Aktiviert",
@@ -334,7 +337,8 @@
     "swellDirection": "Dünung-Richtung",
     "diveSuitability": "Taucheignung",
     "chopLevel": "Wellenkabbel",
-    "gustDelta": "Böendifferenz"
+    "gustDelta": "Böendifferenz",
+    "currentHeatmap": "Strömungsgeschwindigkeit"
   },
   "units": {
     "meters": "m",

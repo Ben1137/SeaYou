@@ -50,7 +50,10 @@
     "tsunamiMessage": "Immediate evacuation ordered. High wave impact imminent.",
     "highWaves": "High Waves",
     "strongWinds": "Strong Winds",
+    "tsunamiAlerts": "Tsunami Alerts",
+    "tsunamiAlertsDesc": "Receive critical push notifications for tsunami warnings in your area",
     "tsunamiDesc": "Simulates tsunami warning banner",
+    "tsunamiSimDesc": "Simulates tsunami warning banner (dev only)",
     "pushNotifications": "Push Notifications",
     "pushDesc": "Get alerts when conditions are perfect",
     "pushEnabled": "Enabled",
@@ -355,7 +358,8 @@
       "marineAreas": "Marine Areas",
       "diveSuitability": "Dive Suitability",
       "chopLevel": "Chop Level",
-      "gustDelta": "Gust Delta"
+      "gustDelta": "Gust Delta",
+      "currentHeatmap": "Current Speed"
     },
     "geoJSONLayers": "Map Overlays",
     "coastline": "Coastline",
@@ -369,7 +373,8 @@
     "swellDirection": "Swell Direction",
     "diveSuitability": "Dive Suitability",
     "chopLevel": "Chop Level",
-    "gustDelta": "Gust Delta"
+    "gustDelta": "Gust Delta",
+    "currentHeatmap": "Current Speed"
   },
   "units": {
     "meters": "m",

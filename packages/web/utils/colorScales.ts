@@ -515,6 +515,23 @@ function generateGustDeltaColorScale(): ColorScalePoint[] {
 }
 
 /**
+ * Current heatmap color scale matching CURRENT_COLORS WebGL ramp (0 → 2+ m/s).
+ * Same palette as the Current particle layer — kept as a separate legend entry
+ * so the "Speed" framing (m/s) is unambiguous in the heatmap UI.
+ */
+function generateCurrentHeatmapColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0.0, color: 'rgba(0,100,200,0.2)', label: '0 m/s' }, // faint sapphire (slack)
+    { value: 0.2, color: '#0064C8',              label: '0.2'   }, // deep sapphire
+    { value: 0.5, color: '#00A0DC',              label: '0.5'   }, // ocean blue
+    { value: 0.8, color: '#14E1C8',              label: '0.8'   }, // vivid teal
+    { value: 1.0, color: '#3CF0D7',              label: '1.0'   }, // bright teal
+    { value: 1.5, color: '#78FAEB',              label: '1.5'   }, // light teal
+    { value: 2.0, color: '#BEFFFE',              label: '2+ m/s'}, // near-white cyan
+  ];
+}
+
+/**
  * Get all color scales for reference/legend display.
  *
  * Naming convention:
@@ -549,6 +566,7 @@ export const COLOR_SCALES = {
   diveSuitability: generateDiveSuitabilityColorScale(),
   chopLevel: generateChopLevelColorScale(),
   gustDelta: generateGustDeltaColorScale(),
+  currentHeatmap: generateCurrentHeatmapColorScale(),
   // Other
   bathymetry: generateBathymetryColorScale(),
   marineAreas: generateMarineAreasColorScale(),
