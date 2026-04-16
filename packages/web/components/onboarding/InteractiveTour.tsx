@@ -35,15 +35,17 @@ function useIsDesktop(): boolean {
 /**
  * InteractiveTour — React Joyride coach-marks.
  *
- * Targets only PERSISTENT UI elements that exist on every tab
- * (Dashboard scores are always mounted within the dashboard view which is
- * the initial route; nav + profile buttons live in the permanent chrome).
+ * Six-step flow that walks the user through the app's core value loop:
+ *   1. Dashboard scores      → "we calculate personalized 0-100 scores"
+ *   2. Map nav button        → "switch to the map to visualize conditions"
+ *   3. Map Layers panel      → "toggle premium overlays"
+ *   4. Map canvas            → "tap anywhere to query that coordinate"
+ *   5. Nearby nav button     → "find marinas + ports nearby"
+ *   6. Profile avatar        → "manage persona + preferences"
  *
- * Step order teaches the user to navigate the app themselves:
- *   1. Dashboard score grid  → "what we do for you"
- *   2. Map nav button         → "how to see charts"
- *   3. Location pill          → "how to search"
- *   4. Profile avatar         → "where settings live"
+ * Steps 3 + 4 are only reachable once the user has clicked the Map tab —
+ * Joyride auto-scrolls to targets but targets must exist in the DOM, so we
+ * programmatically wait for the map canvas to appear before advancing.
  */
 export const InteractiveTour: React.FC<InteractiveTourProps> = ({ run, onFinish }) => {
   const { t } = useTranslation();
@@ -61,6 +63,7 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({ run, onFinish 
   }, [run]);
 
   const navMapTarget = isDesktop ? '#tour-nav-map-desktop' : '#tour-nav-map-mobile';
+  const navNearbyTarget = isDesktop ? '#tour-nav-nearby-desktop' : '#tour-nav-nearby-mobile';
   const profileTarget = isDesktop ? '#tour-profile-menu-desktop' : '#tour-profile-menu-mobile';
 
   const steps: Step[] = useMemo(
@@ -70,43 +73,63 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({ run, onFinish 
         title: t('tour.step1.title', 'Personalized Intelligence'),
         content: t(
           'tour.step1.body',
-          'We calculate a live 0-100 score for your specific persona so you always know the perfect time to head out.'
+          'We calculate a live 0-100 score for your persona so you always know the perfect time to head out.'
         ),
         placement: 'bottom',
         disableBeacon: true,
       },
       {
         target: navMapTarget,
-        title: t('tour.step2.title', 'Explore the Map'),
+        title: t('tour.step2.title', 'Interactive Map'),
         content: t(
           'tour.step2.body',
-          'Click here to view interactive charts and unlock premium layers like Sea Temperature and Wave Heatmaps.'
+          'Switch to the map to visualize marine conditions globally.'
         ),
         placement: isDesktop ? 'right' : 'top',
         disableBeacon: true,
       },
       {
-        target: '#tour-search-bar',
-        title: t('tour.step3.title', 'Global Search'),
+        target: '#tour-map-layers',
+        title: t('tour.step3.title', 'Map Layers'),
         content: t(
           'tour.step3.body',
-          'Find and favorite beaches in any language to get live updates right on your profile.'
+          'Click here to switch between premium overlays like Sea Temp, Wave Heatmaps, and Currents.'
         ),
-        placement: 'bottom',
+        placement: 'left',
+        disableBeacon: true,
+      },
+      {
+        target: '.maplibregl-canvas',
+        title: t('tour.step4.title', 'Pinpoint Accuracy'),
+        content: t(
+          'tour.step4.body',
+          'Tap anywhere on the ocean to instantly query the live conditions for that exact coordinate.'
+        ),
+        placement: 'center',
+        disableBeacon: true,
+      },
+      {
+        target: navNearbyTarget,
+        title: t('tour.step5.title', 'Local Insights'),
+        content: t(
+          'tour.step5.body',
+          'Check the Nearby tab to find local marinas, ports, and points of interest.'
+        ),
+        placement: isDesktop ? 'right' : 'top',
         disableBeacon: true,
       },
       {
         target: profileTarget,
-        title: t('tour.step4.title', 'Your Hub'),
+        title: t('tour.step6.title', 'Your Hub'),
         content: t(
-          'tour.step4.body',
-          'Manage your Persona, change your settings, and upgrade to Premium here.'
+          'tour.step6.body',
+          'Manage your Persona and preferences here.'
         ),
         placement: isDesktop ? 'right' : 'bottom',
         disableBeacon: true,
       },
     ],
-    [t, navMapTarget, profileTarget, isDesktop]
+    [t, navMapTarget, navNearbyTarget, profileTarget, isDesktop]
   );
 
   // Light-mode tooltip styles — the app itself is dark, but we force a white

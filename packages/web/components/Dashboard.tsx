@@ -7,7 +7,7 @@ import {
   Wind, Activity, Waves, ArrowUp, ArrowDown,
   Navigation, Settings, X, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog,
   Thermometer, ThumbsUp, Skull, Flag, Palmtree, Compass, ChevronRight, ChevronLeft, Tornado, Ruler, Layers,
-  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye
+  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye, Info
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { getWeatherDescription } from '@seame/core';
@@ -97,8 +97,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     if (!weatherData?.hourly?.time) return 0;
     const nowTime = Date.now();
     let closestIdx = 0, minDiff = Infinity;
-    weatherData.hourly.time.forEach((t, i) => {
-      const diff = Math.abs(nowTime - new Date(t).getTime());
+    weatherData.hourly.time.forEach((timeStr: string, i: number) => {
+      const diff = Math.abs(nowTime - new Date(timeStr).getTime());
       if (diff < minDiff) { minDiff = diff; closestIdx = i; }
     });
     return closestIdx;
@@ -143,7 +143,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const roughWeatherAlert = useMemo(() => {
     if (!weatherData?.general || !currentConditions) return null;
     const { weatherCode } = weatherData.general;
-    const { wind, wave } = currentConditions;
+    const { wind, wave = 0 } = currentConditions;
 
     // Highest priority: Extreme storm (WMO code 95+ or severe readings)
     if (weatherCode >= 95 || wind > 65 || wave > 4.5) {
@@ -335,7 +335,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Location Pill (centered) ─── */}
       <div className="flex justify-center">
-        <button id="tour-search-bar" onClick={onLocationClick} className="glass-panel flex items-center px-4 py-1.5 space-x-2 !rounded-full cursor-pointer hover:bg-white/20 transition-colors">
+        <button id="tour-search-bar" onClick={onLocationClick} className="glass-panel flex items-center px-4 py-1.5 space-x-2 rounded-full! cursor-pointer hover:bg-white/20 transition-colors">
           <Navigation size={14} className="text-white" />
           <span className="text-sm font-semibold">{locationName}</span>
           <ChevronDown size={12} className="opacity-70" />
@@ -413,7 +413,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             const score = activityScores?.[cardPersona];
             const bw = bestWindows?.[cardPersona];
             return (
-              <div key={cardPersona} className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-[120px]">
+              <div key={cardPersona} className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-30">
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-lg glass-inner flex items-center justify-center">
                     <Icon size={18} className={iconColor} />
@@ -456,8 +456,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center"><Activity size={12} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{currentConditions.wave.toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[10px] text-teal-400 font-medium">{t('weather.period')}: {currentConditions.wavePeriod.toFixed(1)}s</p>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
+            <p className="text-[10px] text-teal-400 font-medium">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
           </div>
           <div className="absolute bottom-0 right-0 w-full h-16 opacity-50 z-0 pointer-events-none">
             <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 300 100">
@@ -481,40 +481,38 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center"><Waves size={12} className="mr-1.5" /> {t('weather.swell')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{currentConditions.swell.toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[10px] text-teal-400 font-medium flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection}deg)` }} /> {getCardinalDirection(currentConditions.swellDirection)} <span className="ml-2 opacity-70">{t('weather.period')}: {currentConditions.swellPeriod.toFixed(1)}s</span></p>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
+            <p className="text-[10px] text-teal-400 font-medium flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} /> {getCardinalDirection(currentConditions.swellDirection ?? 0)} <span className="ml-2 opacity-70">{t('weather.period')}: {(currentConditions.swellPeriod ?? 0).toFixed(1)}s</span></p>
           </div>
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
         </div>
 
-        {/* Temperature (Air + Sea combined) — strict 2-column flex with divide-x.
-            Each column is flex-1 with items-center so the values align perfectly
-            regardless of text width. */}
-        <div className="glass-panel p-4 h-full flex divide-x divide-white/10">
-          {/* Air column */}
-          <div className="flex-1 min-w-0 flex flex-col items-center justify-between px-2">
-            <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
-              <Thermometer size={12} className="mr-1.5" /> {t('weather.air')}
+        {/* Temperature (Air + Sea combined) */}
+        <div className="glass-panel p-3 h-full flex flex-col justify-between">
+          {/* Header row */}
+          <div className="grid grid-cols-2 divide-x divide-white/10">
+            <h3 className="text-[10px] font-bold tracking-widest text-white/70 uppercase flex items-center justify-center pb-1">
+              <Thermometer size={11} className="mr-1 shrink-0" /> {t('weather.air')}
             </h3>
-            <div className="flex items-baseline justify-center mt-3">
-              <span className="text-3xl sm:text-4xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
-              <span className="text-base sm:text-lg ml-0.5">°C</span>
-            </div>
-            <p className="text-[10px] text-white/60 mt-1 text-center truncate w-full">{t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°</p>
-          </div>
-
-          {/* Sea column */}
-          <div className="flex-1 min-w-0 flex flex-col items-center justify-between px-2">
-            <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center justify-center">
-              <Thermometer size={12} className="mr-1.5 text-orange-400" /> {t('weather.sea')}
+            <h3 className="text-[10px] font-bold tracking-widest text-white/70 uppercase flex items-center justify-center pb-1">
+              <Thermometer size={11} className="mr-1 shrink-0 text-orange-400" /> {t('weather.sea')}
             </h3>
-            <div className="flex items-baseline justify-center mt-3">
-              <span className="text-3xl sm:text-4xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0)}</span>
-              <span className="text-base sm:text-lg ml-0.5">°C</span>
-            </div>
-            {/* Invisible spacer to match Air's "feels like" row height */}
-            <p className="text-[10px] text-transparent mt-1 select-none" aria-hidden="true">-</p>
           </div>
+          {/* Values row — always same font size, always aligned */}
+          <div className="grid grid-cols-2 divide-x divide-white/10 mt-2">
+            <div className="flex items-baseline justify-center px-1">
+              <span className="text-3xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
+              <span className="text-sm ml-0.5">°C</span>
+            </div>
+            <div className="flex items-baseline justify-center px-1">
+              <span className="text-3xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
+              <span className="text-sm ml-0.5">°C</span>
+            </div>
+          </div>
+          {/* Feels like — full width, no truncation */}
+          <p className="text-[10px] text-white/60 mt-2 text-center leading-tight">
+            {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
+          </p>
         </div>
       </section>
 

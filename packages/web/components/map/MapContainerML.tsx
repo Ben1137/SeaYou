@@ -32,6 +32,9 @@ import { WindParticleLayerML } from './layers/WindParticleLayerML';
 import { CurrentParticleLayerML } from './layers/CurrentParticleLayerML';
 import { WaveParticleLayerML } from './layers/WaveParticleLayerML';
 
+// Current Heatmap (Phase 9 — Current magnitude as color field, complements particles)
+import { CurrentHeatmapLayerML } from './layers/CurrentHeatmapLayerML';
+
 // Sea Temperature Layer (Phase 5)
 import { SeaTemperatureLayerML } from './layers/SeaTemperatureLayerML';
 
@@ -81,7 +84,9 @@ type AdvancedLayer =
   | 'SWELL_PARTICLES'
   | 'DIVE_SUITABILITY'
   | 'CHOP_LEVEL'
-  | 'GUST_DELTA';
+  | 'GUST_DELTA'
+  // Phase 9 — current magnitude as heatmap (complements CURRENT_PARTICLES)
+  | 'CURRENT_HEATMAP';
 
 import type { SavedLocation } from '@seame/core';
 
@@ -128,7 +133,7 @@ function buildQueryPopupHTML(
   const isGeneral = layer === 'NONE' && basicLayer === 'NONE';
   const showWind = isGeneral || layer === 'WIND_PARTICLES' || layer === 'SEA_TEMP_WIND' || basicLayer === 'WIND';
   const showWaves = isGeneral || layer === 'WAVE_HEATMAP' || basicLayer === 'WAVE' || basicLayer === 'SIGNIFICANT_WAVE' || basicLayer === 'WIND_WAVE' || basicLayer === 'SWELL';
-  const showCurrents = isGeneral || layer === 'CURRENT_PARTICLES' || layer === 'SEA_TEMP_CURRENTS' || basicLayer === 'CURRENTS';
+  const showCurrents = isGeneral || layer === 'CURRENT_PARTICLES' || layer === 'CURRENT_HEATMAP' || layer === 'SEA_TEMP_CURRENTS' || basicLayer === 'CURRENTS';
   const showSeaTemp = layer === 'SEA_TEMP' || layer === 'SEA_TEMP_CURRENTS' || layer === 'SEA_TEMP_WIND';
   const showAirTemp = layer === 'AIR_TEMP';
   const showPrecip = layer === 'PRECIPITATION';
@@ -245,9 +250,14 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
   const lngStr = typeof lng === 'number' ? lng.toFixed(5) : '';
   const latStr = typeof lat === 'number' ? lat.toFixed(5) : '';
 
-  // "Open in Google Maps" — prefer Google's canonical URL, else construct one from coords + name
+  // "Open in Google Maps" — always works.
+  //   1st choice: Google's canonical place URL (best UX — opens Place card)
+  //   2nd choice: coord-only search URL so the pin drops exactly where the port is,
+  //              even if Google Places has zero listing data
   const gmapsUrl = details?.url
-    ?? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${osmName} ${latStr},${lngStr}`)}`;
+    ?? (latStr && lngStr
+      ? `http://googleusercontent.com/maps.google.com/?q=${latStr},${lngStr}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(osmName)}`);
 
   const rows: string[] = [];
 
@@ -379,7 +389,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     advancedLayer === 'SWELL_PARTICLES' ||
     advancedLayer === 'DIVE_SUITABILITY' ||
     advancedLayer === 'CHOP_LEVEL' ||
-    advancedLayer === 'GUST_DELTA'
+    advancedLayer === 'GUST_DELTA' ||
+    advancedLayer === 'CURRENT_HEATMAP'
   );
   const sharedMarineData = useSharedMarineData(mapRef.current, isMarineLayerActive);
 
@@ -486,6 +497,23 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
     // --- Exploration-only click handler: tap-to-query weather data ---
     map.on('click', async (e) => {
+      // COLLISION GUARD: if this click landed on a port pin (circle OR label),
+      // the PortsLayerML's own click handler will fire and open the marina
+      // popup. We must NOT also fire the generic ocean-query popup, otherwise
+      // two popups stack on top of each other and the map popup hides the
+      // richer marina one.
+      try {
+        const portLayerIds = ['ports-circle', 'ports-label'].filter((id) => map.getLayer(id));
+        if (portLayerIds.length > 0) {
+          const hit = map.queryRenderedFeatures(e.point, { layers: portLayerIds });
+          if (hit && hit.length > 0) {
+            return; // Let PortsLayerML own this click
+          }
+        }
+      } catch {
+        // queryRenderedFeatures can throw before style.load; ignore and continue
+      }
+
       // Close any existing query popup first
       if (queryPopupRef.current) {
         queryPopupRef.current.remove();
@@ -669,7 +697,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       if (advancedLayer === 'SEA_TEMP' || advancedLayer === 'SEA_TEMP_CURRENTS' || advancedLayer === 'SEA_TEMP_WIND') return `${(fc.seaTemp ?? fc.temp ?? 0).toFixed(1)}°C`;
       if (advancedLayer === 'WIND_PARTICLES') return `${Math.round(fc.windSpeed)} km/h`;
       if (advancedLayer === 'WAVE_HEATMAP') return `${fc.waveHeight.toFixed(1)}m`;
-      if (advancedLayer === 'CURRENT_PARTICLES') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
+      if (advancedLayer === 'CURRENT_PARTICLES' || advancedLayer === 'CURRENT_HEATMAP') return `${(fc.currentSpeed || 0).toFixed(1)} m/s`;
       if (advancedLayer === 'AIR_TEMP') return `${fc.temp.toFixed(0)}°C`;
       if (advancedLayer === 'SWELL_PARTICLES') return `${(fc.swellHeight || 0).toFixed(1)}m`;
       return '';
@@ -1050,6 +1078,12 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               <Activity size={12} /> <span className="flex-1">{t('map.currentParticles', 'Current Particles')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'CURRENT_HEATMAP' ? 'NONE' : 'CURRENT_HEATMAP')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_HEATMAP' ? 'bg-cyan-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Activity size={12} /> <span className="flex-1">{t('map.currentHeatmap', 'Current Heatmap')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+            </button>
+            <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-pink-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
@@ -1331,6 +1365,15 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         />
       )}
 
+      {advancedLayer === 'CURRENT_HEATMAP' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.currentParticles}
+          unit="m/s"
+          title={t('map.legend.currentHeatmap', 'Current Speed')}
+          position="bottomright"
+        />
+      )}
+
       {advancedLayer === 'WAVE_HEATMAP' && (
         <ColorScaleLegend
           scale={COLOR_SCALES.waveHeatmap}
@@ -1519,6 +1562,14 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         particleCount={192}
         speedFactor={6.0}
         pointSize={2.5}
+        sharedGridData={sharedMarineData.gridData}
+      />
+
+      {/* Current Heatmap (Phase 9) — colour-coded current SPEED. Complements particles. */}
+      <CurrentHeatmapLayerML
+        visible={advancedLayer === 'CURRENT_HEATMAP'}
+        opacity={0.65}
+        maxSpeed={2.0}
         sharedGridData={sharedMarineData.gridData}
       />
 

@@ -121,7 +121,18 @@ const AppContent: React.FC = () => {
   const showOnboarding = !hasCompletedOnboarding;
 
   // ─── App Tour state — shows after onboarding, persisted to preferences/Supabase ───
-  const showAppTour = hasCompletedOnboarding && alertConfig.persona !== null && !alertConfig.hasCompletedTour;
+  // CRITICAL: wait for cloud preferences to finish loading before evaluating
+  // `hasCompletedTour`. Otherwise on every app-open the default `false` flashes
+  // before the cloud value arrives, causing the tour to re-trigger for returning
+  // users who already completed it on another device.
+  const prefsLoaded =
+    alertConfig.cloudSyncStatus === 'synced' ||
+    alertConfig.cloudSyncStatus === 'error'; // 'error' = give up waiting, use local
+  const showAppTour =
+    hasCompletedOnboarding &&
+    prefsLoaded &&
+    alertConfig.persona !== null &&
+    !alertConfig.hasCompletedTour;
 
   // ─── Persona-filtered navigation — "Routes" tab only visible to mariners ───
   const visibleNavItems = useMemo(
@@ -471,7 +482,12 @@ const AppContent: React.FC = () => {
             {visibleNavItems.map(({ view: navView, icon: Icon, labelKey }) => (
               <button
                 key={navView}
-                id={navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-desktop' : navView === ViewState.MAP ? 'tour-nav-map-desktop' : undefined}
+                id={
+                  navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-desktop'
+                  : navView === ViewState.MAP ? 'tour-nav-map-desktop'
+                  : navView === ViewState.COASTS_MARINAS ? 'tour-nav-nearby-desktop'
+                  : undefined
+                }
                 onClick={() => handleNavClick(navView)}
                 className={`flex flex-col items-center gap-1 w-full py-3 rounded-xl transition-all ${
                   view === navView
@@ -812,7 +828,12 @@ const AppContent: React.FC = () => {
                 {visibleNavItems.map(({ view: navView, icon: Icon, labelKey }) => (
                   <button
                     key={navView}
-                    id={navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-mobile' : navView === ViewState.MAP ? 'tour-nav-map-mobile' : undefined}
+                    id={
+                      navView === ViewState.DASHBOARD ? 'tour-nav-dashboard-mobile'
+                      : navView === ViewState.MAP ? 'tour-nav-map-mobile'
+                      : navView === ViewState.COASTS_MARINAS ? 'tour-nav-nearby-mobile'
+                      : undefined
+                    }
                     onClick={() => handleNavClick(navView)}
                     className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
                       view === navView

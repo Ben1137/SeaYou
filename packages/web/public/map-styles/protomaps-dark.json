@@ -1,0 +1,65 @@
+{
+  "version": 8,
+  "name": "SeaYou Dark Marine",
+  "glyphs": "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "protomaps": {
+      "type": "vector",
+      "url": "pmtiles://https://build.protomaps.com/20240418.pmtiles",
+      "attribution": "<a href='https://github.com/protomaps/basemaps'>Protomaps</a> © <a href='https://openstreetmap.org'>OpenStreetMap</a>"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#0a1429"
+      }
+    },
+    {
+      "id": "earth",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "earth",
+      "paint": {
+        "fill-color": "#111111"
+      }
+    },
+    {
+      "id": "water-inland",
+      "type": "fill",
+      "source": "protomaps",
+      "source-layer": "water",
+      "filter": [
+        "!=",
+        "pmap:kind",
+        "ocean"
+      ],
+      "paint": {
+        "fill-color": "#0a1429"
+      }
+    },
+    {
+      "id": "places",
+      "type": "symbol",
+      "source": "protomaps",
+      "source-layer": "places",
+      "layout": {
+        "text-field": [
+          "get",
+          "name:en"
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 14
+      },
+      "paint": {
+        "text-color": "#ffffff",
+        "text-halo-color": "#000000",
+        "text-halo-width": 2
+      }
+    }
+  ]
+}
