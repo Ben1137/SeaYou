@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.glassBorder,
     padding: 16,
-    marginBottom: 12,
-    width: '48%',
+    flexBasis: '47%',
+    flexGrow: 1,
     overflow: 'hidden',
   },
   glow: {
@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
     alignItems: 'baseline',
+    justifyContent: 'center',
   },
   value: {
     fontSize: 28,

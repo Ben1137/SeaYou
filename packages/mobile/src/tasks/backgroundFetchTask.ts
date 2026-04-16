@@ -86,52 +86,56 @@ TaskManager.defineTask(BACKGROUND_TASK_NAME, async () => {
     let hasNewData = false;
 
     // ═══════════════════════════════════════════════════
-    // Job 1: TSUNAMI CHECK
+    // Job 1: TSUNAMI CHECK (only if user has opted in)
     // ═══════════════════════════════════════════════════
-    try {
-      const events = await fetchActiveTsunamis();
-      if (events.length > 0) {
-        const risks = checkTsunamiRisk(latitude, longitude, events);
+    if (prefs.alerts.tsunamiAlertsEnabled) {
+      try {
+        const events = await fetchActiveTsunamis();
+        if (events.length > 0) {
+          const risks = checkTsunamiRisk(latitude, longitude, events);
 
-        // HIGH risk → immediate warning
-        const highRisks = risks.filter((r) => r.riskLevel === 'HIGH');
-        if (highRisks.length > 0) {
-          const top = highRisks[0];
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: '\u26a0\ufe0f TSUNAMI WARNING',
-              body: `${top.event.title} \u2014 M${top.event.magnitude.toFixed(1)} \u2014 ${Math.round(top.distanceKm)} km away. Seek high ground immediately.`,
-              data: { type: 'tsunami_alert', riskLevel: 'HIGH', eventId: top.event.id },
-              sound: 'default',
-              priority: Notifications.AndroidNotificationPriority.MAX,
-            },
-            trigger: null,
-          });
-          hasNewData = true;
-        }
+          // HIGH risk → immediate warning
+          const highRisks = risks.filter((r) => r.riskLevel === 'HIGH');
+          if (highRisks.length > 0) {
+            const top = highRisks[0];
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: '\u26a0\ufe0f TSUNAMI WARNING',
+                body: `${top.event.title} \u2014 M${top.event.magnitude.toFixed(1)} \u2014 ${Math.round(top.distanceKm)} km away. Seek high ground immediately.`,
+                data: { type: 'tsunami_alert', riskLevel: 'HIGH', eventId: top.event.id },
+                sound: 'default',
+                priority: Notifications.AndroidNotificationPriority.MAX,
+              },
+              trigger: null,
+            });
+            hasNewData = true;
+          }
 
-        // MODERATE risk (only if no HIGH)
-        const modRisks = risks.filter((r) => r.riskLevel === 'MODERATE');
-        if (modRisks.length > 0 && highRisks.length === 0) {
-          const top = modRisks[0];
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: '\uD83C\uDF0A Tsunami Advisory',
-              body: `${top.event.title} \u2014 M${top.event.magnitude.toFixed(1)} \u2014 ${Math.round(top.distanceKm)} km away. Stay alert.`,
-              data: { type: 'tsunami_advisory', riskLevel: 'MODERATE', eventId: top.event.id },
-              sound: 'default',
-            },
-            trigger: null,
-          });
-          hasNewData = true;
-        }
+          // MODERATE risk (only if no HIGH)
+          const modRisks = risks.filter((r) => r.riskLevel === 'MODERATE');
+          if (modRisks.length > 0 && highRisks.length === 0) {
+            const top = modRisks[0];
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: '\uD83C\uDF0A Tsunami Advisory',
+                body: `${top.event.title} \u2014 M${top.event.magnitude.toFixed(1)} \u2014 ${Math.round(top.distanceKm)} km away. Stay alert.`,
+                data: { type: 'tsunami_advisory', riskLevel: 'MODERATE', eventId: top.event.id },
+                sound: 'default',
+              },
+              trigger: null,
+            });
+            hasNewData = true;
+          }
 
-        if (risks.length > 0) {
-          console.log(`[BackgroundTask] Tsunami: ${risks.length} risks detected`);
+          if (risks.length > 0) {
+            console.log(`[BackgroundTask] Tsunami: ${risks.length} risks detected`);
+          }
         }
+      } catch (err) {
+        console.warn('[BackgroundTask] Tsunami check failed:', err);
       }
-    } catch (err) {
-      console.warn('[BackgroundTask] Tsunami check failed:', err);
+    } else {
+      console.log('[BackgroundTask] Tsunami alerts disabled — skipping');
     }
 
     // ═══════════════════════════════════════════════════

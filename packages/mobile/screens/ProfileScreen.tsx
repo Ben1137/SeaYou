@@ -28,6 +28,8 @@ import {
   Navigation as KiteIcon,
   Sailboat,
   Eye,
+  TreePalm,
+  AlertTriangle,
   Minus,
   Plus,
   X,
@@ -89,6 +91,13 @@ const PERSONAS: PersonaOption[] = [
     icon: Eye,
     color: colors.blue,
     glow: colors.blueGlow,
+  },
+  {
+    id: ActivityPersona.BEACHGOER,
+    label: 'Beach & Sun',
+    icon: TreePalm,
+    color: colors.amber,
+    glow: colors.amberGlow,
   },
 ];
 
@@ -239,6 +248,13 @@ export function ProfileScreen({ onClose }: ProfileScreenProps) {
     });
   }, [prefs, commit]);
 
+  const toggleTsunamiAlerts = useCallback(() => {
+    commit({
+      ...prefs,
+      alerts: { ...prefs.alerts, tsunamiAlertsEnabled: !prefs.alerts.tsunamiAlertsEnabled },
+    });
+  }, [prefs, commit]);
+
   // ─── Loading state ───
 
   if (loading) {
@@ -362,6 +378,27 @@ export function ProfileScreen({ onClose }: ProfileScreenProps) {
             />
           }
         />
+
+        {/* ─── Tsunami Alerts ─── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.tsunamiIconWrap}>
+              <AlertTriangle size={20} color="#ef4444" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.cardTitle}>Tsunami Alerts</Text>
+              <Text style={styles.cardSubtitle}>
+                Receive critical push notifications for tsunami warnings in your area.
+              </Text>
+            </View>
+            <Switch
+              value={prefs.alerts.tsunamiAlertsEnabled}
+              onValueChange={toggleTsunamiAlerts}
+              thumbColor={colors.text}
+              trackColor={{ false: 'rgba(255,255,255,0.15)', true: '#ef4444' }}
+            />
+          </View>
+        </View>
 
         {/* ─── Minimum score ─── */}
         <Stepper
@@ -532,6 +569,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 12,
     marginBottom: 14,
+  },
+  tsunamiIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardTitle: {
     fontSize: 16,
