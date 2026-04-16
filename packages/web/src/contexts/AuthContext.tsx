@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import type { Session, User } from '@supabase/supabase-js';
+
 import {
   getSupabaseClient,
   isSupabaseConfigured,
@@ -10,6 +10,9 @@ import {
   signInWithEmail,
   signUpWithEmail,
   signInWithMagicLink,
+  type Session,
+  type User,
+
   type AuthProvider as OAuthProvider,
 } from '@seame/core';
 

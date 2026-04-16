@@ -33,6 +33,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
     toggleHighWaves,
     toggleStrongWinds,
     toggleTsunamiWarning,
+    toggleTsunamiAlerts,
   } = useAlertConfig();
 
   const handleKeyDown = useCallback(
@@ -191,18 +192,44 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
-          {/* ═══ Tsunami simulation ═══ */}
-          <div className="flex items-center justify-between p-4 bg-red-950/30 border border-red-900/40 rounded-xl">
+          {/* ═══ Tsunami Alerts (real push notifications) ═══ */}
+          <div className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${thresholds.tsunamiAlertsEnabled ? 'bg-red-950/30 border-red-900/40' : 'bg-red-950/10 border-white/5 opacity-60'}`}>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-red-900/40 flex items-center justify-center">
                 <Waves size={16} className="text-red-400" />
               </div>
               <div>
                 <span className="text-sm font-bold text-red-200 block">
-                  {t('dashboard.tsunamiSimulation', 'Tsunami Simulation')}
+                  {t('alerts.tsunamiAlerts', 'Tsunami Alerts')}
                 </span>
                 <span className="text-[10px] text-red-400/60">
-                  {t('alerts.tsunamiDesc', 'Simulates tsunami warning banner')}
+                  {t('alerts.tsunamiAlertsDesc', 'Receive critical push notifications for tsunami warnings in your area')}
+                </span>
+              </div>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={thresholds.tsunamiAlertsEnabled}
+                onChange={toggleTsunamiAlerts}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-red-600/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+            </label>
+          </div>
+
+          {/* ═══ Tsunami simulation (dev/testing) ═══ */}
+          <div className="flex items-center justify-between p-3 border border-white/5 rounded-xl opacity-50">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center">
+                <Eye size={14} className="text-white/40" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-white/40 block">
+                  {t('dashboard.tsunamiSimulation', 'Tsunami Simulation')}
+                </span>
+                <span className="text-[9px] text-white/25">
+                  {t('alerts.tsunamiSimDesc', 'Simulates tsunami warning banner (dev only)')}
                 </span>
               </div>
             </div>

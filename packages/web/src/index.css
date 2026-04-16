@@ -557,3 +557,203 @@ input[type=range]::-webkit-slider-runnable-track {
   border-color: rgba(59, 130, 246, 0.2);
   color: #2563eb;
 }
+
+/* ============================================================
+   Marina Booking Popup (Phase 8 — Pro Navigation Engine)
+   ============================================================ */
+.seayou-marina-popup-wrap .maplibregl-popup-content {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98) 0%, rgba(8, 15, 28, 0.98) 100%);
+  color: #e2e8f0;
+  border: 1px solid rgba(45, 212, 191, 0.25);
+  border-radius: 12px;
+  padding: 14px 14px 12px 14px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(45, 212, 191, 0.08);
+  font-family: system-ui, -apple-system, sans-serif;
+  min-width: 240px;
+  max-width: 280px;
+}
+.seayou-marina-popup-wrap .maplibregl-popup-tip {
+  border-top-color: rgba(15, 23, 42, 0.98);
+  border-bottom-color: rgba(15, 23, 42, 0.98);
+}
+.seayou-marina-popup-wrap .maplibregl-popup-close-button {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 18px;
+  padding: 4px 8px;
+}
+.seayou-marina-popup-wrap .maplibregl-popup-close-button:hover {
+  color: #2dd4bf;
+  background: transparent;
+}
+
+.seayou-marina-popup {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+.seayou-marina-header {
+  border-bottom: 1px solid rgba(45, 212, 191, 0.18);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+.seayou-marina-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.2px;
+}
+.seayou-marina-sub {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.seayou-marina-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.seayou-marina-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #cbd5e1;
+}
+.seayou-marina-stars {
+  color: #fbbf24;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+.seayou-marina-rating-text {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+.seayou-marina-open {
+  color: #34d399;
+  font-weight: 700;
+  font-size: 11px;
+}
+.seayou-marina-closed {
+  color: #f87171;
+  font-weight: 700;
+  font-size: 11px;
+}
+.seayou-marina-address {
+  color: #94a3b8;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.seayou-marina-empty {
+  color: #94a3b8;
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+  padding: 6px 0;
+}
+.seayou-marina-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+.seayou-marina-call-btn {
+  display: block;
+  text-align: center;
+  background: linear-gradient(135deg, #2dd4bf 0%, #14b8a6 100%);
+  color: #042f2e !important;
+  text-decoration: none !important;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  border: 1px solid rgba(45, 212, 191, 0.5);
+  box-shadow: 0 4px 14px rgba(45, 212, 191, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.seayou-marina-call-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(45, 212, 191, 0.45);
+}
+.seayou-marina-phone {
+  display: inline-block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.seayou-marina-website-btn {
+  display: block;
+  text-align: center;
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd !important;
+  text-decoration: none !important;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  transition: background 0.15s ease;
+}
+.seayou-marina-website-btn:hover {
+  background: rgba(59, 130, 246, 0.22);
+}
+
+/* Loading spinner for skeleton state */
+.seayou-marina-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px 0 6px 0;
+}
+.seayou-marina-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(45, 212, 191, 0.2);
+  border-top-color: #2dd4bf;
+  border-radius: 50%;
+  animation: seayou-marina-spin 0.9s linear infinite;
+}
+@keyframes seayou-marina-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Light-mode overrides */
+.light .seayou-marina-popup-wrap .maplibregl-popup-content {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #1e293b;
+  border-color: rgba(20, 184, 166, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+}
+.light .seayou-marina-popup-wrap .maplibregl-popup-tip {
+  border-top-color: #ffffff;
+  border-bottom-color: #ffffff;
+}
+.light .seayou-marina-name {
+  color: #0f172a;
+}
+.light .seayou-marina-sub {
+  color: #64748b;
+}
+.light .seayou-marina-row {
+  color: #334155;
+}
+.light .seayou-marina-rating-text {
+  color: #64748b;
+}
+.light .seayou-marina-address {
+  color: #64748b;
+}
+.light .seayou-marina-empty {
+  color: #94a3b8;
+}
+.light .seayou-marina-website-btn {
+  background: rgba(59, 130, 246, 0.08);
+  color: #2563eb !important;
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.light .seayou-marina-website-btn:hover {
+  background: rgba(59, 130, 246, 0.14);
+}

@@ -4,6 +4,7 @@ import {
   UserPreferences,
   DEFAULT_PREFERENCES,
   PREFERENCES_STORAGE_KEY,
+
   fetchPreferences,
   upsertPreferences,
   subscribeToPreferences,
@@ -20,6 +21,7 @@ export interface AlertThresholds {
   highWavesEnabled: boolean;
   strongWindsEnabled: boolean;
   tsunamiWarningEnabled: boolean;
+  tsunamiAlertsEnabled: boolean;
 }
 
 interface AlertContextType {
@@ -41,6 +43,15 @@ interface AlertContextType {
   toggleHighWaves: () => void;
   toggleStrongWinds: () => void;
   toggleTsunamiWarning: () => void;
+  toggleTsunamiAlerts: () => void;
+
+  /** Saved locations */
+  favoriteLocations: SavedLocation[];
+  recentSearches: SavedLocation[];
+  addFavorite: (loc: SavedLocation) => void;
+  removeFavorite: (id: string) => void;
+  isFavorite: (id: string) => boolean;
+  addRecentSearch: (loc: SavedLocation) => void;
 
   /** Alert banner dismiss state (session-only) */
   isDismissed: boolean;
@@ -67,6 +78,8 @@ function loadPreferences(): UserPreferences {
         ...DEFAULT_PREFERENCES,
         ...parsed,
         alerts: { ...DEFAULT_PREFERENCES.alerts, ...(parsed.alerts ?? {}) },
+        favoriteLocations: parsed.favoriteLocations ?? [],
+        recentSearches: parsed.recentSearches ?? [],
       };
     }
     // Migrate from old storage key if it exists
@@ -81,6 +94,7 @@ function loadPreferences(): UserPreferences {
           highWavesEnabled: old.highWavesEnabled ?? DEFAULT_PREFERENCES.alerts.highWavesEnabled,
           strongWindsEnabled: old.strongWindsEnabled ?? DEFAULT_PREFERENCES.alerts.strongWindsEnabled,
           tsunamiWarningEnabled: old.tsunamiWarningEnabled ?? DEFAULT_PREFERENCES.alerts.tsunamiWarningEnabled,
+          tsunamiAlertsEnabled: old.tsunamiAlertsEnabled ?? DEFAULT_PREFERENCES.alerts.tsunamiAlertsEnabled,
         },
       };
       persistPreferences(migrated);
@@ -230,6 +244,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         ...DEFAULT_PREFERENCES,
         ...cloudPrefs,
         alerts: { ...DEFAULT_PREFERENCES.alerts, ...(cloudPrefs.alerts ?? {}) },
+
       });
       persistPreferences(cloudPrefs, new Date().toISOString());
       syncToOneSignal(cloudPrefs);
@@ -322,6 +337,38 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     update((p) => ({ ...p, alerts: { ...p.alerts, tsunamiWarningEnabled: !p.alerts.tsunamiWarningEnabled } }));
   }, [update]);
 
+  const toggleTsunamiAlerts = useCallback(() => {
+    update((p) => ({ ...p, alerts: { ...p.alerts, tsunamiAlertsEnabled: !p.alerts.tsunamiAlertsEnabled } }));
+  }, [update]);
+
+  // ─── Saved locations ───
+
+  const addFavorite = useCallback((loc: SavedLocation) => {
+    update((p) => {
+      if (p.favoriteLocations.some((f) => f.id === loc.id)) return p;
+      return { ...p, favoriteLocations: [...p.favoriteLocations, loc] };
+    });
+  }, [update]);
+
+  const removeFavorite = useCallback((id: string) => {
+    update((p) => ({
+      ...p,
+      favoriteLocations: p.favoriteLocations.filter((f) => f.id !== id),
+    }));
+  }, [update]);
+
+  const isFavorite = useCallback(
+    (id: string) => preferences.favoriteLocations.some((f) => f.id === id),
+    [preferences.favoriteLocations],
+  );
+
+  const addRecentSearch = useCallback((loc: SavedLocation) => {
+    update((p) => {
+      const filtered = p.recentSearches.filter((r) => r.id !== loc.id);
+      return { ...p, recentSearches: [loc, ...filtered].slice(0, 3) };
+    });
+  }, [update]);
+
   const dismiss = useCallback(() => setIsDismissed(true), []);
   const resetDismiss = useCallback(() => setIsDismissed(false), []);
 
@@ -342,6 +389,13 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         toggleHighWaves,
         toggleStrongWinds,
         toggleTsunamiWarning,
+        toggleTsunamiAlerts,
+        favoriteLocations: preferences.favoriteLocations,
+        recentSearches: preferences.recentSearches,
+        addFavorite,
+        removeFavorite,
+        isFavorite,
+        addRecentSearch,
         isDismissed,
         dismiss,
         resetDismiss,

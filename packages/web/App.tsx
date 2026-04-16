@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { TsunamiBanner } from './components/TsunamiBanner';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe, LogOut } from 'lucide-react';
 import { searchLocations, reverseGeocode } from '@seame/core';
+
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
@@ -132,7 +133,92 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, variant 
 
 const App: React.FC = () => {
   const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
+
   const { t } = useTranslation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [menuOpen]);
+
+  const handleClick = () => {
+    if (user) {
+      setMenuOpen((v) => !v);
+    } else {
+      onOpenAuthModal();
+    }
+  };
+
+  const handleSignOut = async () => {
+    setMenuOpen(false);
+    await signOut();
+  };
+
+  const signedIn = !!user;
+  const displayName = user?.email?.split('@')[0] ?? '';
+  const initial = displayName.charAt(0).toUpperCase();
+
+  const buttonClass =
+    variant === 'desktop'
+      ? 'w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10'
+      : 'lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-full border-2 border-white/30 flex items-center justify-center hover:border-white/60 transition-colors';
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={handleClick}
+        className={buttonClass}
+        aria-label={signedIn ? t('auth.profile', 'Profile') : t('auth.signIn', 'Sign In')}
+      >
+        {signedIn && initial ? (
+          <span className="text-sm font-bold text-white">{initial}</span>
+        ) : (
+          <User size={variant === 'desktop' ? 16 : 16} className="text-white" />
+        )}
+      </button>
+
+      {menuOpen && signedIn && (
+        <div
+          className={`absolute z-50 glass-panel rounded-xl shadow-2xl overflow-hidden animate-in fade-in min-w-[220px] ${
+            variant === 'desktop' ? 'left-12 bottom-0' : 'left-0 top-12'
+          }`}
+          style={{ backgroundColor: 'color-mix(in srgb, var(--app-bg-card) 95%, transparent)' }}
+        >
+          <div className="px-4 py-3 border-b" style={{ borderColor: 'var(--app-border)' }}>
+            <div className="text-xs uppercase tracking-wider font-semibold" style={{ color: 'var(--text-muted)' }}>
+              {t('auth.signedInAs', 'Signed in as')}
+            </div>
+            <div className="text-sm font-bold mt-0.5 truncate" style={{ color: 'var(--text-primary)' }}>
+              {user?.email}
+            </div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-white/10 transition-colors text-left"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <LogOut size={14} />
+            {t('auth.signOut', 'Sign out')}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AppContent: React.FC = () => {
+  const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
+  const { t, i18n } = useTranslation();
+  const alertConfig = useAlertConfig();
 
   const [view, setView] = useState<ViewState>(ViewState.DASHBOARD);
   const [locations, setLocations] = useState<Location[]>([DEFAULT_LOC]);
@@ -140,8 +226,9 @@ const App: React.FC = () => {
 
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Location[]>([]);
+  const [searchResults, setSearchResults] = useState<LocationSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
@@ -295,16 +382,62 @@ const App: React.FC = () => {
     handleLocateMe();
   };
 
+  // Debounced live search — fires as user types (after 300ms pause)
+  const handleSearchInput = useCallback((value: string) => {
+    setSearchQuery(value);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (!value.trim() || value.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    searchDebounceRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      const results = await searchLocationsSmart(value, i18n.language);
+      setSearchResults(results);
+      setIsSearching(false);
+    }, 300);
+  }, []);
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     setIsSearching(true);
-    const results = await searchLocations(searchQuery);
+    const results = await searchLocationsSmart(searchQuery, i18n.language);
     setSearchResults(results);
     setIsSearching(false);
   };
 
-  const addLocation = (loc: Location) => {
+  const selectSearchResult = (result: LocationSearchResult) => {
+    const loc: Location = {
+      id: typeof result.id === 'string' ? parseInt(result.id, 10) || Date.now() : (result.id as unknown as number),
+      name: result.name,
+      lat: result.lat,
+      lng: result.lng,
+    };
+    if (!locations.some(l => l.id === loc.id)) {
+      setLocations([...locations, loc]);
+    }
+    setCurrentLocation(loc);
+    setShowLocationModal(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    // Track as recent search (via preferences → cloud sync)
+    alertConfig.addRecentSearch({
+      id: result.id,
+      name: result.name,
+      lat: result.lat,
+      lng: result.lng,
+    });
+  };
+
+  const selectSavedLocation = (saved: SavedLocation) => {
+    const loc: Location = {
+      id: parseInt(saved.id, 10) || Date.now(),
+      name: saved.name,
+      lat: saved.lat,
+      lng: saved.lng,
+    };
     if (!locations.some(l => l.id === loc.id)) {
       setLocations([...locations, loc]);
     }
@@ -371,6 +504,15 @@ const App: React.FC = () => {
     }
   }, [pullDistance, isRefreshing, refetch]);
 
+  // ─── Inline favorite toggle (used inside search modal) ───
+  const toggleFavoriteFor = useCallback((loc: SavedLocation) => {
+    if (alertConfig.isFavorite(loc.id)) {
+      alertConfig.removeFavorite(loc.id);
+    } else {
+      alertConfig.addFavorite(loc);
+    }
+  }, [alertConfig]);
+
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
@@ -379,6 +521,7 @@ const App: React.FC = () => {
     >
       <AuthProvider>
       <AlertProvider>
+
       {/* Phase 5 — Global tsunami alert banner (fixed top, above everything) */}
       <TsunamiBanner risks={tsunamiRisks} />
       <div className="flex flex-col lg:flex-row h-[100dvh] w-full max-w-[100vw] theme-bg text-white overflow-hidden font-sans theme-transition">
@@ -431,7 +574,7 @@ const App: React.FC = () => {
               <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} variant="mobile" />
             </div>
 
-            {/* Center: App title — always true-center */}
+            {/* Center: App title */}
             <h1 className="text-xl sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap text-center">SeaYou</h1>
 
             {/* Right: Language + Theme toggle — absolutely positioned */}
@@ -483,8 +626,8 @@ const App: React.FC = () => {
 
           {/* Location Modal */}
           {showLocationModal && (
-            <div className="fixed inset-0 z-50 modal-backdrop flex items-start justify-center pt-20 px-4">
-              <div className="glass-panel w-full max-w-md bg-[#0F3A5E]/80 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8">
+            <div className="fixed inset-0 z-50 modal-backdrop flex items-start justify-center pt-16 sm:pt-20 px-4" onClick={() => setShowLocationModal(false)}>
+              <div className="glass-panel w-full max-w-md bg-[#0F3A5E]/80 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8" onClick={(e) => e.stopPropagation()}>
                 <div className="p-4 border-b border-white/10 flex justify-between items-center glass-inner !rounded-none !rounded-t-[1.25rem]">
                   <h3 className="font-bold text-white">{t('location.manage')}</h3>
                   <button onClick={() => setShowLocationModal(false)}>
@@ -492,65 +635,145 @@ const App: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="p-4">
-                  <form onSubmit={handleSearch} className="relative mb-6">
+                <div className="p-4 max-h-[70vh] overflow-y-auto hide-scrollbar">
+                  {/* Search input — live autocomplete */}
+                  <form onSubmit={handleSearch} className="relative mb-4">
                     <input
                       type="text"
                       placeholder={t('location.search')}
                       className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-white/40 focus:border-blue-400 focus:outline-none"
                       value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onChange={(e) => handleSearchInput(e.target.value)}
+                      autoFocus
                     />
                     <Search className="absolute left-3 top-3.5 text-white/40" size={18} />
-                    <button type="submit" disabled={isSearching} className="absolute right-2 top-2 bg-blue-600/80 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 disabled:opacity-50">
-                      {isSearching ? '...' : t('location.searchButton')}
-                    </button>
+                    {isSearching && (
+                      <div className="absolute right-3 top-3.5">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-blue-400 rounded-full animate-spin" />
+                      </div>
+                    )}
                   </form>
 
-                  <button
-                    onClick={handleLocateMe}
-                    className="w-full mb-4 glass-inner border border-blue-400/30 rounded-xl p-3 flex items-center justify-center gap-2 font-bold text-blue-400 hover:bg-white/10 transition-colors"
-                  >
-                    <MapPin size={18} /> {t('app.locateMe')}
-                  </button>
-
-                  {searchResults.length > 0 && (
-                    <div className="mb-6 space-y-2">
-                      <h4 className="text-xs text-white/50 uppercase font-bold mb-2">{t('location.searchResults')}</h4>
-                      {searchResults.map(res => (
-                        <button key={res.id} onClick={() => addLocation(res)} className="w-full flex items-center justify-between p-3 rounded-xl glass-inner hover:bg-white/15 border border-white/5 group transition-colors text-left">
-                          <div>
-                            <div className="font-bold text-white">{res.name}</div>
-                            <div className="text-xs text-white/60">{res.admin1} {res.country}</div>
+                  {/* ─── Typing state: show search results with favorite hearts ─── */}
+                  {searchQuery.trim().length >= 2 && searchResults.length > 0 && (
+                    <div className="mb-4 space-y-1.5">
+                      <h4 className="text-xs text-white/50 uppercase font-bold mb-2">{t('location.searchResults', 'Results')}</h4>
+                      {searchResults.map(res => {
+                        const isFav = alertConfig.isFavorite(res.id);
+                        return (
+                          <div key={res.id} className="flex items-center gap-1">
+                            <button onClick={() => selectSearchResult(res)} className="flex-1 flex items-center p-3 rounded-xl glass-inner hover:bg-white/15 border border-white/5 group transition-colors text-left min-w-0">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-white truncate">{res.name}</div>
+                                {res.subtitle && <div className="text-xs text-white/50 truncate">{res.subtitle}</div>}
+                              </div>
+                              <Plus size={16} className="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2" />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); toggleFavoriteFor({ id: res.id, name: res.name, lat: res.lat, lng: res.lng }); }}
+                              className="p-2.5 rounded-xl hover:bg-white/10 transition-colors shrink-0"
+                              aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                            >
+                              <Heart size={16} className={`transition-colors ${isFav ? 'text-red-400 fill-red-400' : 'text-white/25 hover:text-white/50'}`} />
+                            </button>
                           </div>
-                          <Plus size={18} className="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </button>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
-                  <div>
-                    <h4 className="text-xs text-white/50 uppercase font-bold mb-2">{t('location.savedPlaces')}</h4>
-                    <div className="space-y-2 max-h-60 overflow-y-auto hide-scrollbar pr-2">
-                      {locations.map(loc => (
-                        <button
-                          key={loc.id}
-                          onClick={() => switchLocation(loc)}
-                          className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors text-left ${
-                            currentLocation.id === loc.id
-                              ? 'bg-blue-500/20 border-blue-400/50'
-                              : 'glass-inner border-white/5 hover:bg-white/15'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <MapPin size={18} className={currentLocation.id === loc.id ? "text-blue-400" : "text-white/40"} />
-                            <span className={currentLocation.id === loc.id ? "text-white font-bold" : "text-white/70"}>{loc.name}</span>
+                  {/* ─── Empty state: GPS + Recents + Favorites ─── */}
+                  {searchQuery.trim().length < 2 && (
+                    <>
+                      {/* GPS button */}
+                      <button
+                        onClick={handleLocateMe}
+                        className="w-full mb-4 glass-inner border border-blue-400/30 rounded-xl p-3 flex items-center gap-3 font-bold text-blue-400 hover:bg-white/10 transition-colors"
+                      >
+                        <MapPin size={18} />
+                        <span>{t('app.locateMe', 'Current Location')}</span>
+                      </button>
+
+                      {/* Recent Searches — with favorite hearts */}
+                      {alertConfig.recentSearches.length > 0 && (
+                        <div className="mb-4">
+                          <h4 className="text-xs text-white/50 uppercase font-bold mb-2 flex items-center gap-1.5">
+                            <Clock size={12} /> {t('location.recentSearches', 'Recent')}
+                          </h4>
+                          <div className="space-y-1.5">
+                            {alertConfig.recentSearches.map(loc => {
+                              const isFav = alertConfig.isFavorite(loc.id);
+                              return (
+                                <div key={loc.id} className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => selectSavedLocation(loc)}
+                                    className="flex-1 flex items-center gap-3 p-3 rounded-xl glass-inner hover:bg-white/15 border border-white/5 transition-colors text-left min-w-0"
+                                  >
+                                    <Clock size={14} className="text-white/30 shrink-0" />
+                                    <span className="text-white/80 truncate">{loc.name}</span>
+                                  </button>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); toggleFavoriteFor(loc); }}
+                                    className="p-2.5 rounded-xl hover:bg-white/10 transition-colors shrink-0"
+                                    aria-label={isFav ? 'Remove from favorites' : 'Add to favorites'}
+                                  >
+                                    <Heart size={16} className={`transition-colors ${isFav ? 'text-red-400 fill-red-400' : 'text-white/25 hover:text-white/50'}`} />
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
-                          {currentLocation.id === loc.id && <Check size={16} className="text-blue-400" />}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                        </div>
+                      )}
+
+                      {/* Favorites */}
+                      {alertConfig.favoriteLocations.length > 0 && (
+                        <div className="mb-4">
+                          <h4 className="text-xs text-white/50 uppercase font-bold mb-2 flex items-center gap-1.5">
+                            <Star size={12} /> {t('location.favorites', 'Favorites')}
+                          </h4>
+                          <div className="space-y-1.5">
+                            {alertConfig.favoriteLocations.map(loc => (
+                              <button
+                                key={loc.id}
+                                onClick={() => selectSavedLocation(loc)}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl glass-inner hover:bg-white/15 border border-amber-400/20 transition-colors text-left"
+                              >
+                                <Heart size={14} className="text-amber-400 shrink-0 fill-amber-400" />
+                                <span className="text-white/90 truncate">{loc.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Saved Places (session locations) */}
+                      {locations.length > 0 && (
+                        <div>
+                          <h4 className="text-xs text-white/50 uppercase font-bold mb-2">{t('location.savedPlaces', 'Saved Places')}</h4>
+                          <div className="space-y-1.5 max-h-48 overflow-y-auto hide-scrollbar pr-1">
+                            {locations.map(loc => (
+                              <button
+                                key={loc.id}
+                                onClick={() => switchLocation(loc)}
+                                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors text-left ${
+                                  currentLocation.id === loc.id
+                                    ? 'bg-blue-500/20 border-blue-400/50'
+                                    : 'glass-inner border-white/5 hover:bg-white/15'
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <MapPin size={16} className={currentLocation.id === loc.id ? "text-blue-400" : "text-white/40"} />
+                                  <span className={currentLocation.id === loc.id ? "text-white font-bold" : "text-white/70"}>{loc.name}</span>
+                                </div>
+                                {currentLocation.id === loc.id && <Check size={14} className="text-blue-400" />}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -603,7 +826,7 @@ const App: React.FC = () => {
                   }}
                 >
                   <MapProvider>
-                    <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} tsunamiRisks={tsunamiRisks} />
+                    <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} tsunamiRisks={tsunamiRisks} favoriteLocations={alertConfig.favoriteLocations} />
                   </MapProvider>
                 </ErrorBoundary>
               </div>
@@ -692,7 +915,24 @@ const App: React.FC = () => {
       </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>
+
   );
 };
+
+// ─── Root App — wraps providers around AppContent ───
+
+const App: React.FC = () => (
+  <ErrorBoundary
+    onError={(error, errorInfo) => {
+      console.error('Root error boundary caught:', error, errorInfo);
+    }}
+  >
+    <AuthProvider>
+      <AlertProvider>
+        <AppContent />
+      </AlertProvider>
+    </AuthProvider>
+  </ErrorBoundary>
+);
 
 export default App;
