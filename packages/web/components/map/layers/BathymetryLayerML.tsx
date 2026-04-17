@@ -1,12 +1,13 @@
 /**
  * BathymetryLayerML — Global bathymetry / "Depth Charts" raster overlay.
  *
- * Uses the public GEBCO WMS (General Bathymetric Chart of the Oceans) as a
- * raster tile source. MapLibre fetches standard 256×256 WMS tiles via the
- * `{bbox-epsg-3857}` template, so no custom tiling server is needed.
+ * Uses the public EMODnet Bathymetry WMS as a raster tile source. EMODnet
+ * serves `Access-Control-Allow-Origin: *` so tiles load directly in the
+ * browser with no proxy — avoiding any Vercel-edge vendor lock-in.
  *
  * Reference:
- *   https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/
+ *   https://emodnet.ec.europa.eu/en/bathymetry
+ *   https://ows.emodnet-bathymetry.eu/wms?service=WMS&request=GetCapabilities
  */
 
 import { useEffect } from 'react';
@@ -17,15 +18,15 @@ export interface BathymetryLayerMLProps {
   opacity?: number;
 }
 
-const SOURCE_ID = 'bathymetry-gebco-wms';
-const LAYER_ID = 'bathymetry-gebco-wms-layer';
+const SOURCE_ID = 'bathymetry-emodnet-wms';
+const LAYER_ID = 'bathymetry-emodnet-wms-layer';
 
-// GEBCO WMS endpoint. `GEBCO_LATEST` is the blended global bathymetry layer
-// with shaded relief — the standard product for recreational depth charts.
-const GEBCO_WMS_TILE_URL =
-  'https://www.gebco.net/data_and_products/gebco_web_services/web_map_service/mapserv?' +
+// EMODnet Bathymetry WMS — CORS-friendly global seafloor depth raster.
+// `emodnet:mean` is the DTM mean depth layer with shaded relief.
+const EMODNET_WMS_TILE_URL =
+  'https://ows.emodnet-bathymetry.eu/wms?' +
   'service=WMS&version=1.3.0&request=GetMap' +
-  '&layers=GEBCO_LATEST' +
+  '&layers=emodnet:mean' +
   '&styles=' +
   '&format=image/png' +
   '&transparent=true' +
@@ -44,10 +45,10 @@ export function BathymetryLayerML({ visible, opacity = 0.75 }: BathymetryLayerML
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'raster',
-          tiles: [GEBCO_WMS_TILE_URL],
+          tiles: [EMODNET_WMS_TILE_URL],
           tileSize: 256,
           attribution:
-            'Bathymetry: <a href="https://www.gebco.net/" target="_blank" rel="noopener">GEBCO Compilation Group</a>',
+            'Bathymetry: <a href="https://emodnet.ec.europa.eu/en/bathymetry" target="_blank" rel="noopener">EMODnet Bathymetry</a>',
         });
       }
 
