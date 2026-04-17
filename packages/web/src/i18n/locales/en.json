@@ -9,7 +9,7 @@
     "dashboard": "Dashboard",
     "atmosphere": "Atmosphere",
     "map": "Map",
-    "routes": "Routes",
+    "routes": "Route Planner",
     "marinas": "Marinas",
     "nearby": "Nearby"
   },
@@ -359,7 +359,8 @@
       "marineAreas": "Marine Areas",
       "diveSuitability": "Dive Suitability",
       "chopLevel": "Chop Level",
-      "gustDelta": "Gust Delta"
+      "gustDelta": "Gust Delta",
+      "currentHeatmap": "Current Speed"
     },
     "advancedLayers": "Advanced Layers",
     "windParticles": "Wind Particles",
@@ -383,7 +384,8 @@
     "swellDirection": "Swell Direction",
     "diveSuitability": "Dive Suitability",
     "chopLevel": "Chop Level",
-    "gustDelta": "Gust Delta"
+    "gustDelta": "Gust Delta",
+    "currentHeatmap": "Current Speed"
   },
   "units": {
     "meters": "m",

@@ -9,7 +9,7 @@
     "dashboard": "Dashboard",
     "atmosphere": "Atmosphäre",
     "map": "Karte",
-    "routes": "Routen",
+    "routes": "Routenplaner",
     "marinas": "Marinas",
     "nearby": "In der Nähe"
   },
@@ -349,7 +349,8 @@
     "swellDirection": "Dünung-Richtung",
     "diveSuitability": "Taucheignung",
     "chopLevel": "Wellenkabbel",
-    "gustDelta": "Böendifferenz"
+    "gustDelta": "Böendifferenz",
+    "currentHeatmap": "Strömungsgeschwindigkeit"
   },
   "units": {
     "meters": "m",

@@ -25,6 +25,7 @@ export type OnboardingPersona = 'mariner' | 'surfer' | 'beachgoer' | 'diver';
 
 export type SubscriptionTier = 'free' | 'premium';
 
+
 // ─── Persisted User Preferences ───
 
 export interface UserPreferences {

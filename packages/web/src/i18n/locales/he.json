@@ -9,7 +9,7 @@
     "dashboard": "לוח מחוונים",
     "atmosphere": "אטמוספרה",
     "map": "מפה",
-    "routes": "מסלולים",
+    "routes": "מתכנן מסלול",
     "marinas": "מרינות",
     "nearby": "בקרבת מקום"
   },
@@ -345,7 +345,8 @@
       "significantWaveHeight": "גובה גלים משמעותי",
       "diveSuitability": "התאמה לצלילה",
       "chopLevel": "רמת סערה",
-      "gustDelta": "הפרש משבי רוח"
+      "gustDelta": "הפרש משבי רוח",
+      "currentHeatmap": "מהירות זרם"
     },
     "advancedLayers": "שכבות מתקדמות",
     "windParticles": "חלקיקי רוח",
@@ -369,7 +370,8 @@
     "swellDirection": "כיוון סוול",
     "diveSuitability": "התאמה לצלילה",
     "chopLevel": "רמת סערה",
-    "gustDelta": "הפרש משבי רוח"
+    "gustDelta": "הפרש משבי רוח",
+    "currentHeatmap": "מהירות זרם"
   },
   "units": {
     "meters": "מ׳",

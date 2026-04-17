@@ -7,7 +7,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Navigation,
   MapPin,
-  Plus,
   Save,
   Play,
   Pause,
@@ -24,7 +23,6 @@ import {
 import type { Route, NavigationState, NavigationAlert } from '@seame/core';
 import {
   generateRoute,
-  addWaypoint,
   saveRoute,
   getSavedRoutes,
   deleteRoute,
@@ -33,11 +31,11 @@ import {
   formatBearing,
   offlineNavigation,
   analyzeRouteHazards,
-  suggestHazardAvoidance,
   RouteAnalysis,
 } from '@seame/core';
 import { VesselSettingsModal, VesselSettings } from './VesselSettingsModal';
 import { HazardAlert } from './HazardAlert';
+import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
 
 export const RoutePlanningView: React.FC = () => {
   const [route, setRoute] = useState<Route | null>(null);
@@ -143,45 +141,6 @@ export const RoutePlanningView: React.FC = () => {
     }
   };
 
-  const handleFixRoute = () => {
-    if (!route || !hazardAnalysis) return;
-    
-    const criticalHazards = hazardAnalysis.hazards.filter(
-      (h) => h.hazard.severity === 'critical'
-    );
-    
-    if (criticalHazards.length === 0) return;
-    
-    let updatedRoute = { ...route };
-    let hasUpdates = false;
-    
-    criticalHazards.forEach((hazardInfo) => {
-      const segmentIndex = hazardInfo.waypointSegment;
-      const start = route.waypoints[segmentIndex];
-      const end = route.waypoints[segmentIndex + 1];
-      
-      const avoidanceWaypoint = suggestHazardAvoidance(
-        hazardInfo.hazard,
-        start,
-        end,
-        500
-      );
-      
-      if (avoidanceWaypoint) {
-        updatedRoute = addWaypoint(updatedRoute, avoidanceWaypoint, segmentIndex + 1);
-        hasUpdates = true;
-      }
-    });
-    
-    if (hasUpdates) {
-      setRoute(updatedRoute);
-      analyzeRoute(updatedRoute);
-      alert('Route updated with avoidance waypoints. Please verify with official charts.');
-    } else {
-      alert('Could not automatically find safe avoidance path. Manual rerouting required.');
-    }
-  };
-
   const handleCreateRoute = async () => {
     const sLat = parseFloat(startLat);
     const sLon = parseFloat(startLon);
@@ -280,12 +239,13 @@ export const RoutePlanningView: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black/20 p-4 max-w-6xl mx-auto">
+      <LegalDisclaimerBanner />
       {/* Header */}
       <div className="glass-panel p-6 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold flex items-center gap-2 text-white">
             <Navigation className="w-8 h-8 text-blue-400" />
-            Marine Route Planner
+            Route Planner
           </h1>
           <button
             onClick={() => setShowSavedRoutes(!showSavedRoutes)}
@@ -512,7 +472,7 @@ export const RoutePlanningView: React.FC = () => {
               <p>Analyzing route hazards...</p>
             </div>
           ) : hazardAnalysis && (
-            <HazardAlert analysis={hazardAnalysis} onFixRoute={handleFixRoute} />
+            <HazardAlert analysis={hazardAnalysis} />
           )}
 
           <div className="flex items-center justify-between mb-4">

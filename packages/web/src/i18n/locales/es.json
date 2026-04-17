@@ -9,7 +9,7 @@
     "dashboard": "Panel",
     "atmosphere": "Atmósfera",
     "map": "Mapa",
-    "routes": "Rutas",
+    "routes": "Planificador de rutas",
     "marinas": "Marinas",
     "nearby": "Cerca"
   },
@@ -332,7 +332,8 @@
     "swellDirection": "Dirección del oleaje",
     "diveSuitability": "Aptitud para buceo",
     "chopLevel": "Nivel de marejada",
-    "gustDelta": "Delta de ráfagas"
+    "gustDelta": "Delta de ráfagas",
+    "currentHeatmap": "Velocidad de corriente"
   },
   "units": {
     "meters": "m",

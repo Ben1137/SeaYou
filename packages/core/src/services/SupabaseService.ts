@@ -12,6 +12,10 @@
  */
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+// Re-export the Supabase Session and User types so consumers (e.g. web's
+// AuthContext) don't need to add @supabase/supabase-js as a direct dep.
+export type { Session, User } from '@supabase/supabase-js';
+
 let client: SupabaseClient | null = null;
 
 /**

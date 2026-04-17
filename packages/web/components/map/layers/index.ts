@@ -29,6 +29,12 @@ export { WindParticleLayerML, type WindParticleLayerMLProps } from './WindPartic
 export { CurrentParticleLayerML, type CurrentParticleLayerMLProps } from './CurrentParticleLayerML';
 
 /**
+ * Current Speed Heatmap
+ * Premium layer — color-coded magnitude of ocean currents.
+ */
+export { CurrentHeatmapLayerML, type CurrentHeatmapLayerMLProps } from './CurrentHeatmapLayerML';
+
+/**
  * Sea Temperature Layer
  * Phase 5: Sea surface temperature visualization
  */

@@ -9,7 +9,7 @@
     "dashboard": "Панель управления",
     "atmosphere": "Атмосфера",
     "map": "Карта",
-    "routes": "Маршруты",
+    "routes": "Планировщик маршрутов",
     "marinas": "Марины",
     "nearby": "Рядом"
   },
@@ -350,7 +350,8 @@
     "swellDirection": "Направление зыби",
     "diveSuitability": "Пригодность для дайвинга",
     "chopLevel": "Уровень волнения",
-    "gustDelta": "Разница порывов ветра"
+    "gustDelta": "Разница порывов ветра",
+    "currentHeatmap": "Скорость течения"
   },
   "units": {
     "meters": "м",

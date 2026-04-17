@@ -9,7 +9,7 @@
     "dashboard": "Dashboard",
     "atmosphere": "Atmosfera",
     "map": "Mappa",
-    "routes": "Rotte",
+    "routes": "Pianificatore di rotta",
     "marinas": "Marine",
     "nearby": "Nelle vicinanze"
   },
@@ -350,7 +350,8 @@
     "swellDirection": "Direzione onda lunga",
     "diveSuitability": "Idoneità immersione",
     "chopLevel": "Livello increspatura",
-    "gustDelta": "Delta raffiche"
+    "gustDelta": "Delta raffiche",
+    "currentHeatmap": "Velocità corrente"
   },
   "units": {
     "meters": "m",

@@ -1193,7 +1193,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               onClick={() => tryToggleOverlay('bathymetry')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.bathymetry ? 'bg-blue-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Droplets size={12} /> <span className="flex-1">{t('map.bathymetry') || 'Bathymetry'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+              <Droplets size={12} /> <span className="flex-1">{t('map.depthCharts') || 'Depth Charts'}</span> <span aria-hidden="true">🔒</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => tryToggleOverlay('reefs')}
