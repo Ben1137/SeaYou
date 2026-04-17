@@ -326,14 +326,11 @@ export function getOptimalModels(lat: number, lng: number): ModelSelection {
       // Europe has highest resolution models available
       weatherModels = ['icon_seamless', 'best_match'];
 
-      // DWD EWAM provides 5km resolution for European waters
-      if (isMediterraneanRegion(lat, lng) || isNorthSeaRegion(lat, lng)) {
-        marineModels = ['dwd_ewam', 'ecmwf_wam', 'best_match'];
-        recommendedResolutionKm = 5;
-      } else {
-        marineModels = ['ecmwf_wam', 'best_match'];
-        recommendedResolutionKm = 9;
-      }
+      // Note: dwd_ewam is NOT used as primary — it's wave-only and returns
+      // HTTP 400 when queried for sea_surface_temperature / ocean_current_*.
+      // ecmwf_wam supports the full marine variable set.
+      marineModels = ['ecmwf_wam', 'best_match'];
+      recommendedResolutionKm = 9;
       break;
 
     case 'north_america':

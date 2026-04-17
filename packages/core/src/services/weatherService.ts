@@ -251,8 +251,11 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
 
 export const fetchPointForecast = async (lat: number, lng: number): Promise<PointForecast> => {
   try {
-    // Get optimal models for this location
-    const marineModel = getModelForLocation(lat, lng, true);
+    // Tap-to-query must default to best_match. Regional wave-only models like
+    // dwd_ewam reject requests that include sea_surface_temperature / ocean
+    // current variables (HTTP 400). best_match combines the right models
+    // server-side for the mixed variable set we request below.
+    const marineModel = 'best_match';
     const weatherModel = getModelForLocation(lat, lng, false);
 
     // Marine data with cell_selection: 'sea' for ocean accuracy
@@ -529,6 +532,26 @@ export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: num
   } catch (error) {
     console.error("Bulk forecast error", error);
     return [];
+  }
+};
+
+/**
+ * Fetch seafloor depth (in meters) at a coordinate via Open-Meteo Elevation API.
+ * Returns `null` on land (elevation >= 0) or on error.
+ */
+export const fetchDepth = async (lat: number, lng: number): Promise<number | null> => {
+  try {
+    const data = await deduplicatedFetch<{ elevation: number[] }>(
+      `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`,
+      undefined,
+      { ttl: 86400000 } // Elevation is static — cache for 24h
+    );
+    const elevation = data?.elevation?.[0];
+    if (typeof elevation !== 'number') return null;
+    return elevation < 0 ? Math.abs(elevation) : null;
+  } catch (error) {
+    console.error('fetchDepth error', error);
+    return null;
   }
 };
 

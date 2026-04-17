@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
-import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, toTelHref } from '@seame/core';
+import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, fetchDepth, toTelHref } from '@seame/core';
 import type { MarinaDetails } from '@seame/core';
 import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -124,7 +124,8 @@ const getCurrentColor = (speed: number) => {
 function buildQueryPopupHTML(
   forecast: PointForecast,
   layer: AdvancedLayer,
-  basicLayer: MapLayer
+  basicLayer: MapLayer,
+  depth: number | null
 ): string {
   const latStr = `${Math.abs(forecast.lat).toFixed(4)}\u00B0${forecast.lat >= 0 ? 'N' : 'S'}`;
   const lngStr = `${Math.abs(forecast.lng).toFixed(4)}\u00B0${forecast.lng >= 0 ? 'E' : 'W'}`;
@@ -190,6 +191,14 @@ function buildQueryPopupHTML(
       rows.push(row('Wind', `${forecast.windSpeed.toFixed(1)} km/h`, `${forecast.windDirection}\u00B0`));
       if (forecast.waveHeight > 0.01) rows.push(row('Waves', `${forecast.waveHeight.toFixed(1)} m`, ''));
     }
+  }
+
+  // Depth row — shown whenever the click lands over water.
+  if (depth != null) {
+    const depthStr = depth >= 1000
+      ? `${(depth / 1000).toFixed(2)} km`
+      : `${depth.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`;
+    rows.push(row('Depth', depthStr));
   }
 
   return `<div class="seayou-popup-body">
@@ -521,12 +530,16 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       }
 
       try {
-        const forecast = await fetchPointForecast(e.lngLat.lat, e.lngLat.lng);
+        const [forecast, depth] = await Promise.all([
+          fetchPointForecast(e.lngLat.lat, e.lngLat.lng),
+          fetchDepth(e.lngLat.lat, e.lngLat.lng),
+        ]);
 
         const html = buildQueryPopupHTML(
           forecast,
           advancedLayerRef.current,
-          activeLayerRef.current
+          activeLayerRef.current,
+          depth
         );
 
         const popup = new maplibregl.Popup({
