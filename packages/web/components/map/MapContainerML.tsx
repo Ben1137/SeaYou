@@ -1018,8 +1018,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, bathymetry: !prev.bathymetry }))}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.bathymetry ? 'bg-blue-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              title="Global seafloor depth charts (GEBCO WMS)"
             >
-              <Droplets size={12} /> {t('map.bathymetry') || 'Bathymetry'}
+              <Droplets size={12} /> {t('map.depthCharts') || 'Depth Charts'} <span aria-hidden="true">🔒</span>
             </button>
             <button
               onClick={() => setGeoJSONLayers(prev => ({ ...prev, reefs: !prev.reefs }))}
