@@ -53,6 +53,8 @@
     "strongWinds": "Vents forts",
     "waveAlert": "Vagues hautes ({{value}} m)",
     "windAlert": "Vents forts ({{value}} km/h)",
+    "dailySurfReport": "Rapport de surf quotidien",
+    "dailySurfReportDesc": "Recevez une notification personnalisée lorsque la journée offre une fenêtre Bonne ou mieux sur votre spot",
     "tsunamiAlerts": "Alertes Tsunami",
     "tsunamiAlertsDesc": "Recevez des notifications critiques en cas d'alerte tsunami dans votre zone",
     "tsunamiDesc": "Simule la bannière d'alerte tsunami",

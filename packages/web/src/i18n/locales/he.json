@@ -53,6 +53,8 @@
     "strongWinds": "רוחות חזקות",
     "waveAlert": "גלים גבוהים ({{value}} מ')",
     "windAlert": "רוחות חזקות ({{value}} קמ\"ש)",
+    "dailySurfReport": "דוח גלישה יומי",
+    "dailySurfReportDesc": "קבל התראה מותאמת אישית כאשר היום מציע חלון זמן טוב או טוב יותר בספוט שלך",
     "tsunamiAlerts": "התראות צונאמי",
     "tsunamiAlertsDesc": "קבל התראות דחופות על אזהרות צונאמי באזורך",
     "tsunamiDesc": "הדמיית באנר אזהרת צונאמי",
