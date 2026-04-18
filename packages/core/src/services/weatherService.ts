@@ -536,21 +536,54 @@ export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: num
 };
 
 /**
- * Fetch seafloor depth (in meters) at a coordinate via Open-Meteo Elevation API.
- * Returns `null` on land (elevation >= 0) or on error.
+ * Fetch seafloor depth (in meters) at a coordinate.
+ *
+ * Source: NOAA NGDC Global DEM Mosaic (ETOPO + multibeam + GEBCO combined).
+ * Returns negative values offshore (metres BELOW sea level) and positive on
+ * land. CORS is enabled on the NOAA endpoint (`Access-Control-Allow-Origin: *`)
+ * so the call runs straight from the browser — no proxy needed.
+ *
+ * Why not Open-Meteo Elevation? It uses Copernicus GLO-90 (a LAND DEM) and
+ * returns exactly `0.0` for every ocean point, which is why the Depth row was
+ * never rendering in the map popup.
+ *
+ * Returns `null` on land (elevation >= 0), on CORS/network failure, or if the
+ * service returns a non-numeric value. Callers can therefore hide the Depth
+ * row trivially with `if (depth != null) render(...)`.
  */
 export const fetchDepth = async (lat: number, lng: number): Promise<number | null> => {
+  // ArcGIS REST `identify` accepts the point as a JSON-encoded geometry with
+  // WGS84 (wkid 4326). Returning only the pixel value keeps the response tiny.
+  const geometry = encodeURIComponent(
+    JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } }),
+  );
+  const url =
+    `https://gis.ngdc.noaa.gov/arcgis/rest/services/DEM_mosaics/DEM_global_mosaic/ImageServer/identify` +
+    `?geometry=${geometry}` +
+    `&geometryType=esriGeometryPoint` +
+    `&returnGeometry=false` +
+    `&f=json`;
+
   try {
-    const data = await deduplicatedFetch<{ elevation: number[] }>(
-      `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lng}`,
+    const data = await deduplicatedFetch<{ value?: string | number; error?: unknown }>(
+      url,
       undefined,
-      { ttl: 86400000 } // Elevation is static — cache for 24h
+      { ttl: 86_400_000, logRetries: false }, // bathymetry is static — cache 24h
     );
-    const elevation = data?.elevation?.[0];
-    if (typeof elevation !== 'number') return null;
-    return elevation < 0 ? Math.abs(elevation) : null;
+
+    if (!data || data.error) return null;
+
+    // ArcGIS returns `value` as a string (e.g. "-1530") for raster identify
+    // responses. NoData shows up as "NoData" or the numeric `NaN`.
+    const raw = data.value;
+    if (raw === undefined || raw === null) return null;
+    const numeric = typeof raw === 'string' ? parseFloat(raw) : raw;
+    if (!Number.isFinite(numeric)) return null;
+
+    // Positive → land; we only want depth below sea level.
+    return numeric < 0 ? Math.abs(numeric) : null;
   } catch (error) {
-    console.error('fetchDepth error', error);
+    console.warn('[fetchDepth] NOAA DEM lookup failed:', error);
     return null;
   }
 };
