@@ -1,16 +1,19 @@
 /**
- * DistanceMatrixService — Google Distance Matrix API wrapper
+ * DistanceMatrixService — driving ETA via our /api/distance-matrix proxy
  *
  * Returns driving time + distance from an origin to a destination. Used by the
  * CoastsMarinasView "Drive" badge so users can see how long it takes to reach
  * each marina by car (vs. the straight-line "Distance" and boat-ETA cubes).
  *
- * API key handling mirrors GooglePlacesService: the caller (web package) reads
- * `import.meta.env.VITE_GOOGLE_PLACES_API_KEY` and passes it in, so this file
- * stays platform-agnostic (core is compiled by tsc, not Vite).
+ * Why a proxy?
+ *   Google's Distance Matrix Web Service is a SERVER-ONLY API — it does not
+ *   send CORS headers, so direct browser calls are blocked in production.
+ *   The proxy is a Vercel Serverless Function at `packages/web/api/distance-matrix.ts`
+ *   that injects the API key from the GOOGLE_PLACES_API_KEY env var and returns
+ *   a CORS-friendly JSON payload.
  *
- * API reference:
- *   https://developers.google.com/maps/documentation/distance-matrix/distance-matrix
+ * Local dev: run `vercel dev` to exercise the serverless function, or the
+ * badge will silently stay hidden (graceful degradation).
  */
 
 import { deduplicatedFetch } from '../utils/requestDeduplication';
@@ -22,57 +25,61 @@ export interface DriveEstimate {
   driveKm: number;
 }
 
-interface DistanceMatrixResponse {
-  status: string;
-  rows?: Array<{
-    elements?: Array<{
-      status: string;
-      duration?: { value: number; text: string };   // value in seconds
-      distance?: { value: number; text: string };   // value in meters
-    }>;
-  }>;
+interface ProxyResponse {
+  driveMinutes?: number;
+  driveKm?: number;
+  error?: string;
 }
 
 /**
  * Fetch driving time + distance from (originLat, originLng) to
- * (destLat, destLng). Returns `null` on any failure (missing key, CORS,
- * ZERO_RESULTS, land-to-island requiring ferry, etc.).
+ * (destLat, destLng) via the server-side proxy.
+ *
+ * Returns `null` on any failure (proxy unreachable, ZERO_RESULTS, land-to-island
+ * requiring ferry, missing server key, etc.) so the caller can simply hide the
+ * badge without special-casing errors.
+ *
+ * @param originLat  User latitude  (decimal degrees)
+ * @param originLng  User longitude (decimal degrees)
+ * @param destLat    Marina latitude  (decimal degrees)
+ * @param destLng    Marina longitude (decimal degrees)
+ * @param proxyBase  Optional override (defaults to same-origin `/api/distance-matrix`).
  */
 export async function fetchDriveEstimate(
   originLat: number,
   originLng: number,
   destLat: number,
   destLng: number,
-  apiKey: string,
-  apiBase: string = 'https://maps.googleapis.com/maps/api/distancematrix/json',
+  proxyBase: string = '/api/distance-matrix',
 ): Promise<DriveEstimate | null> {
-  if (!apiKey) return null;
-
   const params = new URLSearchParams({
-    origins: `${originLat},${originLng}`,
-    destinations: `${destLat},${destLng}`,
-    mode: 'driving',
-    units: 'metric',
-    key: apiKey,
+    origin_lat: String(originLat),
+    origin_lng: String(originLng),
+    dest_lat: String(destLat),
+    dest_lng: String(destLng),
   });
 
   try {
-    const data = await deduplicatedFetch<DistanceMatrixResponse>(
-      `${apiBase}?${params.toString()}`,
+    const data = await deduplicatedFetch<ProxyResponse>(
+      `${proxyBase}?${params.toString()}`,
       undefined,
-      // Driving estimates are stable for this OD pair — cache 10 min.
-      { ttl: 600000 },
+      // Driving estimates are stable for this OD pair — cache 10 min client-side
+      // on top of the edge cache the proxy sets via Cache-Control.
+      { ttl: 600_000, logRetries: false },
     );
 
-    if (data.status !== 'OK') return null;
-    const element = data.rows?.[0]?.elements?.[0];
-    if (!element || element.status !== 'OK') return null;
-    if (!element.duration || !element.distance) return null;
+    if (
+      data &&
+      typeof data.driveMinutes === 'number' &&
+      typeof data.driveKm === 'number'
+    ) {
+      return { driveMinutes: data.driveMinutes, driveKm: data.driveKm };
+    }
 
-    return {
-      driveMinutes: Math.round(element.duration.value / 60),
-      driveKm: Math.round((element.distance.value / 1000) * 10) / 10,
-    };
+    if (data?.error) {
+      console.warn('[DistanceMatrixService] Proxy returned error:', data.error);
+    }
+    return null;
   } catch (err) {
     console.warn('[DistanceMatrixService] fetchDriveEstimate failed:', err);
     return null;

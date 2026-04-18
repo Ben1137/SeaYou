@@ -367,10 +367,6 @@ const MarinaCard: React.FC<{
 
   useEffect(() => {
     if (!userLocation) return;
-    const apiKey =
-      (import.meta as unknown as { env?: Record<string, string> }).env
-        ?.VITE_GOOGLE_PLACES_API_KEY ?? '';
-    if (!apiKey) return;
 
     let cancelled = false;
     fetchDriveEstimate(
@@ -378,7 +374,6 @@ const MarinaCard: React.FC<{
       userLocation.lon,
       marina.lat,
       marina.lon,
-      apiKey,
     ).then((result) => {
       if (!cancelled) setDrive(result);
     });
