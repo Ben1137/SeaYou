@@ -79,6 +79,18 @@ interface AlertContextType {
   pushOptIn: boolean;
   setPushOptIn: (enabled: boolean) => void;
 
+  /**
+   * Atomically persist a full push-notification registration: Player ID +
+   * opt-in flag + home coordinates. This is the single entry point used
+   * after the user grants push permission, so the JSONB payload written
+   * to Supabase always matches the Edge Function's exact requirements.
+   */
+  setPushRegistration: (reg: { id: string; lat: number; lon: number }) => void;
+
+  /** Captured home coordinates (forecast anchor for daily-surf-report) */
+  homeLat: number | null;
+  homeLon: number | null;
+
   /** Cloud sync status (informational) */
   cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   cloudSyncError: string | null;
@@ -424,6 +436,32 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     update((p) => ({ ...p, push_opt_in: enabled }));
   }, [update]);
 
+  /**
+   * Writes the full push-registration tuple in a single update so the
+   * auto-upsert effect (line ~286) flushes one coherent JSONB blob to
+   * Supabase. Edge Function requires all four fields to be present.
+   */
+  const setPushRegistration = useCallback(
+    ({ id, lat, lon }: { id: string; lat: number; lon: number }) => {
+      update((p) => {
+        const unchanged =
+          p.onesignal_player_id === id &&
+          p.push_opt_in === true &&
+          p.home_lat === lat &&
+          p.home_lon === lon;
+        if (unchanged) return p;
+        return {
+          ...p,
+          onesignal_player_id: id,
+          push_opt_in: true,
+          home_lat: lat,
+          home_lon: lon,
+        };
+      });
+    },
+    [update],
+  );
+
   const dismiss = useCallback(() => setIsDismissed(true), []);
   const resetDismiss = useCallback(() => setIsDismissed(false), []);
 
@@ -464,6 +502,9 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setOnesignalPlayerId,
         pushOptIn: preferences.push_opt_in ?? true,
         setPushOptIn,
+        setPushRegistration,
+        homeLat: preferences.home_lat ?? null,
+        homeLon: preferences.home_lon ?? null,
         cloudSyncStatus,
         cloudSyncError,
       }}

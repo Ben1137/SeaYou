@@ -84,6 +84,17 @@ export interface UserPreferences {
    * `push_opt_in !== false` so missing-key users still receive pushes.
    */
   push_opt_in: boolean;
+
+  /**
+   * "Home" latitude used as the forecast anchor for the `daily-surf-report`
+   * Edge Function. Captured alongside the OneSignal Player ID from the
+   * user's currently active location (or first recent/favorite fallback).
+   * Null until we have successfully captured a push registration.
+   */
+  home_lat: number | null;
+
+  /** "Home" longitude — see `home_lat`. */
+  home_lon: number | null;
 }
 
 // ─── Defaults ───
@@ -107,6 +118,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   hasCompletedTour: false,
   onesignal_player_id: null,
   push_opt_in: true,
+  home_lat: null,
+  home_lon: null,
 };
 
 /** Storage key — same across platforms for consistency */

@@ -256,8 +256,16 @@ const AppContent: React.FC = () => {
     // fine — our listener (above) also writes to preferences. Use whichever
     // fires first.
     const id = await waitForPlayerId();
-    if (id) alertConfig.setOnesignalPlayerId(id);
-  }, [authUser?.id, alertConfig]);
+    if (!id) return;
+    // Resolve home coordinates: active location > first recent > first
+    // favorite. The Edge Function strictly requires both lat/lon, so we
+    // always have a value even for brand-new users on the default spot.
+    const fallback =
+      alertConfig.recentSearches[0] ?? alertConfig.favoriteLocations[0] ?? null;
+    const lat = currentLocation.lat ?? fallback?.lat ?? DEFAULT_LOC.lat;
+    const lon = currentLocation.lng ?? fallback?.lng ?? DEFAULT_LOC.lng;
+    alertConfig.setPushRegistration({ id, lat, lon });
+  }, [authUser?.id, alertConfig, currentLocation.lat, currentLocation.lng]);
 
   // Fallback prompt: signed in, tour done, but we have never captured a
   // Player ID. This handles users who skipped the tour or installed on a
@@ -882,7 +890,7 @@ const AppContent: React.FC = () => {
                   console.error('Dashboard error:', error, errorInfo);
                 }}
               >
-                <Dashboard weatherData={weatherData} loading={isLoading} error={error} locationName={currentLocation.name} onRetry={refetch} onLocationClick={() => setShowLocationModal(true)} />
+                <Dashboard weatherData={weatherData} loading={isLoading} error={error} locationName={currentLocation.name} currentLat={currentLocation.lat} currentLng={currentLocation.lng} onRetry={refetch} onLocationClick={() => setShowLocationModal(true)} />
               </ErrorBoundary>
             )}
             {view === ViewState.MAP && (

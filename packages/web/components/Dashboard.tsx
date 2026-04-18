@@ -24,6 +24,10 @@ interface DashboardProps {
   loading: boolean;
   error: Error | null;
   locationName: string;
+  /** Currently active location coordinates — forwarded to AlertConfigModal
+   *  so it can seed `home_lat`/`home_lon` when the user enables pushes. */
+  currentLat?: number;
+  currentLng?: number;
   onRetry?: () => void;
   onLocationClick?: () => void;
 }
@@ -63,7 +67,7 @@ const getWeatherConditionKey = (code: number): string => {
   return codeMap[code] || 'unknown';
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, onRetry, onLocationClick }) => {
+const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick }) => {
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, persona } = useAlertConfig();
   const [showSettings, setShowSettings] = useState(false);
@@ -385,7 +389,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       </div>
 
       {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}
-      <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
+      <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} currentLat={currentLat} currentLng={currentLng} />
 
       {/* ─── Activity Report (Persona-filtered Grid with Scores) ─── */}
       <section id="tour-dashboard-scores">

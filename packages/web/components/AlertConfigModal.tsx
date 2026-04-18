@@ -1,13 +1,26 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { X, Bell, Waves, Wind, BellRing, Anchor, Eye } from 'lucide-react';
+import { X, Bell, Waves, Wind, BellRing, Anchor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ActivityPersona } from '@seame/core';
 import { useAlertConfig } from '../src/contexts/AlertContext';
-import { requestPushPermission } from '../src/services/oneSignalWeb';
+import {
+  requestPushPermission,
+  waitForPlayerId,
+  isNotificationReady,
+  getPlayerId,
+} from '../src/services/oneSignalWeb';
 
 interface AlertConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /**
+   * Currently active location from the parent view. Used to seed
+   * `home_lat`/`home_lon` in the JSONB preferences when the user enables
+   * push notifications. Falls back to recent/favorite locations when
+   * absent so the Edge Function always has a forecast anchor.
+   */
+  currentLat?: number;
+  currentLng?: number;
 }
 
 // ─── Persona selector config ───
@@ -21,9 +34,11 @@ const PERSONA_OPTIONS: { persona: ActivityPersona; label: string; emoji: string;
   { persona: ActivityPersona.BEACHGOER, label: 'Beach', emoji: '\uD83C\uDFD6\uFE0F', color: 'bg-amber-400/60' },
 ];
 
-export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onClose }) => {
+export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onClose, currentLat, currentLng }) => {
   const { t } = useTranslation();
-  const [pushStatus, setPushStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>('idle');
+  const [pushStatus, setPushStatus] = useState<'idle' | 'requesting' | 'granted' | 'denied'>(
+    () => (isNotificationReady() ? 'granted' : 'idle'),
+  );
   const {
     thresholds,
     primaryPersona,
@@ -32,9 +47,50 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
     setWindThreshold,
     toggleHighWaves,
     toggleStrongWinds,
-    toggleTsunamiWarning,
     toggleTsunamiAlerts,
+    setPushRegistration,
+    recentSearches,
+    favoriteLocations,
   } = useAlertConfig();
+
+  // Re-sync the button state when the modal re-opens: the user may have
+  // granted permission through the tour, the fallback effect, or browser
+  // settings between sessions.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (isNotificationReady()) setPushStatus('granted');
+  }, [isOpen]);
+
+  /**
+   * Fire the OneSignal permission prompt, capture the Player ID, and
+   * persist the full registration tuple (id + opt-in + home lat/lon)
+   * into Supabase. The Edge Function strictly requires all four fields.
+   */
+  const handleEnablePush = useCallback(async () => {
+    if (pushStatus === 'requesting' || pushStatus === 'granted') return;
+    setPushStatus('requesting');
+    try {
+      const granted = await requestPushPermission();
+      if (!granted) {
+        setPushStatus('denied');
+        return;
+      }
+      setPushStatus('granted');
+      const id = (await waitForPlayerId()) ?? getPlayerId();
+      if (!id) return;
+      // Resolve home coordinates — active location > first recent >
+      // first favorite. One of these is always present by the time the
+      // modal is reachable (Dashboard seeds currentLat/Lng from App).
+      const fallback = recentSearches[0] ?? favoriteLocations[0] ?? null;
+      const lat = currentLat ?? fallback?.lat;
+      const lon = currentLng ?? fallback?.lng;
+      if (typeof lat !== 'number' || typeof lon !== 'number') return;
+      setPushRegistration({ id, lat, lon });
+    } catch (err) {
+      console.warn('[AlertConfigModal] Failed to enable push:', err);
+      setPushStatus('denied');
+    }
+  }, [pushStatus, currentLat, currentLng, recentSearches, favoriteLocations, setPushRegistration]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -225,32 +281,6 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
             </label>
           </div>
 
-          {/* ═══ Tsunami simulation (dev/testing) ═══ */}
-          <div className="flex items-center justify-between p-3 border border-white/5 rounded-xl opacity-50">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center">
-                <Eye size={14} className="text-white/40" />
-              </div>
-              <div>
-                <span className="text-xs font-bold text-white/40 block">
-                  {t('dashboard.tsunamiSimulation', 'Tsunami Simulation')}
-                </span>
-                <span className="text-[9px] text-white/25">
-                  {t('alerts.tsunamiSimDesc', 'Simulates tsunami warning banner (dev only)')}
-                </span>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={thresholds.tsunamiWarningEnabled}
-                onChange={toggleTsunamiWarning}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-red-600/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
-            </label>
-          </div>
-
           {/* ═══ Push Notifications ═══ */}
           <div className="glass-inner rounded-xl p-4 border border-purple-500/20">
             <div className="flex items-center justify-between">
@@ -270,11 +300,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
                 </div>
               </div>
               <button
-                onClick={async () => {
-                  setPushStatus('requesting');
-                  const granted = await requestPushPermission();
-                  setPushStatus(granted ? 'granted' : 'denied');
-                }}
+                onClick={handleEnablePush}
                 disabled={pushStatus === 'requesting' || pushStatus === 'granted'}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
                   pushStatus === 'granted'
