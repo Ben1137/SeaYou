@@ -25,7 +25,14 @@ import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 import './src/pwa';
-import { initOneSignalWeb } from './src/services/oneSignalWeb';
+import {
+  initOneSignalWeb,
+  requestPushPermission,
+  waitForPlayerId,
+  onPlayerIdChange,
+  getPlayerId,
+  isNotificationReady,
+} from './src/services/oneSignalWeb';
 
 /** Polling interval for GDACS tsunami feeds (5 minutes) */
 const TSUNAMI_POLL_MS = 5 * 60 * 1000;
@@ -104,7 +111,7 @@ const AppContent: React.FC = () => {
   const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
   const { t, i18n } = useTranslation();
   const alertConfig = useAlertConfig();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user: authUser } = useAuth();
 
   // Synchronous localStorage read — immediately blocks tour during the first
   // render cycle, before Supabase responds with cloud preferences.
@@ -197,6 +204,87 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     initOneSignalWeb().catch(() => {/* non-critical */});
   }, []);
+
+  // ─── OneSignal Player ID capture ────────────────────────────────────────
+  // As soon as the SDK knows a Player ID (either because the user was
+  // already subscribed in a past session, or has just granted permission),
+  // write it into preferences so the `daily-surf-report` Edge Function can
+  // target this user. Also hook the `change` event so we survive silent
+  // re-subscriptions without needing a page reload.
+  useEffect(() => {
+    if (!authUser?.id) return;
+    let cancelled = false;
+
+    // 1) Initial read: if permission was already granted in a prior
+    //    session, the Player ID is available synchronously.
+    const initial = getPlayerId();
+    if (initial && initial !== alertConfig.onesignalPlayerId) {
+      alertConfig.setOnesignalPlayerId(initial);
+    }
+
+    // 2) Listen for subsequent SDK-initiated changes.
+    const off = onPlayerIdChange((id) => {
+      if (cancelled) return;
+      if (id && id !== alertConfig.onesignalPlayerId) {
+        alertConfig.setOnesignalPlayerId(id);
+      }
+    });
+    return () => { cancelled = true; off(); };
+    // We intentionally depend on `authUser?.id` only — rebinding on every
+    // preferences change would thrash the listener. `setOnesignalPlayerId`
+    // is stable (wrapped in useCallback) and reads latest value via closure.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authUser?.id]);
+
+  /**
+   * Prompt for push permission, then capture + persist the Player ID.
+   * Called from:
+   *   (a) the InteractiveTour `onFinish` callback — the UX-ideal moment
+   *       the user has just seen what the app can do for them.
+   *   (b) a fallback effect on login, when a signed-in user hasn't been
+   *       prompted yet (e.g. they skipped the tour, or logged in fresh on
+   *       a new device).
+   * Safe to call multiple times: if permission is already granted, we just
+   * capture the Player ID. If previously denied, the browser silently
+   * resolves and we leave the opt-in opportunity for the settings toggle.
+   */
+  const promptPushAndCapture = useCallback(async () => {
+    if (!authUser?.id) return;
+    const granted = await requestPushPermission();
+    if (!granted) return;
+    // The SDK may fire `change` before `waitForPlayerId` returns, which is
+    // fine — our listener (above) also writes to preferences. Use whichever
+    // fires first.
+    const id = await waitForPlayerId();
+    if (id) alertConfig.setOnesignalPlayerId(id);
+  }, [authUser?.id, alertConfig]);
+
+  // Fallback prompt: signed in, tour done, but we have never captured a
+  // Player ID. This handles users who skipped the tour or installed on a
+  // new device after the tour was already flagged complete server-side.
+  const hasPromptedRef = useRef(false);
+  useEffect(() => {
+    if (hasPromptedRef.current) return;
+    if (!authUser?.id) return;
+    if (!alertConfig.hasCompletedTour) return; // handled by tour `onFinish`
+    if (alertConfig.onesignalPlayerId) return; // already captured
+    if (isNotificationReady()) {
+      // Permission already granted — just capture the ID, no prompt needed
+      const id = getPlayerId();
+      if (id) alertConfig.setOnesignalPlayerId(id);
+      return;
+    }
+    hasPromptedRef.current = true;
+    // Small delay so the prompt doesn't collide with post-login UI flashes.
+    const t = setTimeout(() => { promptPushAndCapture(); }, 1200);
+    return () => clearTimeout(t);
+  }, [
+    authUser?.id,
+    alertConfig.hasCompletedTour,
+    alertConfig.onesignalPlayerId,
+    alertConfig,
+    promptPushAndCapture,
+  ]);
 
   // ─── Tsunami risk state + background polling (Phase 5) ───
   const [tsunamiRisks, setTsunamiRisks] = useState<TsunamiRisk[]>([]);
@@ -919,6 +1007,14 @@ const AppContent: React.FC = () => {
               // Ignore quota / private-mode errors — cloud persistence still fires.
             }
             alertConfig.setHasCompletedTour(true);
+
+            // UX-ideal moment to ask for push permission: the user has
+            // just seen what the app can do and understands the value of
+            // daily surf reports. `promptPushAndCapture` is a no-op if the
+            // user isn't signed in, if permission is already granted, or
+            // if they deny — so it's safe to fire unconditionally here.
+            hasPromptedRef.current = true; // suppress the fallback effect
+            promptPushAndCapture();
           }}
         />
       </div>

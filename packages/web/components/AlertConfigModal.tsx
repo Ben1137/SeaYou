@@ -192,6 +192,13 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
             </div>
           </div>
 
+          {/* ═══ Daily Surf Report (push notifications) ═══
+              Wires to preferences.push_opt_in (default true). The
+              `daily-surf-report` Edge Function filters its query on
+              push_opt_in !== false so existing users continue to receive
+              pushes while new users can opt out here. */}
+          <DailySurfReportToggle />
+
           {/* ═══ Tsunami Alerts (real push notifications) ═══ */}
           <div className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${thresholds.tsunamiAlertsEnabled ? 'bg-red-950/30 border-red-900/40' : 'bg-red-950/10 border-white/5 opacity-60'}`}>
             <div className="flex items-center gap-2">
@@ -292,6 +299,71 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
           </p>
         </div>
       </div>
+    </div>
+  );
+};
+
+/**
+ * DailySurfReportToggle
+ * ─────────────────────
+ * Standalone opt-in switch for the `daily-surf-report` pg_cron push.
+ * Stored in `preferences.push_opt_in` (JSONB). The Edge Function filters
+ * `push_opt_in !== false`, so the default-true behaviour is preserved even
+ * for legacy rows where the key is missing.
+ *
+ * When the user flips it ON and the browser has not yet granted permission,
+ * we also fire the OneSignal permission prompt so the toggle is functional
+ * the moment it's enabled (otherwise it would silently do nothing).
+ */
+const DailySurfReportToggle: React.FC = () => {
+  const { t } = useTranslation();
+  const { pushOptIn, setPushOptIn, onesignalPlayerId } = useAlertConfig();
+
+  const handleToggle = useCallback(async () => {
+    const next = !pushOptIn;
+    setPushOptIn(next);
+    // Turning ON without a captured Player ID means the browser hasn't
+    // granted permission yet — trigger the OS prompt so the toggle is
+    // actually wired to something.
+    if (next && !onesignalPlayerId) {
+      await requestPushPermission();
+    }
+  }, [pushOptIn, setPushOptIn, onesignalPlayerId]);
+
+  return (
+    <div
+      className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${
+        pushOptIn
+          ? 'bg-amber-500/10 border-amber-400/30'
+          : 'bg-white/[0.02] border-white/5 opacity-70'
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+          <BellRing size={16} className="text-amber-300" />
+        </div>
+        <div>
+          <span className="text-sm font-bold text-white block">
+            {t('alerts.dailySurfReport', 'Daily Surf Report')}
+          </span>
+          <span className="text-[10px] text-white/50">
+            {t(
+              'alerts.dailySurfReportDesc',
+              'Get a personalized push when the day has a Good+ window at your spot',
+            )}
+          </span>
+        </div>
+      </div>
+      <label className="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          checked={pushOptIn}
+          onChange={handleToggle}
+          className="sr-only peer"
+          aria-label={t('alerts.dailySurfReport', 'Daily Surf Report')}
+        />
+        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-amber-500/70 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+      </label>
     </div>
   );
 };

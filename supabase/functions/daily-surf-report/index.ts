@@ -69,6 +69,13 @@ interface UserRow {
   persona: Persona | null;
   onesignal_player_id: string | null;
   locale: string | null;
+  /**
+   * Opt-in for the daily surf report. Stored under
+   * `preferences.push_opt_in`. Treated as TRUE (opted in) when the key is
+   * missing, so rows from before this field existed continue to receive
+   * pushes. Only an explicit `false` suppresses the notification.
+   */
+  push_opt_in: boolean;
 }
 
 /** Raw DB row — `preferences` is an opaque JSONB blob. */
@@ -163,6 +170,10 @@ async function fetchEligibleUsers(): Promise<UserRow[]> {
     const persona = (VALID_PERSONAS as string[]).includes(personaStr ?? '')
       ? (personaStr as Persona)
       : null;
+    // `push_opt_in` defaults to TRUE — only an explicit boolean false
+    // suppresses the notification. Missing key = opted in.
+    const rawOpt = p?.['push_opt_in'];
+    const pushOptIn = rawOpt === false ? false : true;
     return {
       user_id: r.user_id,
       home_lat: num(p, 'home_lat'),
@@ -170,17 +181,20 @@ async function fetchEligibleUsers(): Promise<UserRow[]> {
       persona,
       onesignal_player_id: str(p, 'onesignal_player_id'),
       locale: str(p, 'locale'),
+      push_opt_in: pushOptIn,
     };
   });
 
-  // A user is eligible only when all four required fields are present.
-  // Locale is optional (defaults to 'en' downstream).
+  // A user is eligible only when all four required fields are present AND
+  // they haven't explicitly opted out. Locale is optional (defaults to
+  // 'en' downstream).
   return flattened.filter(
     (u) =>
       u.home_lat !== null &&
       u.home_lon !== null &&
       u.persona !== null &&
-      u.onesignal_player_id !== null,
+      u.onesignal_player_id !== null &&
+      u.push_opt_in !== false,
   );
 }
 

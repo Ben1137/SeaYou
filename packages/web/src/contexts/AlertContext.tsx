@@ -71,6 +71,14 @@ interface AlertContextType {
   hasCompletedTour: boolean;
   setHasCompletedTour: (done: boolean) => void;
 
+  /** OneSignal Player ID — null until push permission is granted */
+  onesignalPlayerId: string | null;
+  setOnesignalPlayerId: (id: string | null) => void;
+
+  /** Daily push-notification opt-in (defaults to true) */
+  pushOptIn: boolean;
+  setPushOptIn: (enabled: boolean) => void;
+
   /** Cloud sync status (informational) */
   cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   cloudSyncError: string | null;
@@ -405,6 +413,17 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     update((p) => ({ ...p, hasCompletedTour: done }));
   }, [update]);
 
+  // Persist the OneSignal Player ID into preferences JSONB so the daily
+  // surf-report Edge Function can target this user. No-op if unchanged,
+  // to avoid thrashing the auto-upsert effect.
+  const setOnesignalPlayerId = useCallback((id: string | null) => {
+    update((p) => (p.onesignal_player_id === id ? p : { ...p, onesignal_player_id: id }));
+  }, [update]);
+
+  const setPushOptIn = useCallback((enabled: boolean) => {
+    update((p) => ({ ...p, push_opt_in: enabled }));
+  }, [update]);
+
   const dismiss = useCallback(() => setIsDismissed(true), []);
   const resetDismiss = useCallback(() => setIsDismissed(false), []);
 
@@ -441,6 +460,10 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         resetDismiss,
         hasCompletedTour: preferences.hasCompletedTour ?? false,
         setHasCompletedTour,
+        onesignalPlayerId: preferences.onesignal_player_id ?? null,
+        setOnesignalPlayerId,
+        pushOptIn: preferences.push_opt_in ?? true,
+        setPushOptIn,
         cloudSyncStatus,
         cloudSyncError,
       }}

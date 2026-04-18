@@ -68,6 +68,22 @@ export interface UserPreferences {
 
   /** Whether the user has completed the post-onboarding app tour */
   hasCompletedTour: boolean;
+
+  /**
+   * OneSignal Player (Subscription) ID. Captured on the client right after
+   * the user grants push permission and written here by AlertContext.
+   * The `daily-surf-report` Edge Function reads this to target the user.
+   * Null until the user has granted permission at least once.
+   */
+  onesignal_player_id: string | null;
+
+  /**
+   * Opt-in for the daily surf-report push notification. Defaults to `true`
+   * — we only withhold pushes when the user has explicitly toggled the
+   * "Daily Surf Report" setting off. The Edge Function filters on
+   * `push_opt_in !== false` so missing-key users still receive pushes.
+   */
+  push_opt_in: boolean;
 }
 
 // ─── Defaults ───
@@ -89,6 +105,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   favoriteLocations: [],
   recentSearches: [],
   hasCompletedTour: false,
+  onesignal_player_id: null,
+  push_opt_in: true,
 };
 
 /** Storage key — same across platforms for consistency */

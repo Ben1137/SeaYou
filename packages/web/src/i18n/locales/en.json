@@ -53,6 +53,8 @@
     "strongWinds": "Strong Winds",
     "waveAlert": "High Waves ({{value}}m)",
     "windAlert": "Strong Winds ({{value}} km/h)",
+    "dailySurfReport": "Daily Surf Report",
+    "dailySurfReportDesc": "Get a personalized push when the day has a Good+ window at your spot",
     "tsunamiAlerts": "Tsunami Alerts",
     "tsunamiAlertsDesc": "Receive critical push notifications for tsunami warnings in your area",
     "tsunamiDesc": "Simulates tsunami warning banner",
