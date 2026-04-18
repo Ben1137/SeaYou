@@ -53,7 +53,6 @@ interface AuthContextType {
 
   signInWithGoogle: () => Promise<void>;
   signInWithApple: () => Promise<void>;
-  signInWithFacebook: () => Promise<void>;
   signInWithEmailPassword: (email: string, password: string) => Promise<boolean>;
   signUpWithEmailPassword: (email: string, password: string) => Promise<boolean>;
   sendMagicLink: (email: string) => Promise<boolean>;
@@ -122,7 +121,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const signInWithGoogle = useCallback(() => doOAuth('google'), [doOAuth]);
   const signInWithApple = useCallback(() => doOAuth('apple'), [doOAuth]);
-  const signInWithFacebook = useCallback(() => doOAuth('facebook'), [doOAuth]);
+  // Facebook SSO retired April 2026 — consolidated providers for mobile launch.
 
   // ─── Email / password ───
 
@@ -198,7 +197,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         error,
         signInWithGoogle,
         signInWithApple,
-        signInWithFacebook,
         signInWithEmailPassword,
         signUpWithEmailPassword,
         sendMagicLink,

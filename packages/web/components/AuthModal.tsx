@@ -17,11 +17,7 @@ const GoogleIcon = () => (
   </svg>
 );
 
-const FacebookIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="white" aria-hidden="true">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-  </svg>
-);
+// FacebookIcon removed — Facebook SSO retired April 2026 for mobile launch.
 
 const AppleIcon = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" fill="white" aria-hidden="true">
@@ -40,7 +36,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     error,
     signInWithGoogle,
     signInWithApple,
-    signInWithFacebook,
     signInWithEmailPassword,
     signUpWithEmailPassword,
     sendMagicLink,
@@ -99,7 +94,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleGoogle = () => wrapBusy(signInWithGoogle);
-  const handleFacebook = () => wrapBusy(signInWithFacebook);
   const handleApple = () => wrapBusy(signInWithApple);
 
   const handleEmailPassword = async (e: React.FormEvent) => {
@@ -199,17 +193,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             {t('auth.continueWithGoogle', 'Continue with Google')}
           </button>
 
-          <button
-            onClick={handleFacebook}
-            disabled={disabled}
-            className="w-full h-12 rounded-full flex items-center justify-center gap-3 font-semibold text-sm
-              text-white hover:opacity-90 transition-opacity shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#1877F2' }}
-          >
-            {busy ? <Loader2 size={18} className="animate-spin" /> : <FacebookIcon />}
-            {t('auth.continueWithFacebook', 'Continue with Facebook')}
-          </button>
-
+          {/* Facebook SSO removed April 2026 — consolidated to Google + Apple + email. */}
           <button
             onClick={handleApple}
             disabled={disabled}
