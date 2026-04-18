@@ -55,6 +55,13 @@ type Persona =
   | 'diver'
   | 'beachgoer';
 
+/**
+ * Row shape AFTER we flatten the JSONB `preferences` column.
+ * In Supabase, `user_preferences` has just two columns we care about:
+ *   user_id      uuid
+ *   preferences  jsonb  ← holds home_lat / home_lon / persona /
+ *                        onesignal_player_id / locale / ...
+ */
 interface UserRow {
   user_id: string;
   home_lat: number | null;
@@ -62,6 +69,12 @@ interface UserRow {
   persona: Persona | null;
   onesignal_player_id: string | null;
   locale: string | null;
+}
+
+/** Raw DB row — `preferences` is an opaque JSONB blob. */
+interface RawPrefRow {
+  user_id: string;
+  preferences: Record<string, unknown> | null;
 }
 
 interface HourlyConditions {
@@ -104,25 +117,71 @@ function getSupabase() {
 
 // ─── Step 1: Fetch all users who opted in to push notifications ────────────
 
+/**
+ * Fetch every user_preferences row, then flatten the JSONB `preferences`
+ * blob into the fields we need. Filtering by nested JSONB keys is awkward
+ * in PostgREST (it forces `.filter('preferences->>home_lat', 'not.is', null)`
+ * per key, which bloats the query and doesn't play well with missing keys),
+ * so we pull everything and filter in application code. The table is
+ * small (one row per user) — the simpler code wins.
+ */
 async function fetchEligibleUsers(): Promise<UserRow[]> {
   const sb = getSupabase();
-  // Assume user_preferences will soon carry these columns:
-  //   home_lat, home_lon, persona, onesignal_player_id, locale
-  // A user is eligible when all four non-null are present. Locale is
-  // optional — falls back to 'en'.
   const { data, error } = await sb
     .from('user_preferences')
-    .select('user_id, home_lat, home_lon, persona, onesignal_player_id, locale')
-    .not('home_lat', 'is', null)
-    .not('home_lon', 'is', null)
-    .not('persona', 'is', null)
-    .not('onesignal_player_id', 'is', null);
+    .select('user_id, preferences');
 
   if (error) {
     console.error('[daily-surf-report] Failed to query user_preferences:', error);
     return [];
   }
-  return (data ?? []) as UserRow[];
+
+  const rows = (data ?? []) as RawPrefRow[];
+
+  // Pick out a value from the JSONB blob, coercing types defensively.
+  const str = (p: Record<string, unknown> | null, key: string): string | null => {
+    const v = p?.[key];
+    return typeof v === 'string' && v.length > 0 ? v : null;
+  };
+  const num = (p: Record<string, unknown> | null, key: string): number | null => {
+    const v = p?.[key];
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.length > 0) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    }
+    return null;
+  };
+
+  const VALID_PERSONAS: Persona[] = [
+    'wave_surfer', 'wind_surfer', 'kite_surfer', 'sailor', 'diver', 'beachgoer',
+  ];
+
+  const flattened: UserRow[] = rows.map((r) => {
+    const p = r.preferences ?? null;
+    const personaStr = str(p, 'persona');
+    const persona = (VALID_PERSONAS as string[]).includes(personaStr ?? '')
+      ? (personaStr as Persona)
+      : null;
+    return {
+      user_id: r.user_id,
+      home_lat: num(p, 'home_lat'),
+      home_lon: num(p, 'home_lon'),
+      persona,
+      onesignal_player_id: str(p, 'onesignal_player_id'),
+      locale: str(p, 'locale'),
+    };
+  });
+
+  // A user is eligible only when all four required fields are present.
+  // Locale is optional (defaults to 'en' downstream).
+  return flattened.filter(
+    (u) =>
+      u.home_lat !== null &&
+      u.home_lon !== null &&
+      u.persona !== null &&
+      u.onesignal_player_id !== null,
+  );
 }
 
 // ─── Step 2: Open-Meteo forecast fetch ─────────────────────────────────────
