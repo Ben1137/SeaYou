@@ -26,8 +26,9 @@ import {
   Info,
   X,
   Loader,
+  Car,
 } from 'lucide-react';
-import type { Marina } from '@seame/core';
+import type { Marina, DriveEstimate } from '@seame/core';
 import {
   searchNearbyCoasts,
   navigateToMarina,
@@ -37,8 +38,9 @@ import {
   isMarinaFavorited,
   calculateETAToMarina,
   searchMarinasByName,
-  formatDistance, 
-  formatTime 
+  formatDistance,
+  formatTime,
+  fetchDriveEstimate,
 } from '@seame/core';
 import { ErrorState } from './ErrorState';
 
@@ -318,6 +320,7 @@ export const CoastsMarinasView: React.FC = () => {
               marina={marina}
               isFavorited={isMarinaFavorited(marina.id)}
               currentSpeed={currentSpeed}
+              userLocation={currentLocation}
               onToggleFavorite={() => handleToggleFavorite(marina)}
               onNavigate={(app) => handleNavigate(marina, app)}
               onViewDetails={() => setSelectedMarina(marina)}
@@ -346,6 +349,7 @@ const MarinaCard: React.FC<{
   marina: Marina;
   isFavorited: boolean;
   currentSpeed: number;
+  userLocation: { lat: number; lon: number } | null;
   onToggleFavorite: () => void;
   onNavigate: (app: 'google' | 'waze' | 'apple') => void;
   onViewDetails: () => void;
@@ -353,11 +357,36 @@ const MarinaCard: React.FC<{
   marina,
   isFavorited,
   currentSpeed,
+  userLocation,
   onToggleFavorite,
   onNavigate,
   onViewDetails,
 }) => {
   const eta = calculateETAToMarina(marina, currentSpeed);
+  const [drive, setDrive] = useState<DriveEstimate | null>(null);
+
+  useEffect(() => {
+    if (!userLocation) return;
+    const apiKey =
+      (import.meta as unknown as { env?: Record<string, string> }).env
+        ?.VITE_GOOGLE_PLACES_API_KEY ?? '';
+    if (!apiKey) return;
+
+    let cancelled = false;
+    fetchDriveEstimate(
+      userLocation.lat,
+      userLocation.lon,
+      marina.lat,
+      marina.lon,
+      apiKey,
+    ).then((result) => {
+      if (!cancelled) setDrive(result);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userLocation, marina.lat, marina.lon]);
 
   return (
     <div className={`glass-panel p-6 hover:shadow-xl transition-shadow ${marina.type === 'beach' ? 'border-l-4 border-l-orange-500' : marina.type === 'marina' ? 'border-l-4 border-l-blue-500' : ''}`}>
@@ -426,6 +455,18 @@ const MarinaCard: React.FC<{
           </div>
           <p className="text-lg font-bold text-white">{formatTime(eta)}</p>
         </div>
+        {drive && (
+          <div className="col-span-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 p-3 rounded-lg border border-amber-400/60">
+            <div className="flex items-center gap-2 mb-1">
+              <Car className="w-4 h-4 text-amber-300" />
+              <p className="text-xs font-semibold text-amber-200">Drive</p>
+            </div>
+            <p className="text-lg font-bold text-amber-100">
+              {drive.driveMinutes} min <span className="text-amber-300/60">|</span>{' '}
+              {drive.driveKm} km
+            </p>
+          </div>
+        )}
       </div>
 
       {marina.amenities.length > 0 && (

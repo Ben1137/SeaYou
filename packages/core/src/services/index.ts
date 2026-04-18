@@ -11,6 +11,7 @@ export * from './apiRateLimiter';
 export * from './NotificationService';
 export * from './TsunamiAlertService';
 export * from './GooglePlacesService';
+export * from './distanceMatrixService';
 export * from './SupabaseService';
 export * from './AuthService';
 export * from './PreferencesSyncService';
