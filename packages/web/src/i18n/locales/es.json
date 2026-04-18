@@ -51,6 +51,8 @@
     "tsunamiMessage": "Ordenada evacuación inmediata. Impacto de olas altas inminente.",
     "highWaves": "Olas altas",
     "strongWinds": "Vientos fuertes",
+    "waveAlert": "Olas altas ({{value}} m)",
+    "windAlert": "Vientos fuertes ({{value}} km/h)",
     "tsunamiAlerts": "Alertas de Tsunami",
     "tsunamiAlertsDesc": "Recibe notificaciones push críticas de alertas de tsunami en tu zona",
     "tsunamiDesc": "Simula el banner de alerta de tsunami",

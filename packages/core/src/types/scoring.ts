@@ -28,12 +28,33 @@ export interface HourlyConditions {
   isDay?: boolean; // true = daylight hour, false = night
 }
 
+/**
+ * A single, human-readable factor describing why an activity score landed
+ * where it did. Consumed by the ScoreBreakdownModal to build the
+ * "Explainable UI" list (green / gray / red rows).
+ */
+export interface ScoreFactor {
+  /** Short label, e.g. "Wind Speed", "Wave Period". */
+  label: string;
+  /** Human-readable value with units, e.g. "18 km/h", "8.2 s", "Warm 24°C". */
+  value: string;
+  /**
+   * Directional influence on the score:
+   *   positive → helped (green)
+   *   neutral  → middling (gray)
+   *   negative → hurt    (red)
+   */
+  impact: 'positive' | 'neutral' | 'negative';
+}
+
 export interface ActivityScore {
   overall: number;
   label: string;
   color: string;
   factors: Record<string, number>;
   warnings: string[];
+  /** Human-readable breakdown powering the Explainable UI modal. */
+  breakdown: ScoreFactor[];
 }
 
 export interface BestWindow {

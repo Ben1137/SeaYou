@@ -51,6 +51,8 @@
     "tsunamiMessage": "Évacuation immédiate ordonnée. Impact de vague élevée imminent.",
     "highWaves": "Vagues hautes",
     "strongWinds": "Vents forts",
+    "waveAlert": "Vagues hautes ({{value}} m)",
+    "windAlert": "Vents forts ({{value}} km/h)",
     "tsunamiAlerts": "Alertes Tsunami",
     "tsunamiAlertsDesc": "Recevez des notifications critiques en cas d'alerte tsunami dans votre zone",
     "tsunamiDesc": "Simule la bannière d'alerte tsunami",

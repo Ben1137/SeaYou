@@ -1,11 +1,56 @@
-import { HourlyConditions, ActivityScore } from '../types/scoring';
+import { HourlyConditions, ActivityScore, ScoreFactor } from '../types/scoring';
 import { sweetSpotScore, scoreToLabel, weatherBonus, gustSafetyScore, chopIndex } from '../utils/scoring';
 
-function buildScore(overall: number, factors: Record<string, number>, warnings: string[]): ActivityScore {
+/**
+ * Classify a 0-100 factor score into the Explainable-UI impact bucket.
+ *   >= 70 → positive (green)  — this factor helped
+ *   40-69 → neutral  (gray)   — middling
+ *   < 40  → negative (red)    — this factor hurt the score
+ */
+function impactFrom(score: number): ScoreFactor['impact'] {
+  if (score >= 70) return 'positive';
+  if (score >= 40) return 'neutral';
+  return 'negative';
+}
+
+/** Build a single `ScoreFactor` row given a 0-100 numeric score. */
+function factorRow(label: string, value: string, score: number): ScoreFactor {
+  return { label, value, impact: impactFrom(score) };
+}
+
+function buildScore(
+  overall: number,
+  factors: Record<string, number>,
+  warnings: string[],
+  breakdown: ScoreFactor[],
+): ActivityScore {
   const clamped = Math.round(Math.max(0, Math.min(100, overall)));
   const { label, color } = scoreToLabel(clamped);
-  return { overall: clamped, label, color, factors, warnings };
+  return { overall: clamped, label, color, factors, warnings, breakdown };
 }
+
+// ─── Small value-formatting helpers ────────────────────────────────────────
+const fmtM = (n: number) => `${n.toFixed(1)} m`;
+const fmtS = (n: number) => `${n.toFixed(1)} s`;
+const fmtKmh = (n: number) => `${Math.round(n)} km/h`;
+const fmtC = (n: number) => `${Math.round(n)}°C`;
+const fmtMs = (n: number) => `${n.toFixed(2)} m/s`;
+const fmtNm = (n: number) => `${n.toFixed(1)} nm`;
+
+function weatherLabel(code: number | undefined): string {
+  if (code === undefined) return 'Unknown';
+  if (code === 0) return 'Clear';
+  if (code <= 3) return 'Partly Cloudy';
+  if (code <= 48) return 'Foggy';
+  if (code <= 57) return 'Drizzle';
+  if (code <= 67) return 'Rain';
+  if (code <= 77) return 'Snow';
+  if (code <= 82) return 'Showers';
+  if (code >= 95) return 'Thunderstorm';
+  return 'Mixed';
+}
+
+// ─── Personas ──────────────────────────────────────────────────────────────
 
 export function scoreWaveSurfer(c: HourlyConditions): ActivityScore {
   const warnings: string[] = [];
@@ -26,7 +71,15 @@ export function scoreWaveSurfer(c: HourlyConditions): ActivityScore {
     + factors.chop * 0.10
     + factors.weather * 0.10;
 
-  return buildScore(overall, factors, warnings);
+  const breakdown: ScoreFactor[] = [
+    factorRow('Swell Height', fmtM(c.swellHeight), factors.swellHeight),
+    factorRow('Swell Period', fmtS(c.swellPeriod), factors.swellPeriod),
+    factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
+    factorRow('Chop', c.windWaveHeight ? fmtM(c.windWaveHeight) : 'Minimal', factors.chop),
+    factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
 }
 
 export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
@@ -48,7 +101,15 @@ export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
     + factors.windConsistency * 0.15
     + factors.seaTemp * 0.10;
 
-  return buildScore(overall, factors, warnings);
+  const breakdown: ScoreFactor[] = [
+    factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
+    factorRow('Gust Safety', `${fmtKmh(c.windGusts)} gusts`, factors.gustSafety),
+    factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
+    factorRow('Wind Consistency', `Δ ${fmtKmh(c.windGusts - c.windSpeed)}`, factors.windConsistency),
+    factorRow('Sea Temp', c.seaTemp !== undefined ? fmtC(c.seaTemp) : '—', factors.seaTemp),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
 }
 
 export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
@@ -76,7 +137,15 @@ export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
     + factors.windDirection * 0.15
     + factors.weather * 0.10;
 
-  return buildScore(overall, factors, warnings);
+  const breakdown: ScoreFactor[] = [
+    factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
+    factorRow('Gust Delta', fmtKmh(gustDelta), factors.gustDelta),
+    factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
+    factorRow('Wind Direction', `${Math.round(c.windDirection)}°`, factors.windDirection),
+    factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
 }
 
 export function scoreSailor(c: HourlyConditions): ActivityScore {
@@ -102,7 +171,16 @@ export function scoreSailor(c: HourlyConditions): ActivityScore {
     + factors.gustSafety * 0.10
     + factors.currentSpeed * 0.10;
 
-  return buildScore(overall, factors, warnings);
+  const breakdown: ScoreFactor[] = [
+    factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
+    factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
+    factorRow('Visibility', fmtNm(visNm), factors.visibility),
+    factorRow('Pressure', c.pressure !== undefined ? `${Math.round(c.pressure)} hPa` : '—', factors.pressure),
+    factorRow('Gust Safety', `${fmtKmh(c.windGusts)} gusts`, factors.gustSafety),
+    factorRow('Current', c.currentSpeed !== undefined ? fmtMs(c.currentSpeed) : '—', factors.currentSpeed),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
 }
 
 export function scoreDiver(c: HourlyConditions): ActivityScore {
@@ -125,7 +203,15 @@ export function scoreDiver(c: HourlyConditions): ActivityScore {
     + factors.seaTemp * 0.15
     + factors.windSpeed * 0.10;
 
-  return buildScore(overall, factors, warnings);
+  const breakdown: ScoreFactor[] = [
+    factorRow('Visibility', `${Math.round((c.visibility || 10000) / 1000)} km`, factors.visibility),
+    factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
+    factorRow('Current', fmtMs(c.currentSpeed || 0), factors.currentSpeed),
+    factorRow('Sea Temp', c.seaTemp !== undefined ? fmtC(c.seaTemp) : '—', factors.seaTemp),
+    factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
 }
 
 export function scoreBeachgoer(c: HourlyConditions): ActivityScore {
@@ -170,5 +256,14 @@ export function scoreBeachgoer(c: HourlyConditions): ActivityScore {
     factors.daylight = 100;
   }
 
-  return buildScore(overall, factors, warnings);
+  const breakdown: ScoreFactor[] = [
+    factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+    factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
+    factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
+    factorRow('Sea Temp', c.seaTemp !== undefined ? fmtC(c.seaTemp) : '—', factors.seaTemp),
+    factorRow('UV Index', c.uvIndex !== undefined ? String(Math.round(c.uvIndex)) : '—', factors.uvIndex),
+    factorRow('Daylight', c.isDay === false ? 'Night' : 'Day', factors.daylight),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
 }

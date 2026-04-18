@@ -51,6 +51,8 @@
     "tsunamiMessage": "פקודת פינוי מיידית. פגיעת גלים גבוהים קרובה.",
     "highWaves": "גלים גבוהים",
     "strongWinds": "רוחות חזקות",
+    "waveAlert": "גלים גבוהים ({{value}} מ')",
+    "windAlert": "רוחות חזקות ({{value}} קמ\"ש)",
     "tsunamiAlerts": "התראות צונאמי",
     "tsunamiAlertsDesc": "קבל התראות דחופות על אזהרות צונאמי באזורך",
     "tsunamiDesc": "הדמיית באנר אזהרת צונאמי",

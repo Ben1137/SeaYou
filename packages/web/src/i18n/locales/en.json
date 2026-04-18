@@ -51,6 +51,8 @@
     "tsunamiMessage": "Immediate evacuation ordered. High wave impact imminent.",
     "highWaves": "High Waves",
     "strongWinds": "Strong Winds",
+    "waveAlert": "High Waves ({{value}}m)",
+    "windAlert": "Strong Winds ({{value}} km/h)",
     "tsunamiAlerts": "Tsunami Alerts",
     "tsunamiAlertsDesc": "Receive critical push notifications for tsunami warnings in your area",
     "tsunamiDesc": "Simulates tsunami warning banner",
@@ -173,7 +175,13 @@
     "good": "Good",
     "fair": "Fair",
     "poor": "Poor",
-    "dangerous": "Dangerous"
+    "dangerous": "Dangerous",
+    "whyThisScore": "Why this score",
+    "warnings": "Warnings",
+    "tuneSensitivity": "Tune Sensitivity",
+    "tuneSensitivityHint": "Customize the scoring algorithm to match your skill level.",
+    "tuneSensitivityToast": "Custom algorithm tuning is coming soon in SeaYou Pro!",
+    "openBreakdown": "Open breakdown for {{label}}"
   },
   "forecast": {
     "waveForecast": "Wave Forecast (Height & Period)",

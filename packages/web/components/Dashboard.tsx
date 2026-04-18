@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { ActivityTimeline } from './ActivityTimeline';
+import { ScoreBreakdownModal } from './ScoreBreakdownModal';
 
 interface DashboardProps {
   weatherData: MarineWeatherData | null | undefined;
@@ -69,6 +70,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
+  // Selected activity persona for the Explainable-UI breakdown modal
+  const [breakdownPersona, setBreakdownPersona] = useState<ActivityPersona | null>(null);
 
   const getCardinalDirection = (angle: number): string => {
     const keys = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
@@ -413,7 +416,20 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             const score = activityScores?.[cardPersona];
             const bw = bestWindows?.[cardPersona];
             return (
-              <div key={cardPersona} className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-30">
+              <div
+                key={cardPersona}
+                className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-30 cursor-pointer hover:bg-white/5 hover:border-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                onClick={() => score && setBreakdownPersona(cardPersona)}
+                onKeyDown={(e) => {
+                  if ((e.key === 'Enter' || e.key === ' ') && score) {
+                    e.preventDefault();
+                    setBreakdownPersona(cardPersona);
+                  }
+                }}
+                role="button"
+                tabIndex={score ? 0 : -1}
+                aria-label={t('scoring.openBreakdown', { label: t(labelKey), defaultValue: `Open breakdown for ${t(labelKey)}` })}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <div className="w-9 h-9 rounded-lg glass-inner flex items-center justify-center">
                     <Icon size={18} className={iconColor} />
@@ -449,6 +465,26 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           })}
         </div>
       </section>
+
+      {/* ─── Explainable UI: Score Breakdown Modal ─── */}
+      {(() => {
+        const LABEL_MAP: Record<ActivityPersona, string> = {
+          [ActivityPersona.SAILOR]:      t('activity.sailor.label'),
+          [ActivityPersona.WAVE_SURFER]: t('activity.waveSurfer.label'),
+          [ActivityPersona.WIND_SURFER]: t('activity.windSurfer.label'),
+          [ActivityPersona.KITE_SURFER]: t('activity.kiteSurfer.label'),
+          [ActivityPersona.DIVER]:       t('activity.diver.label'),
+          [ActivityPersona.BEACHGOER]:   t('activity.beachgoer.label'),
+        };
+        return (
+          <ScoreBreakdownModal
+            isOpen={breakdownPersona !== null}
+            onClose={() => setBreakdownPersona(null)}
+            activityLabel={breakdownPersona ? LABEL_MAP[breakdownPersona] : ''}
+            score={breakdownPersona && activityScores ? activityScores[breakdownPersona] : null}
+          />
+        );
+      })()}
 
       {/* ─── Conditions Grid ─── */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -51,6 +51,8 @@
     "tsunamiMessage": "Sofortige Evakuierung angeordnet. Hohe Wellenauswirkung steht bevor.",
     "highWaves": "Hohe Wellen",
     "strongWinds": "Starke Winde",
+    "waveAlert": "Hohe Wellen ({{value}} m)",
+    "windAlert": "Starker Wind ({{value}} km/h)",
     "tsunamiAlerts": "Tsunami-Warnungen",
     "tsunamiAlertsDesc": "Erhalten Sie kritische Push-Benachrichtigungen bei Tsunami-Warnungen in Ihrer Nähe",
     "tsunamiDesc": "Simuliert Tsunami-Warnbanner",
