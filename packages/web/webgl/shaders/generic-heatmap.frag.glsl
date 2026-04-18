@@ -34,7 +34,12 @@
  *   - updateNextData() uploads the next timestep grid
  * ─────────────────────────────────────────────────────────────────────────────
  */
+// Mobile GPUs (iOS WebKit) may not support highp in fragment shaders.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
+#else
+precision mediump float;
+#endif
 
 uniform sampler2D u_data;       // Current timestep (R = raw value, A = valid flag)
 uniform sampler2D u_data_next;  // Next timestep for temporal blend (TEXTURE3)

@@ -193,11 +193,12 @@ function buildQueryPopupHTML(
     }
   }
 
-  // Depth row — shown whenever the click lands over water.
-  if (depth != null) {
+  // Depth row — ALWAYS shown whenever fetchDepth returned a value (ocean click).
+  // Independent of active map layer so users see seafloor depth on any click.
+  if (depth !== null && depth !== undefined && Number.isFinite(depth)) {
     const depthStr = depth >= 1000
       ? `${(depth / 1000).toFixed(2)} km`
-      : `${depth.toLocaleString(undefined, { maximumFractionDigits: 0 })} m`;
+      : `${Math.round(depth).toLocaleString()} m`;
     rows.push(row('Depth', depthStr));
   }
 

@@ -25,7 +25,50 @@ import vertShader from './shaders/heatmap.vert.glsl';
 import fragShaderFloat from './shaders/generic-heatmap.frag.glsl';
 import fragShaderUint8 from './shaders/generic-heatmap-uint8.frag.glsl';
 
-export type HeatmapMode = 'float' | 'uint8' | 'disabled';
+export type HeatmapMode = 'float' | 'halfFloat' | 'uint8' | 'disabled';
+
+// WebGL1 constant for HALF_FLOAT_OES (not in standard gl enum).
+const HALF_FLOAT_OES = 0x8D61;
+
+/**
+ * Convert a Float32 to IEEE-754 half-precision (Float16) bit pattern.
+ * Needed for iOS Safari / mobile GPUs that lack OES_texture_float_linear
+ * but support OES_texture_half_float_linear.
+ */
+function f32ToF16Bits(val: number): number {
+  const f32 = new Float32Array(1);
+  const i32 = new Int32Array(f32.buffer);
+  f32[0] = val;
+  const x = i32[0];
+  const sign = (x >> 16) & 0x8000;
+  let mantissa = x & 0x007fffff;
+  let exponent = (x >> 23) & 0xff;
+  if (exponent === 0xff) {
+    return sign | 0x7c00 | (mantissa ? 0x200 : 0);
+  }
+  const newExp = exponent - 127 + 15;
+  if (newExp >= 0x1f) return sign | 0x7c00;
+  if (newExp <= 0) {
+    if (newExp < -10) return sign;
+    mantissa = (mantissa | 0x00800000) >> (1 - newExp);
+    if (mantissa & 0x00001000) mantissa += 0x00002000;
+    return sign | (mantissa >> 13);
+  }
+  if (mantissa & 0x00001000) {
+    mantissa += 0x00002000;
+    if (mantissa & 0x00800000) {
+      mantissa = 0;
+      if (++exponent >= 0x1f) return sign | 0x7c00;
+    }
+  }
+  return sign | (newExp << 10) | (mantissa >> 13);
+}
+
+function float32ToFloat16Array(src: Float32Array): Uint16Array {
+  const out = new Uint16Array(src.length);
+  for (let i = 0; i < src.length; i++) out[i] = f32ToF16Bits(src[i]);
+  return out;
+}
 export type NormalizationMode = 'max-value' | 'range' | 'unit';
 
 export interface HeatmapLayerConfig {
@@ -243,6 +286,18 @@ export function createGenericHeatmapEngine(
         ? (gl as WebGL2RenderingContext).RGBA32F
         : gl.RGBA;
       gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, width, height, 0, gl.RGBA, gl.FLOAT, floatData);
+    } else if (mode === 'halfFloat') {
+      // iOS Safari / mobile: use half-float (Float16) storage with LINEAR filter.
+      const floatData = encodeGridFloat32(grid, validRange);
+      const halfFloatData = float32ToFloat16Array(floatData);
+      const isWebGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+      const internalFmt = isWebGL2
+        ? (gl as WebGL2RenderingContext).RGBA16F
+        : gl.RGBA;
+      const halfFloatType = isWebGL2
+        ? (gl as WebGL2RenderingContext).HALF_FLOAT
+        : HALF_FLOAT_OES;
+      gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, width, height, 0, gl.RGBA, halfFloatType, halfFloatData);
     } else {
       const uint8Data = encodeGridUint8(grid, normMode, minValue, maxValue, validRange);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, uint8Data);
@@ -305,25 +360,41 @@ export function createGenericHeatmapEngine(
       const isWebGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
       useWebGL2FloatFormat = isWebGL2;
 
-      // Detect float texture support + LINEAR interpolation for smooth gradients
+      // Detect float texture support + LINEAR interpolation for smooth gradients.
+      //
+      // Mode selection priority (high → low quality):
+      //   1. 'float'     — WebGL2 OR (OES_texture_float AND OES_texture_float_linear)
+      //   2. 'halfFloat' — OES_texture_half_float AND OES_texture_half_float_linear
+      //                    (iOS Safari / mobile GPUs: these typically support half-float
+      //                    linear filtering but NOT float linear filtering — without this
+      //                    fallback, the heatmap renders black on iPhone Safari.)
+      //   3. 'uint8'     — no float support at all
       const floatExt = isWebGL2 || gl.getExtension('OES_texture_float');
-      const floatLinearExt = gl.getExtension('OES_texture_float_linear');
+      const floatLinearExt = isWebGL2 || gl.getExtension('OES_texture_float_linear');
       if (isWebGL2) {
         gl.getExtension('EXT_color_buffer_float');
         gl.getExtension('EXT_float_blend');
       }
-      // Half-float fallback — LINEAR is always supported for half-float in WebGL2
-      if (!floatLinearExt) {
-        gl.getExtension('OES_texture_half_float');
-        gl.getExtension('OES_texture_half_float_linear');
-      }
+      const halfFloatExt = isWebGL2 || gl.getExtension('OES_texture_half_float');
+      const halfFloatLinearExt =
+        isWebGL2 || gl.getExtension('OES_texture_half_float_linear');
 
-      mode = floatExt ? 'float' : 'uint8';
-      console.log(`${prefix} Using ${mode} mode${isWebGL2 ? ' (WebGL 2)' : ''}, float LINEAR: ${!!floatLinearExt}`);
+      if (floatExt && floatLinearExt) {
+        mode = 'float';
+      } else if (halfFloatExt && halfFloatLinearExt) {
+        mode = 'halfFloat';
+      } else {
+        mode = 'uint8';
+      }
+      console.log(
+        `${prefix} Using ${mode} mode${isWebGL2 ? ' (WebGL 2)' : ''} — ` +
+          `float_linear: ${!!floatLinearExt}, half_float_linear: ${!!halfFloatLinearExt}`
+      );
 
       try {
-        // Compile shaders eagerly — no lazy compilation needed since we own the GL context
-        const fragSrc = mode === 'float' ? fragShaderFloat : fragShaderUint8;
+        // Compile shaders eagerly — no lazy compilation needed since we own the GL context.
+        // halfFloat mode samples as floats in the shader, so we reuse the float shader.
+        const fragSrc = mode === 'uint8' ? fragShaderUint8 : fragShaderFloat;
         program = createProgram(gl, vertShader, fragSrc);
         console.log(`${prefix} Shaders compiled successfully`);
 
@@ -461,7 +532,8 @@ export function createGenericHeatmapEngine(
       gl.uniform1f(gl.getUniformLocation(program, 'u_use_land_mask'), useLandMask ? 1.0 : 0.0);
       gl.uniform1f(gl.getUniformLocation(program, 'u_cloud_pattern'), cloudPattern);
 
-      if (mode === 'float') {
+      if (mode === 'float' || mode === 'halfFloat') {
+        // halfFloat path samples as float in the shader, so same uniforms
         gl.uniform1f(gl.getUniformLocation(program, 'u_norm_mode'), normModeToFloat(normMode));
         gl.uniform1f(gl.getUniformLocation(program, 'u_min_value'), minValue);
         gl.uniform1f(gl.getUniformLocation(program, 'u_max_value'), maxValue);

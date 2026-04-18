@@ -95,10 +95,34 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, onOpenPr
   );
 };
 
+// Synchronous localStorage cache key for tour completion.
+// Written on tour finish/skip so the next page load can short-circuit the
+// ~500ms Supabase hydration window that would otherwise flash the tour again.
+const TOUR_LOCAL_CACHE_KEY = 'tourCompleted';
+
 const AppContent: React.FC = () => {
   const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
   const { t, i18n } = useTranslation();
   const alertConfig = useAlertConfig();
+  const { loading: authLoading } = useAuth();
+
+  // Synchronous localStorage read — immediately blocks tour during the first
+  // render cycle, before Supabase responds with cloud preferences.
+  const tourLocallyCompleted =
+    typeof window !== 'undefined' &&
+    window.localStorage.getItem(TOUR_LOCAL_CACHE_KEY) === 'true';
+
+  // Mirror cloud → local whenever Supabase confirms completion on another
+  // device, so next refresh can short-circuit immediately.
+  useEffect(() => {
+    if (alertConfig.hasCompletedTour === true && !tourLocallyCompleted) {
+      try {
+        window.localStorage.setItem(TOUR_LOCAL_CACHE_KEY, 'true');
+      } catch {
+        // Ignore quota / private-mode errors.
+      }
+    }
+  }, [alertConfig.hasCompletedTour, tourLocallyCompleted]);
 
   const [view, setView] = useState<ViewState>(ViewState.DASHBOARD);
   const [locations, setLocations] = useState<Location[]>([DEFAULT_LOC]);
@@ -121,18 +145,22 @@ const AppContent: React.FC = () => {
   const showOnboarding = !hasCompletedOnboarding;
 
   // ─── App Tour state — shows after onboarding, persisted to preferences/Supabase ───
-  // CRITICAL: wait for cloud preferences to finish loading before evaluating
-  // `hasCompletedTour`. Otherwise on every app-open the default `false` flashes
-  // before the cloud value arrives, causing the tour to re-trigger for returning
-  // users who already completed it on another device.
+  // DOUBLE-LOCK GUARD against the refresh race condition:
+  //   1. Synchronous localStorage check — blocks tour on frame 1 before any
+  //      async state resolves (kills the ~500ms flash window entirely).
+  //   2. Strict async guard — requires auth finished loading AND preferences
+  //      finished loading AND Supabase says hasCompletedTour === false.
+  // Any one of these evaluating "still loading" keeps the tour off-screen.
   const prefsLoaded =
     alertConfig.cloudSyncStatus === 'synced' ||
     alertConfig.cloudSyncStatus === 'error'; // 'error' = give up waiting, use local
   const showAppTour =
-    hasCompletedOnboarding &&
+    !tourLocallyCompleted &&
+    !authLoading &&
     prefsLoaded &&
+    hasCompletedOnboarding &&
     alertConfig.persona !== null &&
-    !alertConfig.hasCompletedTour;
+    alertConfig.hasCompletedTour === false;
 
   // ─── Persona-filtered navigation — "Routes" tab only visible to mariners ───
   const visibleNavItems = useMemo(
@@ -882,7 +910,16 @@ const AppContent: React.FC = () => {
         {/* Post-onboarding Interactive Tour — react-joyride coach marks */}
         <InteractiveTour
           run={showAppTour}
-          onFinish={() => alertConfig.setHasCompletedTour(true)}
+          onFinish={() => {
+            // Write local cache FIRST so the next page load is instantly guarded
+            // even if the Supabase round-trip is still in flight.
+            try {
+              window.localStorage.setItem(TOUR_LOCAL_CACHE_KEY, 'true');
+            } catch {
+              // Ignore quota / private-mode errors — cloud persistence still fires.
+            }
+            alertConfig.setHasCompletedTour(true);
+          }}
         />
       </div>
     </>

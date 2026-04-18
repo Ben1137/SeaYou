@@ -17,7 +17,12 @@
  * This replaces the old view_bbox + data_bbox linear unprojection that broke at
  * any significant lat/lon span due to Web Mercator's non-linear latitude mapping.
  */
+// Mobile GPUs (iOS WebKit) may not support highp in fragment shaders.
+#ifdef GL_FRAGMENT_PRECISION_HIGH
 precision highp float;
+#else
+precision mediump float;
+#endif
 
 // Temporal interpolation mirrors the Float32 shader.
 // u_data_next is bound to TEXTURE3 (TEXTURE1 is occupied by u_color_ramp).
