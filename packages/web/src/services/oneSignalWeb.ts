@@ -126,9 +126,12 @@ export function isNotificationReady(): boolean {
 export function getPlayerId(): string | null {
   if (!initialized) return null;
   try {
-    // react-onesignal v3: OneSignal.User.PushSubscription.id
+    // react-onesignal v3 / OneSignal Web SDK v16+:
+    //   OneSignal.User.PushSubscription.id
+    // Older SDKs exposed `OneSignal.getUserId()` — not used here.
     const id = OneSignal.User?.PushSubscription?.id;
-    return typeof id === 'string' && id.length > 0 ? id : null;
+    if (typeof id === 'string' && id.length > 0) return id;
+    return null;
   } catch (err) {
     console.warn('[OneSignalWeb] getPlayerId failed:', err);
     return null;
@@ -143,9 +146,26 @@ export function getPlayerId(): string | null {
 export async function waitForPlayerId(timeoutMs = 10_000): Promise<string | null> {
   const started = Date.now();
   let id = getPlayerId();
+  let pollCount = 0;
   while (!id && Date.now() - started < timeoutMs) {
     await new Promise((r) => setTimeout(r, 400));
     id = getPlayerId();
+    pollCount++;
+  }
+  if (id) {
+    console.log('[OneSignalWeb] waitForPlayerId resolved', {
+      id,
+      elapsedMs: Date.now() - started,
+      polls: pollCount,
+    });
+  } else {
+    console.warn('[OneSignalWeb] waitForPlayerId timed out', {
+      elapsedMs: Date.now() - started,
+      polls: pollCount,
+      permission: (() => {
+        try { return OneSignal.Notifications.permission; } catch { return 'unknown'; }
+      })(),
+    });
   }
   return id;
 }

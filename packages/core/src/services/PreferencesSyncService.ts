@@ -60,6 +60,13 @@ export async function fetchPreferences(userId: string): Promise<SyncResult> {
 /**
  * Upsert the user's preferences. Uses `user_id` as the conflict target so
  * the same user's row is updated on every save.
+ *
+ * IMPORTANT: `preferences` is written as a single JSONB blob. All user
+ * settings (including push-registration fields such as `onesignal_player_id`,
+ * `push_opt_in`, `home_lat`, and `home_lon`) live *inside* the JSONB object
+ * — never as top-level columns on `user_preferences`. The schema only has
+ * three columns: `user_id` (uuid), `preferences` (jsonb), `updated_at`
+ * (timestamptz).
  */
 export async function upsertPreferences(
   userId: string,
@@ -67,22 +74,53 @@ export async function upsertPreferences(
 ): Promise<{ error: string | null; updatedAt: string | null }> {
   try {
     const supabase = getSupabaseClient();
+    const payload = {
+      user_id: userId,
+      preferences,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Dev-time visibility — confirms the push-registration keys are
+    // actually present *inside* the JSONB blob before the round-trip.
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug('[PreferencesSync] upsert payload', {
+        userId,
+        onesignal_player_id: preferences.onesignal_player_id,
+        push_opt_in: preferences.push_opt_in,
+        home_lat: preferences.home_lat,
+        home_lon: preferences.home_lon,
+      });
+    }
+
     const { data, error } = await supabase
       .from(TABLE)
-      .upsert(
-        {
-          user_id: userId,
-          preferences,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      )
+      .upsert(payload, { onConflict: 'user_id' })
       .select('updated_at')
       .single();
 
-    if (error) return { error: error.message, updatedAt: null };
+    if (error) {
+      // Surface the *full* PostgREST error shape — message alone elides
+      // the RLS/constraint details that explain silent failures.
+      console.error('[PreferencesSync] upsert failed', {
+        userId,
+        code: (error as { code?: string }).code,
+        message: error.message,
+        details: (error as { details?: string }).details,
+        hint: (error as { hint?: string }).hint,
+        raw: error,
+      });
+      return { error: error.message, updatedAt: null };
+    }
+
+    if (!data?.updated_at) {
+      // No error but no row came back — typically means RLS let the write
+      // through but blocks the post-upsert SELECT. Log so we can diagnose.
+      console.warn('[PreferencesSync] upsert returned no row', { userId, data });
+    }
+
     return { error: null, updatedAt: data?.updated_at ?? null };
   } catch (e) {
+    console.error('[PreferencesSync] upsert threw', { userId, error: e });
     return {
       error: e instanceof Error ? e.message : 'Unknown error saving preferences',
       updatedAt: null,

@@ -310,7 +310,13 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const { error, updatedAt } = await upsertPreferences(user.id, preferences);
       if (cancelled) return;
       if (error) {
-        console.warn('[AlertContext] Cloud upsert failed:', error);
+        console.error('[AlertContext] Cloud upsert failed', {
+          userId: user.id,
+          error,
+          onesignal_player_id: preferences.onesignal_player_id,
+          home_lat: preferences.home_lat,
+          home_lon: preferences.home_lon,
+        });
         setCloudSyncStatus('error');
         setCloudSyncError(error);
       } else {
@@ -443,13 +449,25 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
    */
   const setPushRegistration = useCallback(
     ({ id, lat, lon }: { id: string; lat: number; lon: number }) => {
+      console.log('[AlertContext] setPushRegistration', { id, lat, lon });
+      if (typeof id !== 'string' || id.length === 0) {
+        console.warn('[AlertContext] Refusing to persist empty Player ID');
+        return;
+      }
+      if (typeof lat !== 'number' || typeof lon !== 'number' || Number.isNaN(lat) || Number.isNaN(lon)) {
+        console.warn('[AlertContext] Refusing to persist invalid home coordinates', { lat, lon });
+        return;
+      }
       update((p) => {
         const unchanged =
           p.onesignal_player_id === id &&
           p.push_opt_in === true &&
           p.home_lat === lat &&
           p.home_lon === lon;
-        if (unchanged) return p;
+        if (unchanged) {
+          console.debug('[AlertContext] setPushRegistration no-op (already in sync)');
+          return p;
+        }
         return {
           ...p,
           onesignal_player_id: id,
