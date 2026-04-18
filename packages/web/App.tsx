@@ -252,11 +252,16 @@ const AppContent: React.FC = () => {
     if (!authUser?.id) return;
     const granted = await requestPushPermission();
     if (!granted) return;
-    // The SDK may fire `change` before `waitForPlayerId` returns, which is
-    // fine — our listener (above) also writes to preferences. Use whichever
-    // fires first.
-    const id = await waitForPlayerId();
-    if (!id) return;
+    // `waitForPlayerId` now rejects on timeout (event-driven, not polling)
+    // so we must wrap it — our realtime listener also writes to preferences
+    // as a secondary path if the SDK fires `change` after we've given up.
+    let id: string;
+    try {
+      id = await waitForPlayerId();
+    } catch (err) {
+      console.error('[App] promptPushAndCapture: waitForPlayerId failed', err);
+      return;
+    }
     // Resolve home coordinates: active location > first recent > first
     // favorite. The Edge Function strictly requires both lat/lon, so we
     // always have a value even for brand-new users on the default spot.

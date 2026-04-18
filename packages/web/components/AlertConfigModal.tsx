@@ -69,26 +69,63 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
   const handleEnablePush = useCallback(async () => {
     if (pushStatus === 'requesting' || pushStatus === 'granted') return;
     setPushStatus('requesting');
+    let granted = false;
     try {
-      const granted = await requestPushPermission();
+      granted = await requestPushPermission();
       if (!granted) {
         setPushStatus('denied');
         return;
       }
-      setPushStatus('granted');
-      const id = (await waitForPlayerId()) ?? getPlayerId();
-      if (!id) return;
+
+      // Capture Player ID via the event-driven resolver. It rejects on
+      // timeout (10s default) so we always get back control of the UI
+      // — no infinite hang if OneSignal's handshake is blocked.
+      let id: string;
+      try {
+        id = await waitForPlayerId();
+      } catch (waitErr) {
+        console.error('[AlertConfigModal] waitForPlayerId failed:', waitErr);
+        // Last-ditch sync read — if the listener hadn't fired yet but
+        // the ID actually did land between the timeout and now.
+        const late = getPlayerId();
+        if (!late) {
+          // Permission *is* granted; we just couldn't capture the ID.
+          // Show "Enabled" so the user can retry by clicking later
+          // (button re-enables below via the finally path? — no, granted
+          // path disables it; we keep it disabled once permission is in).
+          setPushStatus('granted');
+          return;
+        }
+        id = late;
+      }
+
       // Resolve home coordinates — active location > first recent >
       // first favorite. One of these is always present by the time the
       // modal is reachable (Dashboard seeds currentLat/Lng from App).
       const fallback = recentSearches[0] ?? favoriteLocations[0] ?? null;
       const lat = currentLat ?? fallback?.lat;
       const lon = currentLng ?? fallback?.lng;
-      if (typeof lat !== 'number' || typeof lon !== 'number') return;
+      if (typeof lat !== 'number' || typeof lon !== 'number') {
+        console.warn('[AlertConfigModal] No home coordinates available; skipping push registration save');
+        setPushStatus('granted');
+        return;
+      }
+
       setPushRegistration({ id, lat, lon });
+      setPushStatus('granted');
     } catch (err) {
-      console.warn('[AlertConfigModal] Failed to enable push:', err);
-      setPushStatus('denied');
+      console.error('[AlertConfigModal] Failed to enable push:', err);
+    } finally {
+      // Guarantee the button never stays stuck in "requesting". If we
+      // successfully locked to 'granted' above this is a no-op; if we
+      // bailed out with an error, flip back to 'idle' so the user can
+      // retry. 'denied' sticks (browser blocked it — no point retrying).
+      setPushStatus((prev) => {
+        if (prev === 'requesting') {
+          return granted ? 'granted' : 'idle';
+        }
+        return prev;
+      });
     }
   }, [pushStatus, currentLat, currentLng, recentSearches, favoriteLocations, setPushRegistration]);
 

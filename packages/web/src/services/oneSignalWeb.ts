@@ -143,31 +143,107 @@ export function getPlayerId(): string | null {
  * permission prompt resolves, since OneSignal's subscription handshake
  * is not synchronous with the `permission` flag flipping to true.
  */
-export async function waitForPlayerId(timeoutMs = 10_000): Promise<string | null> {
+/**
+ * Event-driven resolver for the OneSignal Player / Subscription ID.
+ *
+ * Rationale (April 2026): the previous `setTimeout` poll loop would hang
+ * forever in some browser/SDK combinations where `OneSignal.User` was
+ * present but `PushSubscription.id` never populated synchronously — even
+ * though the SDK *had* fired its internal `change` event. That left the
+ * UI stuck in a "requesting" state. We now:
+ *
+ *   1. Read the ID synchronously first (fast path — already subscribed).
+ *   2. Otherwise register a one-shot `change` listener and wait for it
+ *      to fire with a populated ID.
+ *   3. Race against a hard `timeoutMs` so the caller can always recover.
+ *
+ * Resolves with the ID on success. Rejects with an Error on timeout so
+ * the caller's `try/catch` can unstick its UI.
+ */
+export async function waitForPlayerId(timeoutMs = 10_000): Promise<string> {
   const started = Date.now();
-  let id = getPlayerId();
-  let pollCount = 0;
-  while (!id && Date.now() - started < timeoutMs) {
-    await new Promise((r) => setTimeout(r, 400));
-    id = getPlayerId();
-    pollCount++;
+
+  // 1) Fast path — already subscribed.
+  const existing = getPlayerId();
+  if (existing) {
+    console.log('[OneSignalWeb] waitForPlayerId resolved (sync)', { id: existing });
+    return existing;
   }
-  if (id) {
-    console.log('[OneSignalWeb] waitForPlayerId resolved', {
-      id,
-      elapsedMs: Date.now() - started,
-      polls: pollCount,
-    });
-  } else {
-    console.warn('[OneSignalWeb] waitForPlayerId timed out', {
-      elapsedMs: Date.now() - started,
-      polls: pollCount,
-      permission: (() => {
-        try { return OneSignal.Notifications.permission; } catch { return 'unknown'; }
-      })(),
-    });
+
+  if (!initialized) {
+    throw new Error('OneSignal SDK not initialized — cannot capture Player ID');
   }
-  return id;
+
+  // 2) Event-driven path — one-shot `change` listener.
+  return new Promise<string>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    // Extract the ID from whichever shape the SDK hands us. The Web SDK
+    // fires events as `{ current: { id } }`; fall back to a fresh read
+    // of `OneSignal.User.PushSubscription.id` for safety across versions.
+    const extractId = (evt: unknown): string | null => {
+      const maybe =
+        (evt as { current?: { id?: string | null } } | undefined)?.current?.id ??
+        getPlayerId();
+      return typeof maybe === 'string' && maybe.length > 0 ? maybe : null;
+    };
+
+    const handler = (evt: unknown) => {
+      const id = extractId(evt);
+      if (!id || settled) return;
+      settled = true;
+      cleanup();
+      console.log('[OneSignalWeb] waitForPlayerId resolved (event)', {
+        id,
+        elapsedMs: Date.now() - started,
+      });
+      resolve(id);
+    };
+
+    const cleanup = () => {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      try {
+        OneSignal.User.PushSubscription.removeEventListener('change', handler);
+      } catch {
+        /* no-op */
+      }
+    };
+
+    try {
+      OneSignal.User.PushSubscription.addEventListener('change', handler);
+    } catch (err) {
+      console.error('[OneSignalWeb] Failed to attach change listener:', err);
+      reject(err instanceof Error ? err : new Error('Failed to attach listener'));
+      return;
+    }
+
+    // 3) Hard timeout — always let the caller recover its UI state.
+    timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      let permission: boolean | string = 'unknown';
+      try { permission = OneSignal.Notifications.permission; } catch { /* no-op */ }
+      console.warn('[OneSignalWeb] waitForPlayerId timed out', {
+        elapsedMs: Date.now() - started,
+        permission,
+      });
+      reject(new Error(`waitForPlayerId timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    // Belt-and-suspenders: the SDK might populate the ID between our
+    // initial sync read and the listener being attached. Re-check once
+    // on the next microtask.
+    queueMicrotask(() => {
+      if (settled) return;
+      const late = getPlayerId();
+      if (late) handler({ current: { id: late } });
+    });
+  });
 }
 
 /**
