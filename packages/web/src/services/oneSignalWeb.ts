@@ -34,13 +34,13 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     await OneSignal.init({
       appId: id,
       allowLocalhostAsSecureOrigin: true,
-      // Point OneSignal at VitePWA's merged service worker (see vite.config.ts
-      // `workbox.importScripts`). Without this, OneSignal tries to register
-      // its own `OneSignalSDKWorker.js` at the root scope, which VitePWA's
-      // `sw.js` has already claimed — the OneSignal registration is then
-      // immediately marked redundant and push subscription fails silently.
-      serviceWorkerParam: { scope: '/' },
-      serviceWorkerPath: 'sw.js',
+      // NOTE: we previously tried pointing OneSignal at VitePWA's merged
+      // `sw.js` via `serviceWorkerPath`/`serviceWorkerParam`. In practice
+      // the v16 SDK still probes for `/OneSignalSDKWorker.js` before it
+      // reads those options — when that file is missing, Vercel's SPA
+      // fallback returns `index.html` with `text/html`, which hard-aborts
+      // the SDK with a MIME error. We now keep the default path and
+      // ship `public/OneSignalSDKWorker.js` so the file resolves cleanly.
     });
     initialized = true;
     console.log('[OneSignalWeb] Initialized successfully with appId:', id);
