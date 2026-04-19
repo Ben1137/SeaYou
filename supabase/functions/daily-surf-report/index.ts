@@ -207,9 +207,17 @@ async function fetchEligibleUsers(): Promise<UserRow[]> {
 
   const flattened: UserRow[] = rows.map((r) => {
     const p = r.preferences ?? null;
-    const personaStr = str(p, 'persona');
-    const persona = (VALID_PERSONAS as string[]).includes(personaStr ?? '')
-      ? (personaStr as Persona)
+    // Frontend onboarding writes the specific sport into
+    // `preferences.primaryPersona` (e.g. "wave_surfer"), while the legacy
+    // `preferences.persona` key sometimes holds a broader category
+    // ("surfer"). Read primaryPersona first; fall back to persona only for
+    // legacy rows that predate the split. Anything that doesn't match one
+    // of our six known sports is treated as missing.
+    const primaryStr = str(p, 'primaryPersona');
+    const legacyStr = str(p, 'persona');
+    const candidate = primaryStr ?? legacyStr;
+    const persona = (VALID_PERSONAS as string[]).includes(candidate ?? '')
+      ? (candidate as Persona)
       : null;
     // `push_opt_in` defaults to TRUE — only an explicit boolean false
     // suppresses the notification. Missing key = opted in.
@@ -232,7 +240,7 @@ async function fetchEligibleUsers(): Promise<UserRow[]> {
   const rejectionReasons = {
     missing_home_lat: 0,
     missing_home_lon: 0,
-    missing_persona: 0,
+    missing_primary_persona: 0,
     missing_onesignal_player_id: 0,
     opted_out: 0,
   };
@@ -240,7 +248,11 @@ async function fetchEligibleUsers(): Promise<UserRow[]> {
     let ok = true;
     if (u.home_lat === null) { rejectionReasons.missing_home_lat++; ok = false; }
     if (u.home_lon === null) { rejectionReasons.missing_home_lon++; ok = false; }
-    if (u.persona === null) { rejectionReasons.missing_persona++; ok = false; }
+    // `persona` on the row object is the resolved sport — either from
+    // `preferences.primaryPersona` (new schema) or `preferences.persona`
+    // (legacy). If neither produced a valid value, the user can't be
+    // scored and is rejected.
+    if (u.persona === null) { rejectionReasons.missing_primary_persona++; ok = false; }
     if (u.onesignal_player_id === null) { rejectionReasons.missing_onesignal_player_id++; ok = false; }
     if (u.push_opt_in === false) { rejectionReasons.opted_out++; ok = false; }
     return ok;
