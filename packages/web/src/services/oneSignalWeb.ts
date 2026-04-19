@@ -154,6 +154,94 @@ export async function wipeOneSignalIndexedDB(): Promise<string[]> {
 }
 
 /**
+ * Session-scoped guard so the scorched-earth healer only runs once per
+ * page load. If the `local-` ID *still* appears after a wipe + reload,
+ * something deeper is wrong and looping forever would trap the user in a
+ * reload cycle. We use sessionStorage so the guard survives the intentional
+ * `location.reload()` below but doesn't carry over into a fresh session.
+ */
+const SCORCHED_EARTH_FLAG = '__seayou_onesignal_scorched_earth__';
+
+/**
+ * Scorched-earth auto-healer.
+ *
+ * Triggered when we detect the `"local-<uuid>"` Player ID, which is the
+ * unambiguous fingerprint of a corrupted OneSignal IndexedDB. At that
+ * point the SDK will:
+ *   • Keep trying to sync tags under a non-server ID → 400 Bad Request
+ *   • Attempt to reconcile the subscription → 409 Conflict
+ *   • Never resolve a real Player ID for us to persist
+ *
+ * The only reliable recovery is to nuke the local DBs and force a full
+ * page reload so the SDK bootstraps from scratch against the server. We
+ * do that aggressively here — ignoring our own `initialized` flag and any
+ * in-flight promises — because once this state is reached there is nothing
+ * useful the app can do without a reset.
+ *
+ * The `SCORCHED_EARTH_FLAG` sessionStorage key prevents infinite reload
+ * loops: if the first wipe-and-reload didn't fix it, we log loudly and
+ * let the user click the manual "Reset push state" button in the modal.
+ */
+export async function scorchedEarthReset(reason: string): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  // Guard: only run once per session to avoid a reload loop.
+  try {
+    if (window.sessionStorage.getItem(SCORCHED_EARTH_FLAG) === '1') {
+      console.error(
+        '[OneSignalWeb] Scorched-earth reset already attempted this session but corrupted state persists. ' +
+        'Stopping to avoid a reload loop. Ask the user to Clear Site Data (Application → Storage) manually.',
+        { reason },
+      );
+      // Flip the internal flag so the app at least stops trying to init.
+      initialized = false;
+      return;
+    }
+    window.sessionStorage.setItem(SCORCHED_EARTH_FLAG, '1');
+  } catch {
+    /* sessionStorage may be unavailable in strict modes — fall through. */
+  }
+
+  console.warn('[OneSignalWeb] SCORCHED EARTH triggered:', reason);
+
+  // Direct deletes first — they are synchronous-enough that we don't
+  // have to wait on them, but awaiting makes the order deterministic.
+  try {
+    await wipeOneSignalIndexedDB();
+  } catch (err) {
+    console.warn('[OneSignalWeb] wipeOneSignalIndexedDB threw during scorched-earth:', err);
+  }
+
+  // Belt-and-suspenders explicit deletes for the two well-known v16 stores
+  // the user called out, even though wipeOneSignalIndexedDB already covers
+  // them. If one of these still has an open connection the best-effort
+  // delete will just no-op — the reload below resets everything anyway.
+  for (const name of ['OneSignal', 'OneSignalSDKDB']) {
+    try { window.indexedDB.deleteDatabase(name); } catch { /* no-op */ }
+  }
+
+  // Unregister every service worker registration the page knows about so
+  // the next load starts with a clean SW slate. Without this, VitePWA's
+  // `sw.js` or a stale OneSignal worker can re-seed the corrupted state
+  // from its own cache and undo the IndexedDB wipe.
+  try {
+    if ('serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map((r) => r.unregister().catch(() => false)));
+      console.log('[OneSignalWeb] Unregistered service workers:', regs.length);
+    }
+  } catch (err) {
+    console.warn('[OneSignalWeb] SW unregister failed during scorched-earth:', err);
+  }
+
+  // Force a full reload. The next boot lands on a clean SDK: empty
+  // IndexedDB, fresh SW registration, and Vercel serves the worker with
+  // the correct MIME (thanks to `vercel.json` headers).
+  console.warn('[OneSignalWeb] Reloading to complete scorched-earth reset…');
+  window.location.reload();
+}
+
+/**
  * Heuristic sniff for the "corrupted IndexedDB" state. Returns `true` when
  * the SDK has clearly entered its "local-<uuid>" degraded mode — a signal
  * that re-init will fail and we should wipe first.
@@ -223,23 +311,16 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     console.log('[OneSignalWeb] Initialized successfully with appId:', id);
 
     // Post-init corruption check — if the SDK came up in the "local-<uuid>"
-    // degraded state (corrupted IndexedDB left behind by earlier SW churn),
-    // wipe the DB and re-initialise once. This gets us out of the stuck
-    // state without requiring the user to mash the debug button.
+    // degraded state, a soft in-page re-init is NOT enough (we tried that,
+    // tags still 400/409 because the corrupted user record carries over in
+    // IndexedDB). Escalate to the scorched-earth healer: wipe all OneSignal
+    // IndexedDB stores, unregister every service worker, force a full page
+    // reload. Session-scoped flag inside scorchedEarthReset() prevents a
+    // reload loop if something outside our control keeps re-creating the
+    // corrupted state.
     if (detectCorruptedOneSignalState()) {
-      console.warn(
-        '[OneSignalWeb] Corrupted state detected post-init (local-<uuid> Player ID). Auto-healing: wiping IndexedDB and re-initialising.',
-      );
-      try {
-        await wipeOneSignalIndexedDB();
-        // `wipeOneSignalIndexedDB` resets `initialized = false`, so this
-        // call will not short-circuit on the guard at the top.
-        await OneSignal.init({ appId: id, allowLocalhostAsSecureOrigin: true });
-        initialized = true;
-        console.log('[OneSignalWeb] Auto-heal re-init complete');
-      } catch (healErr) {
-        console.error('[OneSignalWeb] Auto-heal re-init failed:', healErr);
-      }
+      await scorchedEarthReset('detectCorruptedOneSignalState() returned true after init');
+      return;
     }
   } catch (err) {
     // "OneSignal is already initialized" is the race-condition symptom, not
@@ -289,6 +370,16 @@ export async function requestPushPermission(): Promise<boolean> {
 export function registerUserTags(profile: UserProfile): void {
   if (!initialized && !sdkIsLive()) {
     console.warn('[OneSignalWeb] Not initialized — tags will not be applied');
+    return;
+  }
+
+  // Scorched-earth intercept: if we're about to sync tags against a
+  // corrupted `local-<uuid>` subscription, every addTag call will either
+  // 400 (unknown user) or 409 (conflicting record). Don't even try —
+  // wipe + reload instead.
+  if (detectCorruptedOneSignalState()) {
+    console.error('[OneSignalWeb] registerUserTags aborted — corrupted local-ID detected. Triggering reset.');
+    void scorchedEarthReset('registerUserTags saw local-<uuid>');
     return;
   }
 
@@ -362,7 +453,19 @@ export function getPlayerId(): string | null {
     //   OneSignal.User.PushSubscription.id
     // Older SDKs exposed `OneSignal.getUserId()` — not used here.
     const id = OneSignal.User?.PushSubscription?.id;
-    if (typeof id === 'string' && id.length > 0) return id;
+    if (typeof id === 'string' && id.length > 0) {
+      // Hard intercept — a `local-<uuid>` ID means the SDK has entered
+      // its corrupted state. Returning it to callers would cause them
+      // to persist garbage to Supabase, and all downstream tag/sub sync
+      // calls against it will 400/409. Scorched-earth reset is the only
+      // recovery; we fire-and-forget (it reloads the page).
+      if (id.startsWith('local-')) {
+        console.error('[OneSignalWeb] getPlayerId saw a corrupted "local-" ID. Triggering scorched-earth reset.', { id });
+        void scorchedEarthReset(`getPlayerId returned ${id}`);
+        return null;
+      }
+      return id;
+    }
     return null;
   } catch (err) {
     console.warn('[OneSignalWeb] getPlayerId failed:', err);
