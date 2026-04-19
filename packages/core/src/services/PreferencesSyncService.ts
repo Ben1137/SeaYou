@@ -98,6 +98,12 @@ export async function upsertPreferences(
       .select('updated_at')
       .single();
 
+    // Raw network-layer visibility. Requested by the Phase-3 write-path
+    // audit (April 2026): we need to see the exact PostgREST response —
+    // both data and error — to catch RLS rejections that otherwise get
+    // swallowed by branch-specific logs below.
+    console.log('[PreferencesSync] Supabase Update Response:', { data, error });
+
     if (error) {
       // Surface the *full* PostgREST error shape — message alone elides
       // the RLS/constraint details that explain silent failures.

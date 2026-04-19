@@ -8,6 +8,8 @@ import {
   waitForPlayerId,
   isNotificationReady,
   getPlayerId,
+  wipeOneSignalIndexedDB,
+  initOneSignalWeb,
 } from '../src/services/oneSignalWeb';
 
 interface AlertConfigModalProps {
@@ -128,6 +130,30 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
       });
     }
   }, [pushStatus, currentLat, currentLng, recentSearches, favoriteLocations, setPushRegistration]);
+
+  /**
+   * Phase 2 debug action — wipe OneSignal's IndexedDB and re-initialise
+   * the SDK. Surfaces in the UI as a small "Reset push state" link under
+   * the Enable button. Use when DevTools shows a `"local-<uuid>"` Player
+   * ID or `Unrecognized operation: login-user` — both are fingerprints
+   * of a corrupted local subscription store.
+   */
+  const [resetStatus, setResetStatus] = useState<'idle' | 'working' | 'done' | 'failed'>('idle');
+  const handleResetPushState = useCallback(async () => {
+    if (resetStatus === 'working') return;
+    setResetStatus('working');
+    try {
+      const deleted = await wipeOneSignalIndexedDB();
+      console.log('[AlertConfigModal] wipeOneSignalIndexedDB deleted:', deleted);
+      // Re-init so the very next Enable click starts from a clean SDK state.
+      await initOneSignalWeb();
+      setPushStatus('idle');
+      setResetStatus('done');
+    } catch (err) {
+      console.error('[AlertConfigModal] handleResetPushState failed:', err);
+      setResetStatus('failed');
+    }
+  }, [resetStatus]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -350,6 +376,27 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
                 {pushStatus === 'granted' ? t('alerts.pushGranted', 'Enabled') :
                  pushStatus === 'requesting' ? '...' :
                  t('alerts.pushEnable', 'Enable')}
+              </button>
+            </div>
+
+            {/* Debug: Reset push state — wipes OneSignal IndexedDB, unblocks
+                the "local-<uuid>" corrupted state. Safe to run at any time;
+                the user will just need to click Enable again afterwards. */}
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-[10px] text-white/30">
+                {resetStatus === 'done'
+                  ? 'Cleared. Reload the page, then click Enable.'
+                  : resetStatus === 'failed'
+                    ? 'Reset failed — see DevTools.'
+                    : 'Stuck? Clear the local push cache.'}
+              </span>
+              <button
+                type="button"
+                onClick={handleResetPushState}
+                disabled={resetStatus === 'working'}
+                className="text-[10px] text-purple-300/70 hover:text-purple-200 underline decoration-dotted underline-offset-2 disabled:opacity-40"
+              >
+                {resetStatus === 'working' ? 'Resetting…' : 'Reset push state'}
               </button>
             </div>
           </div>

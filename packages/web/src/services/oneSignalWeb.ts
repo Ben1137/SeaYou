@@ -11,6 +11,143 @@ import type { UserProfile } from '@seame/core';
 
 let initialized = false;
 
+// ─── Corruption detection + IndexedDB self-healing ──────────────────────
+//
+// Symptom (April 2026 QA sweep): DevTools shows OneSignal generating a
+// `"local-<uuid>"` Player ID and throwing `Unrecognized operation:
+// login-user`. Both are classic fingerprints of a half-written IndexedDB
+// store left behind by one-too-many Service Worker unregistrations (the
+// SDK keeps its user/subscription caches in a database literally named
+// `"OneSignal"`). Once that store is corrupted the SDK enters a stuck
+// state that no amount of re-initialisation can recover from — the only
+// cure is to drop the database so the next `init()` rebuilds it from
+// scratch.
+//
+// The utilities below detect and remediate that state. `wipeOneSignalIndexedDB`
+// is idempotent and safe to call while the SDK is uninitialised.
+
+const ONESIGNAL_DB_NAMES = [
+  // The primary store used by Web SDK v16+.
+  'OneSignal',
+  // Legacy stores carried over from earlier SDK versions. Removing them
+  // too means a wipe genuinely resets the user to a clean slate.
+  'OneSignalSDK',
+  'OneSignalSDKDB',
+  'ONE_SIGNAL_SDK_DB',
+];
+
+/**
+ * Wipe every OneSignal IndexedDB database in the browser.
+ *
+ * Used by the "Reset Push State" debug button in `AlertConfigModal`
+ * (Phase 2 of the push-pipeline audit) and by `initOneSignalWeb` when a
+ * corrupted state is auto-detected. Returns the list of databases that
+ * were actually deleted so the caller can surface a meaningful message.
+ *
+ * Implementation notes:
+ *   • Chromium exposes `indexedDB.databases()` which lets us enumerate
+ *     everything the SDK might have created under an alternate name.
+ *     Firefox/Safari don't, so we fall back to deleting the well-known
+ *     names listed above.
+ *   • `deleteDatabase` resolves with `onsuccess` even when the DB didn't
+ *     exist — we treat that as a successful no-op and move on.
+ *   • We wrap each delete in its own timeout so one stuck tab holding an
+ *     open connection doesn't hang the whole reset flow.
+ */
+export async function wipeOneSignalIndexedDB(): Promise<string[]> {
+  if (typeof window === 'undefined' || !('indexedDB' in window)) {
+    console.warn('[OneSignalWeb] wipeOneSignalIndexedDB: IndexedDB unavailable');
+    return [];
+  }
+
+  // Build the set of DB names to delete. Start with the well-known ones
+  // and then try to enumerate the rest via the Chromium-only API.
+  const names = new Set<string>(ONESIGNAL_DB_NAMES);
+  try {
+    const idbMaybe = (window.indexedDB as unknown as {
+      databases?: () => Promise<Array<{ name?: string }>>;
+    });
+    if (typeof idbMaybe.databases === 'function') {
+      const listing = await idbMaybe.databases();
+      for (const entry of listing) {
+        if (entry?.name && entry.name.toLowerCase().includes('onesignal')) {
+          names.add(entry.name);
+        }
+      }
+    }
+  } catch (err) {
+    // Enumeration is best-effort. Missing it just means we're limited to
+    // the hard-coded allow-list above.
+    console.debug('[OneSignalWeb] indexedDB.databases() unavailable', err);
+  }
+
+  const deleteOne = (name: string) =>
+    new Promise<string | null>((resolve) => {
+      let settled = false;
+      const done = (result: string | null) => {
+        if (settled) return;
+        settled = true;
+        resolve(result);
+      };
+      try {
+        const req = window.indexedDB.deleteDatabase(name);
+        req.onsuccess = () => done(name);
+        req.onerror = () => {
+          console.warn(`[OneSignalWeb] deleteDatabase("${name}") errored`, req.error);
+          done(null);
+        };
+        req.onblocked = () => {
+          console.warn(
+            `[OneSignalWeb] deleteDatabase("${name}") blocked — another tab likely has it open`,
+          );
+          // Don't hang forever — close out as "tried but blocked".
+          setTimeout(() => done(null), 1500);
+        };
+      } catch (err) {
+        console.warn(`[OneSignalWeb] deleteDatabase("${name}") threw`, err);
+        done(null);
+      }
+      // Hard timeout so a stuck request can't wedge the caller.
+      setTimeout(() => done(null), 3000);
+    });
+
+  const deleted: string[] = [];
+  for (const name of names) {
+    const result = await deleteOne(name);
+    if (result) deleted.push(result);
+  }
+
+  // SDK state flag must be reset too — otherwise a subsequent `initOneSignalWeb`
+  // call inside the same page load would short-circuit on the `initialized`
+  // guard and leave the wiped database un-seeded.
+  initialized = false;
+
+  console.log('[OneSignalWeb] wipeOneSignalIndexedDB complete', { deleted });
+  return deleted;
+}
+
+/**
+ * Heuristic sniff for the "corrupted IndexedDB" state. Returns `true` when
+ * the SDK has clearly entered its "local-<uuid>" degraded mode — a signal
+ * that re-init will fail and we should wipe first.
+ *
+ * We deliberately keep this conservative: a false negative just means the
+ * user has to click the debug button; a false positive would wipe a
+ * working push registration and frustrate the user.
+ */
+export function detectCorruptedOneSignalState(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const id = OneSignal?.User?.PushSubscription?.id;
+    if (typeof id === 'string' && id.startsWith('local-')) {
+      return true;
+    }
+  } catch {
+    /* SDK not loaded yet — can't tell, don't assume broken. */
+  }
+  return false;
+}
+
 /**
  * Initialize the OneSignal Web SDK.
  * Call once at app startup (e.g. in App.tsx useEffect).
@@ -44,6 +181,26 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     });
     initialized = true;
     console.log('[OneSignalWeb] Initialized successfully with appId:', id);
+
+    // Post-init corruption check — if the SDK came up in the "local-<uuid>"
+    // degraded state (corrupted IndexedDB left behind by earlier SW churn),
+    // wipe the DB and re-initialise once. This gets us out of the stuck
+    // state without requiring the user to mash the debug button.
+    if (detectCorruptedOneSignalState()) {
+      console.warn(
+        '[OneSignalWeb] Corrupted state detected post-init (local-<uuid> Player ID). Auto-healing: wiping IndexedDB and re-initialising.',
+      );
+      try {
+        await wipeOneSignalIndexedDB();
+        // `wipeOneSignalIndexedDB` resets `initialized = false`, so this
+        // call will not short-circuit on the guard at the top.
+        await OneSignal.init({ appId: id, allowLocalhostAsSecureOrigin: true });
+        initialized = true;
+        console.log('[OneSignalWeb] Auto-heal re-init complete');
+      } catch (healErr) {
+        console.error('[OneSignalWeb] Auto-heal re-init failed:', healErr);
+      }
+    }
   } catch (err) {
     console.error('[OneSignalWeb] Initialization failed:', err);
   }
