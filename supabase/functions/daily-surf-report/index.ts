@@ -112,12 +112,36 @@ interface PeakResult {
 }
 
 // ─── Supabase client (service-role — bypasses RLS to read every user) ──────
+//
+// CRITICAL: RLS was enabled on `user_preferences` in migration
+// 20260419120000_user_preferences_rls_audit.sql. Using the anon key here
+// would return zero rows (the "totalUsers: 0" bug we just fixed), because
+// anon has no matching SELECT policy for arbitrary user rows. We MUST use
+// the service-role key, which bypasses RLS by design.
+//
+// The service-role key is auto-injected by Supabase into every Edge
+// Function runtime. No manual secret configuration is needed.
 
 function getSupabase() {
-  const url = Deno.env.get('SUPABASE_URL');
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const url = Deno.env.get('SUPABASE_URL') ?? '';
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   if (!url || !serviceKey) {
     throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  }
+  // Sanity-check that we're actually holding the service role and not the
+  // anon key. The two JWTs encode a `role` claim that distinguishes them;
+  // we decode the middle segment without signature verification (safe —
+  // we're just reading our own env var).
+  try {
+    const payload = JSON.parse(atob(serviceKey.split('.')[1] ?? ''));
+    if (payload?.role && payload.role !== 'service_role') {
+      console.warn(
+        `[daily-surf-report] SUPABASE_SERVICE_ROLE_KEY appears to hold role="${payload.role}" — ` +
+        `RLS will block reads. Expected role="service_role".`,
+      );
+    }
+  } catch {
+    /* JWT decode is best-effort; never throw from a diagnostic */
   }
   return createClient(url, serviceKey, { auth: { persistSession: false } });
 }
@@ -134,14 +158,31 @@ function getSupabase() {
  */
 async function fetchEligibleUsers(): Promise<UserRow[]> {
   const sb = getSupabase();
-  const { data, error } = await sb
+
+  // Pre-filter in PostgREST for the two cheap JSONB keys so we fail fast
+  // if RLS blocks the read (the response will include a policy error rather
+  // than silently returning zero rows). We still do the full filter in
+  // application code below because Postgres JSONB filters don't cleanly
+  // express the "key missing" vs "key explicitly false" distinction we
+  // want for push_opt_in.
+  const { data, error, count } = await sb
     .from('user_preferences')
-    .select('user_id, preferences');
+    .select('user_id, preferences', { count: 'exact' })
+    .not('preferences->>onesignal_player_id', 'is', null);
 
   if (error) {
-    console.error('[daily-surf-report] Failed to query user_preferences:', error);
+    console.error('[daily-surf-report] Failed to query user_preferences:', {
+      code: (error as { code?: string }).code,
+      message: error.message,
+      details: (error as { details?: string }).details,
+      hint: (error as { hint?: string }).hint,
+    });
     return [];
   }
+
+  console.log(
+    `[daily-surf-report] PostgREST returned ${data?.length ?? 0} rows (count header=${count ?? 'n/a'})`,
+  );
 
   const rows = (data ?? []) as RawPrefRow[];
 
@@ -188,14 +229,29 @@ async function fetchEligibleUsers(): Promise<UserRow[]> {
   // A user is eligible only when all four required fields are present AND
   // they haven't explicitly opted out. Locale is optional (defaults to
   // 'en' downstream).
-  return flattened.filter(
-    (u) =>
-      u.home_lat !== null &&
-      u.home_lon !== null &&
-      u.persona !== null &&
-      u.onesignal_player_id !== null &&
-      u.push_opt_in !== false,
+  const rejectionReasons = {
+    missing_home_lat: 0,
+    missing_home_lon: 0,
+    missing_persona: 0,
+    missing_onesignal_player_id: 0,
+    opted_out: 0,
+  };
+  const eligible = flattened.filter((u) => {
+    let ok = true;
+    if (u.home_lat === null) { rejectionReasons.missing_home_lat++; ok = false; }
+    if (u.home_lon === null) { rejectionReasons.missing_home_lon++; ok = false; }
+    if (u.persona === null) { rejectionReasons.missing_persona++; ok = false; }
+    if (u.onesignal_player_id === null) { rejectionReasons.missing_onesignal_player_id++; ok = false; }
+    if (u.push_opt_in === false) { rejectionReasons.opted_out++; ok = false; }
+    return ok;
+  });
+
+  console.log(
+    `[daily-surf-report] Eligibility: ${eligible.length} of ${flattened.length} passed. ` +
+    `Rejections: ${JSON.stringify(rejectionReasons)}`,
   );
+
+  return eligible;
 }
 
 // ─── Step 2: Open-Meteo forecast fetch ─────────────────────────────────────
