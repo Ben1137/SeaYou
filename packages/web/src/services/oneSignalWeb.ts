@@ -34,6 +34,13 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     await OneSignal.init({
       appId: id,
       allowLocalhostAsSecureOrigin: true,
+      // Point OneSignal at VitePWA's merged service worker (see vite.config.ts
+      // `workbox.importScripts`). Without this, OneSignal tries to register
+      // its own `OneSignalSDKWorker.js` at the root scope, which VitePWA's
+      // `sw.js` has already claimed — the OneSignal registration is then
+      // immediately marked redundant and push subscription fails silently.
+      serviceWorkerParam: { scope: '/' },
+      serviceWorkerPath: 'sw.js',
     });
     initialized = true;
     console.log('[OneSignalWeb] Initialized successfully with appId:', id);

@@ -450,8 +450,11 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const setPushRegistration = useCallback(
     ({ id, lat, lon }: { id: string; lat: number; lon: number }) => {
       console.log('[AlertContext] setPushRegistration', { id, lat, lon });
-      if (typeof id !== 'string' || id.length === 0) {
-        console.warn('[AlertContext] Refusing to persist empty Player ID');
+      // Strict guard: never allow undefined/null/empty Player ID to reach
+      // the JSONB upsert. A bad ID would overwrite a previously-good row
+      // with null and silently disable push delivery for the user.
+      if (id === undefined || id === null || typeof id !== 'string' || id.length === 0) {
+        console.warn('[AlertContext] Refusing to persist empty/undefined Player ID', { id });
         return;
       }
       if (typeof lat !== 'number' || typeof lon !== 'number' || Number.isNaN(lat) || Number.isNaN(lon)) {
