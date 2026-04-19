@@ -11,6 +11,33 @@ import type { UserProfile } from '@seame/core';
 
 let initialized = false;
 
+/**
+ * Probe the global OneSignal SDK instance directly. The wrapper's `initialized`
+ * flag can get out of sync with reality when:
+ *   • `OneSignal.init()` throws "already initialized" on the second call
+ *     (React StrictMode double-mount, fast refresh), so we keep our flag
+ *     `false` even though the SDK itself is perfectly fine.
+ *   • An auto-heal cycle partially completes but the `initialized = true`
+ *     assignment is skipped because an error was thrown after init.
+ *
+ * This helper reads the SDK's own state so the ID-capture and permission
+ * paths can proceed even when our wrapper flag is stale.
+ */
+function sdkIsLive(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const g = (window as unknown as { OneSignal?: { initialized?: boolean; User?: { PushSubscription?: unknown } } }).OneSignal;
+    if (!g) return false;
+    if (g.initialized === true) return true;
+    // Some react-onesignal builds don't expose `initialized` on the global.
+    // Fall back to feature detection — if PushSubscription is reachable,
+    // the SDK has finished bootstrapping.
+    return !!g.User?.PushSubscription;
+  } catch {
+    return false;
+  }
+}
+
 // ─── Corruption detection + IndexedDB self-healing ──────────────────────
 //
 // Symptom (April 2026 QA sweep): DevTools shows OneSignal generating a
@@ -159,6 +186,19 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     return;
   }
 
+  // Guard against the "double-init" failure mode: in React StrictMode (dev)
+  // and after fast refresh, this function can be invoked twice before our
+  // `initialized` flag is written. The second `OneSignal.init()` call
+  // throws "OneSignal is already initialized", our catch-all then wrote
+  // the SDK off as dead — which locked `waitForPlayerId` out of a perfectly
+  // working handshake. Reading the SDK's own state lets us short-circuit
+  // cleanly: sync our flag, skip the init call, carry on.
+  if (sdkIsLive()) {
+    initialized = true;
+    console.log('[OneSignalWeb] SDK already live on window.OneSignal — syncing wrapper flag, skipping init');
+    return;
+  }
+
   const id = appId || (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_ONESIGNAL_APP_ID;
   if (!id || id === 'YOUR_ONESIGNAL_APP_ID') {
     console.warn(
@@ -202,6 +242,16 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
       }
     }
   } catch (err) {
+    // "OneSignal is already initialized" is the race-condition symptom, not
+    // a real failure. The SDK is perfectly fine; we just need to sync our
+    // wrapper flag so downstream calls (waitForPlayerId, getPlayerId) are
+    // not incorrectly rejected.
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/already initialized/i.test(msg) || sdkIsLive()) {
+      initialized = true;
+      console.warn('[OneSignalWeb] Treating init error as benign double-init — SDK is live:', msg);
+      return;
+    }
     console.error('[OneSignalWeb] Initialization failed:', err);
   }
 }
@@ -211,7 +261,7 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
  * Returns true if the user granted permission.
  */
 export async function requestPushPermission(): Promise<boolean> {
-  if (!initialized) {
+  if (!initialized && !sdkIsLive()) {
     console.warn('[OneSignalWeb] Not initialized — call initOneSignalWeb() first');
     // Fallback to native Notification API for testing
     if ('Notification' in window) {
@@ -237,40 +287,54 @@ export async function requestPushPermission(): Promise<boolean> {
  * Register a user profile with OneSignal via tags for segmented push targeting.
  */
 export function registerUserTags(profile: UserProfile): void {
-  if (!initialized) {
+  if (!initialized && !sdkIsLive()) {
     console.warn('[OneSignalWeb] Not initialized — tags will not be applied');
     return;
   }
 
-  try {
-    OneSignal.User.addTag('persona', profile.userType);
-    OneSignal.User.addTag('userId', profile.id);
-    OneSignal.User.addTag('minScore', String(profile.notificationThresholds.minScore));
-    OneSignal.User.addTag(
-      'notifyHours',
-      String(profile.notificationThresholds.notifyHoursInAdvance)
-    );
+  // Helper: run a tag call and *never* let a 409 Conflict (or any other
+  // transient tag-sync error) cascade and break the rest of the app. The
+  // user-visible consequence of a failed tag write is "segmented pushes
+  // miss this user" — nowhere close to the "UI stuck, ID never captured"
+  // cascade we saw when a 409 from `addTags` bubbled up.
+  const safeTag = (label: string, fn: () => void) => {
+    try {
+      fn();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const code =
+        (err as { status?: number })?.status ??
+        (err as { statusCode?: number })?.statusCode;
+      if (code === 409 || /409|conflict/i.test(msg)) {
+        console.warn(`[OneSignalWeb] ${label} returned 409 Conflict — ignoring (tag already set or user record racing):`, msg);
+        return;
+      }
+      console.warn(`[OneSignalWeb] ${label} failed (non-fatal):`, err);
+    }
+  };
 
-    // Tag favorite spots (up to 5)
-    const spotTags: Record<string, string> = {};
-    profile.favoriteSpots.slice(0, 5).forEach((spot, i) => {
-      spotTags[`spot_${i}_lat`] = spot.lat.toFixed(4);
-      spotTags[`spot_${i}_lon`] = spot.lon.toFixed(4);
-      spotTags[`spot_${i}_name`] = spot.name;
-    });
-    OneSignal.User.addTags(spotTags);
+  safeTag('addTag(persona)',     () => OneSignal.User.addTag('persona', profile.userType));
+  safeTag('addTag(userId)',      () => OneSignal.User.addTag('userId', profile.id));
+  safeTag('addTag(minScore)',    () => OneSignal.User.addTag('minScore', String(profile.notificationThresholds.minScore)));
+  safeTag('addTag(notifyHours)', () => OneSignal.User.addTag('notifyHours', String(profile.notificationThresholds.notifyHoursInAdvance)));
 
-    console.log('[OneSignalWeb] User tags registered:', profile.id, profile.userType);
-  } catch (err) {
-    console.error('[OneSignalWeb] Failed to set user tags:', err);
-  }
+  // Tag favorite spots (up to 5)
+  const spotTags: Record<string, string> = {};
+  profile.favoriteSpots.slice(0, 5).forEach((spot, i) => {
+    spotTags[`spot_${i}_lat`] = spot.lat.toFixed(4);
+    spotTags[`spot_${i}_lon`] = spot.lon.toFixed(4);
+    spotTags[`spot_${i}_name`] = spot.name;
+  });
+  safeTag('addTags(spots)', () => OneSignal.User.addTags(spotTags));
+
+  console.log('[OneSignalWeb] User tags registered (best-effort):', profile.id, profile.userType);
 }
 
 /**
  * Check if OneSignal is initialized and permission is granted.
  */
 export function isNotificationReady(): boolean {
-  if (!initialized) return false;
+  if (!initialized && !sdkIsLive()) return false;
   try {
     return OneSignal.Notifications.permission;
   } catch {
@@ -288,7 +352,11 @@ export function isNotificationReady(): boolean {
  * on a single synchronous read.
  */
 export function getPlayerId(): string | null {
-  if (!initialized) return null;
+  // Relaxed gate: if the SDK exposes `User.PushSubscription`, the ID is
+  // reachable whether or not our wrapper flag was flipped. Blocking on the
+  // flag alone caused the "double-init" regression (see `initOneSignalWeb`)
+  // to hide a perfectly valid Player ID from the caller.
+  if (!initialized && !sdkIsLive()) return null;
   try {
     // react-onesignal v3 / OneSignal Web SDK v16+:
     //   OneSignal.User.PushSubscription.id
@@ -334,7 +402,11 @@ export async function waitForPlayerId(timeoutMs = 10_000): Promise<string> {
     return existing;
   }
 
-  if (!initialized) {
+  // Relaxed gate: the wrapper flag is advisory only. What actually matters
+  // is whether `OneSignal.User.PushSubscription` is reachable — if it is,
+  // we can attach the `change` listener and capture the ID, regardless of
+  // what our internal bookkeeping thinks.
+  if (!initialized && !sdkIsLive()) {
     throw new Error('OneSignal SDK not initialized — cannot capture Player ID');
   }
 
