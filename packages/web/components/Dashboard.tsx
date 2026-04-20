@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -7,7 +7,7 @@ import {
   Wind, Activity, Waves, ArrowUp, ArrowDown,
   Navigation, Settings, X, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog,
   Thermometer, ThumbsUp, Skull, Flag, Palmtree, Compass, ChevronRight, ChevronLeft, Tornado, Ruler, Layers,
-  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye, Info, Maximize2
+  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye, Info, Maximize2, Minimize2
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { getWeatherDescription } from '@seame/core';
@@ -77,17 +77,35 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   // Selected activity persona for the Explainable-UI breakdown modal
   const [breakdownPersona, setBreakdownPersona] = useState<ActivityPersona | null>(null);
 
-  // ─── Double-click fullscreen for Wave Graph & Forecast Table ───
-  const chartSectionRef = useRef<HTMLElement>(null);
-  const tableSectionRef = useRef<HTMLElement>(null);
-  const toggleFullscreen = useCallback((el: HTMLElement | null) => {
-    if (!el) return;
-    if (!document.fullscreenElement) {
-      el.requestFullscreen?.().catch(() => { /* user gesture / perms */ });
-    } else {
-      document.exitFullscreen?.();
-    }
-  }, []);
+  // ─── CSS-based "fullscreen" state (works on iOS Safari — native
+  // requestFullscreen() is disallowed for non-video elements there) ───
+  const [isChartExpanded, setIsChartExpanded] = useState(false);
+  const [isTableExpanded, setIsTableExpanded] = useState(false);
+
+  // Lock body scroll while an expanded panel is open
+  useEffect(() => {
+    const expanded = isChartExpanded || isTableExpanded;
+    if (!expanded) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isChartExpanded, isTableExpanded]);
+
+  // Escape key closes expanded panels
+  useEffect(() => {
+    if (!isChartExpanded && !isTableExpanded) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsChartExpanded(false);
+        setIsTableExpanded(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isChartExpanded, isTableExpanded]);
+
+  const EXPANDED_SECTION_CLASS =
+    'fixed inset-0 z-[100] w-screen h-screen bg-slate-900 p-4 sm:p-8 flex flex-col overflow-y-auto rounded-none';
 
   const getCardinalDirection = (angle: number): string => {
     const keys = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
@@ -583,12 +601,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Wave Forecast Chart ─── */}
       <section
-        ref={chartSectionRef}
-        onDoubleClick={() => toggleFullscreen(chartSectionRef.current)}
+        onDoubleClick={() => setIsChartExpanded((v) => !v)}
         title={t('dashboard.doubleClickFullscreen', 'Double-click to toggle fullscreen')}
-        className="glass-panel p-4 cursor-pointer [&:fullscreen]:bg-slate-900 [&:fullscreen]:p-8 [&:fullscreen]:flex [&:fullscreen]:flex-col [&:fullscreen]:w-full [&:fullscreen]:h-full [&:fullscreen]:rounded-none [&:fullscreen]:overflow-auto"
+        className={isChartExpanded ? EXPANDED_SECTION_CLASS : 'glass-panel p-4 cursor-pointer'}
       >
-        <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
+        <div
+          className="flex justify-between items-center mb-4 border-b border-white/10 pb-3"
+          onDoubleClick={(e) => { e.stopPropagation(); setIsChartExpanded((v) => !v); }}
+        >
           <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
             {activeGraph === 'tide' && <Waves size={14} className="mr-1.5" />}
             {activeGraph === 'wave' && <Activity size={14} className="mr-1.5" />}
@@ -596,12 +616,20 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             {activeGraph === 'tide' && t('forecast.tideSchedule')}
             {activeGraph === 'wave' && t('forecast.waveForecast')}
             {activeGraph === 'swell' && t('forecast.swellForecast')}
-            <Maximize2 size={11} className="ml-2 opacity-40" aria-hidden />
           </h3>
-          <div className="flex space-x-1 bg-black/20 p-1 rounded-lg" onDoubleClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2">
+            <div className="flex space-x-1 bg-black/20 p-1 rounded-lg" onDoubleClick={(e) => e.stopPropagation()}>
             <button onClick={() => setActiveGraph('wave')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'wave' ? 'bg-blue-600/80 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.waves')}</button>
             <button onClick={() => setActiveGraph('swell')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'swell' ? 'bg-teal-600/80 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.swell')}</button>
             <button onClick={() => setActiveGraph('tide')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'tide' ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.tides')}</button>
+            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsChartExpanded((v) => !v); }}
+              className="w-7 h-7 rounded-lg glass-inner flex items-center justify-center hover:bg-white/20 transition-colors"
+              aria-label={isChartExpanded ? t('dashboard.exitFullscreen', 'Exit fullscreen') : t('dashboard.enterFullscreen', 'Enter fullscreen')}
+            >
+              {isChartExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            </button>
           </div>
         </div>
 
@@ -621,7 +649,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           )}
         </div>
 
-        <div className="w-full h-64 [section:fullscreen_&]:flex-1 [section:fullscreen_&]:h-auto [section:fullscreen_&]:min-h-0">
+        <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-0' : 'h-64'}`}>
           <ResponsiveContainer width="100%" height="100%">
             {activeGraph === 'tide' ? (
               <AreaChart data={tideChartData}>
@@ -663,26 +691,36 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Mariner's Forecast Table ─── */}
       <section
-        ref={tableSectionRef}
-        onDoubleClick={() => toggleFullscreen(tableSectionRef.current)}
+        onDoubleClick={() => setIsTableExpanded((v) => !v)}
         title={t('dashboard.doubleClickFullscreen', 'Double-click to toggle fullscreen')}
-        className="glass-panel overflow-hidden cursor-pointer [&:fullscreen]:bg-slate-900 [&:fullscreen]:flex [&:fullscreen]:flex-col [&:fullscreen]:w-full [&:fullscreen]:h-full [&:fullscreen]:rounded-none"
+        className={isTableExpanded ? EXPANDED_SECTION_CLASS : 'glass-panel overflow-hidden cursor-pointer'}
       >
-        <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/10">
+        <div
+          className="flex justify-between items-center p-4 border-b border-white/10 bg-black/10"
+          onDoubleClick={(e) => { e.stopPropagation(); setIsTableExpanded((v) => !v); }}
+        >
           <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
             <Compass size={14} className="mr-1.5" />
             {forecastTabLabel(forecastTab)}
-            <Maximize2 size={11} className="ml-2 opacity-40" aria-hidden />
           </h3>
+          <div className="flex items-center gap-2">
           {FORECAST_TABS.length > 1 && (
             <div className="flex space-x-2" onDoubleClick={(e) => e.stopPropagation()}>
-              <button onClick={handlePrevTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronLeft size={10} /></button>
-              <button onClick={handleNextTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronRight size={10} /></button>
+              <button onClick={(e) => { e.stopPropagation(); handlePrevTab(); }} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronLeft size={10} /></button>
+              <button onClick={(e) => { e.stopPropagation(); handleNextTab(); }} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronRight size={10} /></button>
             </div>
           )}
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsTableExpanded((v) => !v); }}
+              className="w-7 h-7 rounded-lg glass-inner flex items-center justify-center hover:bg-white/20 transition-colors"
+              aria-label={isTableExpanded ? t('dashboard.exitFullscreen', 'Exit fullscreen') : t('dashboard.enterFullscreen', 'Enter fullscreen')}
+            >
+              {isTableExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            </button>
+          </div>
         </div>
-        <div className="w-full overflow-auto hide-scrollbar [section:fullscreen_&]:flex-1 [section:fullscreen_&]:h-auto">
-          <table className="w-full text-[10px] text-left whitespace-nowrap [section:fullscreen_&]:text-sm">
+        <div className={`w-full overflow-auto hide-scrollbar ${isTableExpanded ? 'flex-1 min-h-0' : ''}`}>
+          <table className={`w-full text-left whitespace-nowrap ${isTableExpanded ? 'text-sm' : 'text-[10px]'}`}>
             <thead className="text-white/60 bg-black/20">
               <tr>
                 <th className="px-4 py-2 font-medium">{t('table.period')}</th>
