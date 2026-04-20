@@ -1,0 +1,17 @@
+# Supabase project configuration (used by the Supabase CLI).
+# Keep this file in source so `supabase functions deploy` picks up
+# per-function settings like JWT verification.
+
+[functions.create-checkout-session]
+# The caller is an authenticated user — verify the JWT automatically.
+verify_jwt = true
+
+[functions.stripe-webhook]
+# Stripe signs its own payloads; we verify with STRIPE_WEBHOOK_SECRET
+# inside the function. Stripe does NOT send a Supabase JWT, so JWT
+# verification MUST be disabled or every delivery will 401.
+verify_jwt = false
+
+[functions.daily-surf-report]
+# Triggered by pg_cron with the service-role key — JWT gate stays on.
+verify_jwt = true

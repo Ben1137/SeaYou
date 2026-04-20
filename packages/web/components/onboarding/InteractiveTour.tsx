@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Joyride, STATUS, type CallBackProps, type Step, type Styles } from 'react-joyride';
+import { Joyride, STATUS, ACTIONS, type CallBackProps, type Step, type Styles } from 'react-joyride';
 import { useTranslation } from 'react-i18next';
 
 interface InteractiveTourProps {
@@ -211,9 +211,13 @@ export const InteractiveTour: React.FC<InteractiveTourProps> = ({ run, onFinish 
   };
 
   const handleCallback = (data: CallBackProps) => {
-    const { status } = data;
-    const finished: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
-    if (finished.includes(status)) {
+    const { status, action } = data;
+    // Treat FINISHED, SKIPPED, and explicit Close-button dismissal all as
+    // completion signals — all three should persist hasCompletedTour=true
+    // so the tour never re-opens on subsequent logins.
+    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
+    const isCloseAction = action === ACTIONS.CLOSE;
+    if (finishedStatuses.includes(status) || isCloseAction) {
       onFinish();
     }
   };

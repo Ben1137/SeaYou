@@ -105,7 +105,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   }, [isChartExpanded, isTableExpanded]);
 
   const EXPANDED_SECTION_CLASS =
-    'fixed inset-0 z-[100] w-screen h-screen bg-slate-900 p-4 sm:p-8 flex flex-col overflow-y-auto rounded-none';
+    'fixed inset-0 z-[100] w-screen h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-8 flex flex-col overflow-y-auto rounded-none';
 
   const getCardinalDirection = (angle: number): string => {
     const keys = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];

@@ -64,6 +64,7 @@ import { useSharedForecastGridData } from '../../hooks/useSharedForecastGridData
 // Premium paywall
 import { PremiumPaywallModal } from '../PremiumPaywallModal';
 import { useAlertConfig } from '../../src/contexts/AlertContext';
+import { startCheckout } from '../../src/services/billing';
 
 // Types
 type MapLayer = 'NONE' | 'WIND' | 'WAVE' | 'SWELL' | 'CURRENTS' | 'WIND_WAVE' | 'SIGNIFICANT_WAVE';
@@ -333,7 +334,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Premium / paywall state
-  const { subscriptionTier, setSubscriptionTier, persona } = useAlertConfig();
+  // setSubscriptionTier intentionally unused here — tier is flipped by
+  // the stripe-webhook Edge Function, not locally in the paywall flow.
+  const { subscriptionTier, persona } = useAlertConfig();
   const isFreeUser = subscriptionTier !== 'premium';
   const [showPaywall, setShowPaywall] = useState(false);
 
@@ -1670,9 +1673,17 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       <PremiumPaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
-        onUpgrade={() => {
-          setSubscriptionTier('premium');
+        onUpgrade={async () => {
+          // Kick off Stripe Checkout. We do NOT locally flip
+          // setSubscriptionTier('premium') — the stripe-webhook Edge
+          // Function will write that to user_preferences once
+          // checkout.session.completed fires, and AlertContext will
+          // sync it back into the app state.
           setShowPaywall(false);
+          const res = await startCheckout();
+          if (!res.ok && res.error) {
+            alert(res.error.message);
+          }
         }}
       />
     </div>

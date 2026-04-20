@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Anchor, Waves, Sun, Activity, ChevronRight, Sparkles, Shield, Zap, Download, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAlertConfig } from '../src/contexts/AlertContext';
+import { startCheckout } from '../src/services/billing';
 import type { OnboardingPersona } from '@seame/core';
 
 interface OnboardingModalProps {
@@ -52,9 +53,18 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
     }
   };
 
-  const handlePremium = () => {
-    alertConfig.setSubscriptionTier('premium');
+  const handlePremium = async () => {
+    // Complete onboarding locally first so that if the Stripe redirect
+    // fails or the user bails out, the app doesn't drop them back into
+    // the welcome flow. Tier flips to 'premium' asynchronously once the
+    // `stripe-webhook` Edge Function processes `checkout.session.completed`.
     onComplete();
+    const res = await startCheckout();
+    if (!res.ok && res.error) {
+      // Surface failure (NOT_SIGNED_IN, server error, etc.). On success
+      // the browser has already navigated to Stripe and this never runs.
+      alert(res.error.message);
+    }
   };
 
   const handleFree = () => {

@@ -21,6 +21,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useAlertConfig } from '../../src/contexts/AlertContext';
+import { startCheckout } from '../../src/services/billing';
 import {
   ActivityPersona,
   scoreActivity,
@@ -305,6 +306,17 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               {/* Upgrade CTA (only for free users) */}
               {!isPremium && (
                 <button
+                  onClick={async () => {
+                    const res = await startCheckout();
+                    if (!res.ok && res.error) {
+                      // startCheckout redirects on success, so we only
+                      // reach this branch on failure. Surface the issue
+                      // via a lightweight alert — a toast system would be
+                      // nicer but this modal is auth-gated and errors here
+                      // are rare.
+                      alert(res.error.message);
+                    }
+                  }}
                   className="mt-5 w-full h-12 rounded-2xl font-bold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 active:scale-[0.97] transition-transform"
                 >
                   <Sparkles size={16} /> {t('profile.upgradeToPremium', 'Upgrade to Premium')}
