@@ -401,26 +401,29 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const addFavorite = useCallback((loc: SavedLocation) => {
     update((p) => {
-      if (p.favoriteLocations.some((f) => f.id === loc.id)) return p;
-      return { ...p, favoriteLocations: [...p.favoriteLocations, loc] };
+      // New users may hydrate from Supabase with a preferences blob that
+      // predates favoriteLocations (undefined). Guard every read.
+      const existing = p.favoriteLocations ?? [];
+      if (existing.some((f) => f.id === loc.id)) return p;
+      return { ...p, favoriteLocations: [...existing, loc] };
     });
   }, [update]);
 
   const removeFavorite = useCallback((id: string) => {
     update((p) => ({
       ...p,
-      favoriteLocations: p.favoriteLocations.filter((f) => f.id !== id),
+      favoriteLocations: (p.favoriteLocations ?? []).filter((f) => f.id !== id),
     }));
   }, [update]);
 
   const isFavorite = useCallback(
-    (id: string) => preferences.favoriteLocations.some((f) => f.id === id),
+    (id: string) => (preferences.favoriteLocations ?? []).some((f) => f.id === id),
     [preferences.favoriteLocations],
   );
 
   const addRecentSearch = useCallback((loc: SavedLocation) => {
     update((p) => {
-      const filtered = p.recentSearches.filter((r) => r.id !== loc.id);
+      const filtered = (p.recentSearches ?? []).filter((r) => r.id !== loc.id);
       return { ...p, recentSearches: [loc, ...filtered].slice(0, 3) };
     });
   }, [update]);
@@ -508,8 +511,11 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         toggleStrongWinds,
         toggleTsunamiWarning,
         toggleTsunamiAlerts,
-        favoriteLocations: preferences.favoriteLocations,
-        recentSearches: preferences.recentSearches,
+        // Always expose arrays to consumers — never bubble an `undefined`
+        // out of the context, even if a legacy/partial cloud blob hydrated
+        // the preferences without these keys.
+        favoriteLocations: preferences.favoriteLocations ?? [],
+        recentSearches: preferences.recentSearches ?? [],
         addFavorite,
         removeFavorite,
         isFavorite,

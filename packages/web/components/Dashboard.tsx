@@ -285,11 +285,18 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     beachgoer: ['beach'],
   };
   const FORECAST_TABS: ForecastTab[] = useMemo(
-    () => (persona ? PERSONA_TAB_MAP[persona] : ALL_FORECAST_TABS),
+    // Harden against the primaryPersona rename (Apr 2026): the onboarding
+    // flow can now write more specific sport keys ("wave_surfer") that
+    // aren't in PERSONA_TAB_MAP (which only has the four umbrella
+    // categories). When the map lookup returns `undefined`, fall back to
+    // the full tab set so the Dashboard doesn't crash with
+    // "Cannot read properties of undefined (reading 'includes')".
+    () => (persona ? (PERSONA_TAB_MAP[persona] ?? ALL_FORECAST_TABS) : ALL_FORECAST_TABS),
     [persona]
   );
   // Ensure the active tab is always valid for the current persona
   useEffect(() => {
+    if (!Array.isArray(FORECAST_TABS) || FORECAST_TABS.length === 0) return;
     if (!FORECAST_TABS.includes(forecastTab)) {
       setForecastTab(FORECAST_TABS[0]);
     }
@@ -413,8 +420,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               beachgoer: [ActivityPersona.BEACHGOER],
             };
 
-            const allowed = persona ? PERSONA_CARD_MAP[persona] : null;
-            const cards = allowed ? ALL_CARDS.filter(c => allowed.includes(c.persona)) : ALL_CARDS;
+            // Same defensive treatment as FORECAST_TABS: an unrecognised
+            // persona (specific sport written by the new onboarding flow)
+            // must fall back to showing all cards rather than crashing
+            // `.includes(...)` on an undefined array.
+            const allowed = persona ? (PERSONA_CARD_MAP[persona] ?? null) : null;
+            const cards = Array.isArray(allowed) && allowed.length > 0
+              ? ALL_CARDS.filter(c => allowed.includes(c.persona))
+              : ALL_CARDS;
             return cards;
           })().map(({ persona: cardPersona, icon: Icon, iconColor, labelKey }) => {
             const score = activityScores?.[cardPersona];
