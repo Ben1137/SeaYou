@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona } from '@seame/core';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -7,7 +7,7 @@ import {
   Wind, Activity, Waves, ArrowUp, ArrowDown,
   Navigation, Settings, X, Sun, Moon, Cloud, CloudRain, CloudSnow, CloudLightning, CloudFog,
   Thermometer, ThumbsUp, Skull, Flag, Palmtree, Compass, ChevronRight, ChevronLeft, Tornado, Ruler, Layers,
-  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye, Info
+  AlertTriangle, Sailboat, ChevronDown, Anchor, Eye, Info, Maximize2
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { getWeatherDescription } from '@seame/core';
@@ -76,6 +76,18 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
   // Selected activity persona for the Explainable-UI breakdown modal
   const [breakdownPersona, setBreakdownPersona] = useState<ActivityPersona | null>(null);
+
+  // ─── Double-click fullscreen for Wave Graph & Forecast Table ───
+  const chartSectionRef = useRef<HTMLElement>(null);
+  const tableSectionRef = useRef<HTMLElement>(null);
+  const toggleFullscreen = useCallback((el: HTMLElement | null) => {
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen?.().catch(() => { /* user gesture / perms */ });
+    } else {
+      document.exitFullscreen?.();
+    }
+  }, []);
 
   const getCardinalDirection = (angle: number): string => {
     const keys = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
@@ -570,7 +582,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       </section>
 
       {/* ─── Wave Forecast Chart ─── */}
-      <section className="glass-panel p-4">
+      <section
+        ref={chartSectionRef}
+        onDoubleClick={() => toggleFullscreen(chartSectionRef.current)}
+        title={t('dashboard.doubleClickFullscreen', 'Double-click to toggle fullscreen')}
+        className="glass-panel p-4 cursor-pointer [&:fullscreen]:bg-slate-900 [&:fullscreen]:p-8 [&:fullscreen]:flex [&:fullscreen]:flex-col [&:fullscreen]:w-full [&:fullscreen]:h-full [&:fullscreen]:rounded-none [&:fullscreen]:overflow-auto"
+      >
         <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-3">
           <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
             {activeGraph === 'tide' && <Waves size={14} className="mr-1.5" />}
@@ -579,8 +596,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             {activeGraph === 'tide' && t('forecast.tideSchedule')}
             {activeGraph === 'wave' && t('forecast.waveForecast')}
             {activeGraph === 'swell' && t('forecast.swellForecast')}
+            <Maximize2 size={11} className="ml-2 opacity-40" aria-hidden />
           </h3>
-          <div className="flex space-x-1 bg-black/20 p-1 rounded-lg">
+          <div className="flex space-x-1 bg-black/20 p-1 rounded-lg" onDoubleClick={(e) => e.stopPropagation()}>
             <button onClick={() => setActiveGraph('wave')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'wave' ? 'bg-blue-600/80 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.waves')}</button>
             <button onClick={() => setActiveGraph('swell')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'swell' ? 'bg-teal-600/80 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.swell')}</button>
             <button onClick={() => setActiveGraph('tide')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'tide' ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.tides')}</button>
@@ -603,8 +621,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           )}
         </div>
 
-        <div className="w-full" style={{ height: '256px', minHeight: '256px' }}>
-          <ResponsiveContainer width="100%" height={256}>
+        <div className="w-full h-64 [section:fullscreen_&]:flex-1 [section:fullscreen_&]:h-auto [section:fullscreen_&]:min-h-0">
+          <ResponsiveContainer width="100%" height="100%">
             {activeGraph === 'tide' ? (
               <AreaChart data={tideChartData}>
                 <defs>
@@ -644,21 +662,27 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       </section>
 
       {/* ─── Mariner's Forecast Table ─── */}
-      <section className="glass-panel overflow-hidden">
+      <section
+        ref={tableSectionRef}
+        onDoubleClick={() => toggleFullscreen(tableSectionRef.current)}
+        title={t('dashboard.doubleClickFullscreen', 'Double-click to toggle fullscreen')}
+        className="glass-panel overflow-hidden cursor-pointer [&:fullscreen]:bg-slate-900 [&:fullscreen]:flex [&:fullscreen]:flex-col [&:fullscreen]:w-full [&:fullscreen]:h-full [&:fullscreen]:rounded-none"
+      >
         <div className="flex justify-between items-center p-4 border-b border-white/10 bg-black/10">
           <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
             <Compass size={14} className="mr-1.5" />
             {forecastTabLabel(forecastTab)}
+            <Maximize2 size={11} className="ml-2 opacity-40" aria-hidden />
           </h3>
           {FORECAST_TABS.length > 1 && (
-            <div className="flex space-x-2">
+            <div className="flex space-x-2" onDoubleClick={(e) => e.stopPropagation()}>
               <button onClick={handlePrevTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronLeft size={10} /></button>
               <button onClick={handleNextTab} className="w-5 h-5 rounded glass-inner flex items-center justify-center hover:bg-white/20"><ChevronRight size={10} /></button>
             </div>
           )}
         </div>
-        <div className="w-full overflow-x-auto hide-scrollbar">
-          <table className="w-full text-[10px] text-left whitespace-nowrap">
+        <div className="w-full overflow-auto hide-scrollbar [section:fullscreen_&]:flex-1 [section:fullscreen_&]:h-auto">
+          <table className="w-full text-[10px] text-left whitespace-nowrap [section:fullscreen_&]:text-sm">
             <thead className="text-white/60 bg-black/20">
               <tr>
                 <th className="px-4 py-2 font-medium">{t('table.period')}</th>
