@@ -72,10 +72,16 @@ Tapping a Premium layer as a Free user opens the **Premium Paywall Modal** which
 
 ### Route Planner (Safety-First)
 
-- Click on the map to plot a multi-waypoint route
-- **Legal Disclaimer Banner** (dismissible, persisted via `localStorage`) — recreational guidance only, never for primary navigation
-- **Hazard Warnings list** (shallow water, reefs, restricted zones) — replaces the former "Auto-Fix Route" button, because SeaYou will not silently edit a mariner's route
-- Depth-aware overlays via GEBCO Bathymetry WMS (Premium)
+**How to access:** tap the **Route Planner** tab in the left sidebar (desktop) or the bottom nav bar (mobile). The tab was renamed from "Routes" → "Route Planner" across all 7 locales to make the intent clearer.
+
+Once inside the Route Planner view:
+
+1. **Legal Disclaimer Banner** (dismissible, persisted via `localStorage`) — shown at the top on first visit. Explicit warning that SeaYou is for recreational guidance only and must never be used for primary navigation. Dismissal is remembered across sessions per device.
+2. **Plot your route** — click anywhere on the map to drop waypoints. Each waypoint shows distance, bearing, and estimated time-of-arrival based on the selected persona's typical speed.
+3. **Live conditions along the route** — pinpoint wave height, wind, swell, and sea temperature at every leg using the same Open-Meteo hourly forecast that powers the Dashboard.
+4. **Hazard Warnings list** (shallow water, reefs, restricted marine zones) — replaces the former "Auto-Fix Route" button. SeaYou will **not** silently edit a mariner's route; instead, every detected hazard is surfaced as a warning so the captain decides how to re-plan.
+5. **Depth-aware overlay** — toggle **GEBCO Depth Charts** (Premium) in the Layers panel to see global bathymetry underlay while plotting.
+6. **Save & sync** — signed-in users can save a route to their Supabase profile; it becomes available on mobile and watch apps via `@seame/core` services.
 
 ### Onboarding + Interactive Tour
 
