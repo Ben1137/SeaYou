@@ -77,11 +77,23 @@ Tapping a Premium layer as a Free user opens the **Premium Paywall Modal** which
 Once inside the Route Planner view:
 
 1. **Legal Disclaimer Banner** (dismissible, persisted via `localStorage`) — shown at the top on first visit. Explicit warning that SeaYou is for recreational guidance only and must never be used for primary navigation. Dismissal is remembered across sessions per device.
-2. **Plot your route** — click anywhere on the map to drop waypoints. Each waypoint shows distance, bearing, and estimated time-of-arrival based on the selected persona's typical speed.
-3. **Live conditions along the route** — pinpoint wave height, wind, swell, and sea temperature at every leg using the same Open-Meteo hourly forecast that powers the Dashboard.
-4. **Hazard Warnings list** (shallow water, reefs, restricted marine zones) — replaces the former "Auto-Fix Route" button. SeaYou will **not** silently edit a mariner's route; instead, every detected hazard is surfaced as a warning so the captain decides how to re-plan.
-5. **Depth-aware overlay** — toggle **GEBCO Depth Charts** (Premium) in the Layers panel to see global bathymetry underlay while plotting.
-6. **Save & sync** — signed-in users can save a route to their Supabase profile; it becomes available on mobile and watch apps via `@seame/core` services.
+2. **Vessel Settings** — set your vessel name, type (sail / power / fishing / commercial), and **draft in metres**. The draft feeds the hazard engine's shallow-water check. Saved to `localStorage`.
+3. **Create a route via a form** — enter:
+   - Start Location — type a name plus latitude / longitude, or tap the pin icon to fill from GPS (`navigator.geolocation`).
+   - Destination — same inputs.
+   - Average Speed (knots).
+   Press **Create Route** and SeaYou generates a great-circle straight-line route (Haversine distance, initial bearing) with start + destination waypoints.
+4. **Route summary** — total distance (NM), ETA, waypoint count, average speed.
+5. **Automatic Hazard Analysis** — every new or loaded route is sent through `analyzeRouteHazards()` in `@seame/core`. It fetches OpenStreetMap `seamark:*` features (rocks, reefs, wrecks, restricted/military areas, prohibited anchorages, traffic separation, submarine cables/pipelines) from the Overpass API for the route's bounding box, computes perpendicular distance from each hazard to every segment, and flags anything within (`hazard.radius + 500 m` safety margin). Results feed the **HazardAlert** panel grouped by severity (Critical → Danger → Advisory). Shallow water triggers a warning when `minDepth < vesselDraft + 1 m`. OSM hazards are cached in `localStorage` for 7 days so the panel still works offline.
+6. **Save / Load / Delete routes** — persisted in `localStorage['savedRoutes']`; there is a Saved Routes drawer for recalling or removing past routes.
+7. **Start Navigation** — hands the route off to `offlineNavigation` (singleton `OfflineNavigationSystem`). From that point the app:
+   - watches the GPS with `watchPosition({enableHighAccuracy:true})` and falls back to dead reckoning when GPS drops,
+   - reads the compass via `DeviceOrientationEvent` (iOS 13+ permission prompt is handled),
+   - streams a live `NavigationState` (heading, smoothed speed in knots, distance + bearing to next waypoint, ETA, % progress),
+   - emits alerts for *approaching waypoint* (< 0.5 NM), *waypoint reached* (< 0.1 NM), *off course* (> 45° deviation), *low speed* (< 0.5 kts), *destination reached*,
+   - fires a haptic (`navigator.vibrate`) and spoken (`speechSynthesis`) announcement at every waypoint and destination,
+   - appends positions to a 100-point history used by dead reckoning and (in future) for track display.
+8. **Weather overlay** — while planning, toggle **GEBCO Depth Charts** (Premium), wind / current particles, and wave heatmap from the Layers panel to sanity-check conditions along your straight-line route.
 
 ### Onboarding + Interactive Tour
 
