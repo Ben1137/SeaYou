@@ -38,6 +38,7 @@ import { VesselSettingsModal, VesselSettings } from './VesselSettingsModal';
 import { HazardAlert } from './HazardAlert';
 import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
 import { useRoute } from '../src/contexts/RouteContext';
+import { PortSearchBar } from './route/PortSearchBar';
 
 interface RoutePlanningViewProps {
   /** Switch the app view to the live map so the user can see / edit
@@ -547,6 +548,8 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
               <p className="text-2xl font-bold text-white">{route.averageSpeed} kts</p>
             </div>
           </div>
+
+          <PortSearchBar />
 
           {/* Waypoint list editor — reflects map edits live, allows
               deleting intermediate waypoints from the form side. */}

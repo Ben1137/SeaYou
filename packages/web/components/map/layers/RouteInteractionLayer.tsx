@@ -1,24 +1,30 @@
 /**
  * RouteInteractionLayer — wires map gestures to the shared RouteContext.
  *
- * Gestures handled (Phase 1):
+ * Gestures handled (Phase 1 + 1.5):
  *   • Right-click on empty water      → append a new waypoint.
- *   • Long-press (500ms) on empty     → append a new waypoint (touch devices).
+ *   • Long-press (500ms) on empty     → append a new waypoint (touch).
  *   • Click on an intermediate pin    → remove that waypoint.
- *   • Drag an intermediate pin        → move that waypoint.
+ *   • Drag a pin                      → show a translucent "ghost"
+ *                                       pin that follows the pointer
+ *                                       while the original stays in
+ *                                       place; commit the move on
+ *                                       release. Escape / drag-off-
+ *                                       canvas triggers snap-back
+ *                                       (ghost vanishes, route intact).
  *
- * Start / destination pins are protected against delete because the core
- * `removeWaypoint` / `moveWaypoint` helpers already refuse to touch the
- * first or last index. Drag *is* allowed on endpoints so the user can
- * adjust a typed-in coordinate visually.
+ * Start / destination pins are delete-protected by the core helper.
+ * Drag IS allowed on endpoints so the user can visually adjust a
+ * typed-in coordinate.
  *
- * The component renders nothing of its own — it only attaches MapLibre
- * handlers and mounts an invisible overlay <div> when a drag is in
- * progress to preempt pan while we track pointer movement.
+ * The ghost uses its own GeoJSON source so it can't leak into the main
+ * waypoint data. It's added at layer-setup time alongside the existing
+ * RouteLayerML layers.
  */
 
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
+import type { GeoJSONSource } from 'maplibre-gl';
 import { useMap } from '../useMap';
 import { useRoute } from '../../../src/contexts/RouteContext';
 import { ROUTE_WAYPOINTS_CIRCLE_LAYER_ID } from './RouteLayerML';
@@ -26,21 +32,114 @@ import { ROUTE_WAYPOINTS_CIRCLE_LAYER_ID } from './RouteLayerML';
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE_PX = 8;
 
+const GHOST_SOURCE_ID = 'route-drag-ghost-source';
+const GHOST_CIRCLE_LAYER_ID = 'route-drag-ghost-circle';
+const GHOST_HALO_LAYER_ID = 'route-drag-ghost-halo';
+
+const EMPTY_FC: GeoJSON.FeatureCollection = {
+  type: 'FeatureCollection',
+  features: [],
+};
+
 export function RouteInteractionLayer() {
   const map = useMap();
   const { route, appendWaypoint, removeWaypoint, moveWaypoint } = useRoute();
 
-  // Stash the latest context callbacks in a ref so the once-per-map
-  // handler closure always sees current state.
+  // Stash callbacks in a ref so MapLibre handlers always see latest state.
   const ctxRef = useRef({ route, appendWaypoint, removeWaypoint, moveWaypoint });
   ctxRef.current = { route, appendWaypoint, removeWaypoint, moveWaypoint };
 
+  // ----------------------------------------------------------------
+  // Ghost source/layers for drag UX
+  // ----------------------------------------------------------------
   useEffect(() => {
     if (!map) return;
 
+    const setupGhost = () => {
+      if (!map.getSource(GHOST_SOURCE_ID)) {
+        map.addSource(GHOST_SOURCE_ID, { type: 'geojson', data: EMPTY_FC });
+      }
+      if (!map.getLayer(GHOST_HALO_LAYER_ID)) {
+        map.addLayer({
+          id: GHOST_HALO_LAYER_ID,
+          type: 'circle',
+          source: GHOST_SOURCE_ID,
+          paint: {
+            'circle-radius': 16,
+            'circle-color': '#2da8ff',
+            'circle-opacity': 0.18,
+            'circle-blur': 0.4,
+          },
+        });
+      }
+      if (!map.getLayer(GHOST_CIRCLE_LAYER_ID)) {
+        map.addLayer({
+          id: GHOST_CIRCLE_LAYER_ID,
+          type: 'circle',
+          source: GHOST_SOURCE_ID,
+          paint: {
+            'circle-radius': 8,
+            'circle-color': '#2da8ff',
+            'circle-opacity': 0.55,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-opacity': 0.9,
+          },
+        });
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      setupGhost();
+    } else {
+      map.once('style.load', setupGhost);
+    }
+
+    return () => {
+      if (!map || !map.getStyle()) return;
+      try {
+        for (const id of [GHOST_CIRCLE_LAYER_ID, GHOST_HALO_LAYER_ID]) {
+          if (map.getLayer(id)) map.removeLayer(id);
+        }
+        if (map.getSource(GHOST_SOURCE_ID)) {
+          map.removeSource(GHOST_SOURCE_ID);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [map]);
+
+  // ----------------------------------------------------------------
+  // Gesture handlers
+  // ----------------------------------------------------------------
+  useEffect(() => {
+    if (!map) return;
+
+    const ghostSource = () =>
+      map.getSource(GHOST_SOURCE_ID) as GeoJSONSource | undefined;
+
+    const setGhost = (lngLat: maplibregl.LngLat | null) => {
+      const src = ghostSource();
+      if (!src) return;
+      if (!lngLat) {
+        src.setData(EMPTY_FC);
+        return;
+      }
+      src.setData({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: { type: 'Point', coordinates: [lngLat.lng, lngLat.lat] },
+            properties: {},
+          },
+        ],
+      });
+    };
+
     // ---- Right-click: append waypoint on desktop ---------------------
     const onContextMenu = (e: maplibregl.MapMouseEvent) => {
-      // Ignore if we right-clicked on an existing waypoint pin.
       const hits = map.queryRenderedFeatures(e.point, {
         layers: [ROUTE_WAYPOINTS_CIRCLE_LAYER_ID].filter((id) =>
           map.getLayer(id),
@@ -48,13 +147,13 @@ export function RouteInteractionLayer() {
       });
       if (hits.length > 0) return;
       const { route: r, appendWaypoint: add } = ctxRef.current;
-      if (!r) return; // no active route — ignore
+      if (!r) return;
       e.preventDefault?.();
       add({ lat: e.lngLat.lat, lon: e.lngLat.lng });
     };
     map.on('contextmenu', onContextMenu);
 
-    // ---- Long-press: append waypoint on touch devices ---------------
+    // ---- Long-press: append waypoint on touch ----------------------
     let longPressTimer: number | null = null;
     let longPressStart: { x: number; y: number } | null = null;
 
@@ -76,7 +175,7 @@ export function RouteInteractionLayer() {
           map.getLayer(id),
         ),
       });
-      if (hits.length > 0) return; // starting a drag on a pin instead
+      if (hits.length > 0) return;
       longPressStart = { x: e.point.x, y: e.point.y };
       const lngLat = e.lngLat;
       longPressTimer = window.setTimeout(() => {
@@ -111,7 +210,6 @@ export function RouteInteractionLayer() {
       const idx = f.properties?.index;
       const type = f.properties?.type;
       if (typeof idx !== 'number') return;
-      // Endpoints are protected — ignore.
       if (type === 'start' || type === 'destination') return;
       ctxRef.current.removeWaypoint(idx);
     };
@@ -135,57 +233,84 @@ export function RouteInteractionLayer() {
       onWaypointMouseLeave,
     );
 
-    // ---- Drag a waypoint pin: move it --------------------------------
+    // ---- Drag a waypoint pin: ghost follows, commit on release -----
+    // Drag is **commit-on-release** (not per-frame) so an accidental drag
+    // off-canvas or an Escape press snaps back to the original position.
     let dragIndex: number | null = null;
+    let dragPreviewLngLat: maplibregl.LngLat | null = null;
     let wasPanEnabled = true;
+
+    const beginDrag = (idx: number) => {
+      dragIndex = idx;
+      dragPreviewLngLat = null;
+      wasPanEnabled = map.dragPan.isEnabled();
+      map.dragPan.disable();
+      map.getCanvas().style.cursor = 'grabbing';
+    };
+
+    const endDrag = (commit: boolean) => {
+      if (dragIndex !== null && commit && dragPreviewLngLat) {
+        ctxRef.current.moveWaypoint(dragIndex, {
+          lat: dragPreviewLngLat.lat,
+          lon: dragPreviewLngLat.lng,
+        });
+      }
+      dragIndex = null;
+      dragPreviewLngLat = null;
+      setGhost(null);
+      if (wasPanEnabled) map.dragPan.enable();
+      map.getCanvas().style.cursor = '';
+      map.off('mousemove', onDragMove);
+      map.off('touchmove', onDragTouchMove);
+      window.removeEventListener('keydown', onKeyDown);
+      map.getCanvas().removeEventListener('mouseleave', onCanvasLeave);
+    };
 
     const onPinMouseDown = (e: maplibregl.MapLayerMouseEvent) => {
       if (!e.features || e.features.length === 0) return;
       const idx = e.features[0].properties?.index;
       if (typeof idx !== 'number') return;
       e.preventDefault();
-      dragIndex = idx;
-      wasPanEnabled = map.dragPan.isEnabled();
-      map.dragPan.disable();
-      map.getCanvas().style.cursor = 'grabbing';
+      beginDrag(idx);
       map.on('mousemove', onDragMove);
-      map.once('mouseup', onDragEnd);
+      map.once('mouseup', () => endDrag(true));
+      window.addEventListener('keydown', onKeyDown);
+      map.getCanvas().addEventListener('mouseleave', onCanvasLeave);
     };
 
     const onPinTouchStart = (e: maplibregl.MapLayerTouchEvent) => {
       if (!e.features || e.features.length === 0) return;
       const idx = e.features[0].properties?.index;
       if (typeof idx !== 'number') return;
-      dragIndex = idx;
-      wasPanEnabled = map.dragPan.isEnabled();
-      map.dragPan.disable();
       cancelLongPress();
+      beginDrag(idx);
       map.on('touchmove', onDragTouchMove);
-      map.once('touchend', onDragEnd);
+      map.once('touchend', () => endDrag(true));
+      map.once('touchcancel', () => endDrag(false));
     };
 
     const onDragMove = (e: maplibregl.MapMouseEvent) => {
       if (dragIndex === null) return;
-      ctxRef.current.moveWaypoint(dragIndex, {
-        lat: e.lngLat.lat,
-        lon: e.lngLat.lng,
-      });
+      dragPreviewLngLat = e.lngLat;
+      setGhost(e.lngLat);
     };
 
     const onDragTouchMove = (e: maplibregl.MapTouchEvent) => {
       if (dragIndex === null) return;
-      ctxRef.current.moveWaypoint(dragIndex, {
-        lat: e.lngLat.lat,
-        lon: e.lngLat.lng,
-      });
+      dragPreviewLngLat = e.lngLat;
+      setGhost(e.lngLat);
     };
 
-    const onDragEnd = () => {
-      dragIndex = null;
-      if (wasPanEnabled) map.dragPan.enable();
-      map.getCanvas().style.cursor = '';
-      map.off('mousemove', onDragMove);
-      map.off('touchmove', onDragTouchMove);
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Escape' && dragIndex !== null) {
+        endDrag(false); // snap-back
+      }
+    };
+
+    const onCanvasLeave = () => {
+      // Pointer left the map canvas mid-drag — cancel so the pin snaps
+      // back. The user can re-grab and try again.
+      if (dragIndex !== null) endDrag(false);
     };
 
     map.on('mousedown', ROUTE_WAYPOINTS_CIRCLE_LAYER_ID, onPinMouseDown);
@@ -213,6 +338,12 @@ export function RouteInteractionLayer() {
       map.off('touchstart', ROUTE_WAYPOINTS_CIRCLE_LAYER_ID, onPinTouchStart);
       map.off('mousemove', onDragMove);
       map.off('touchmove', onDragTouchMove);
+      window.removeEventListener('keydown', onKeyDown);
+      try {
+        map.getCanvas().removeEventListener('mouseleave', onCanvasLeave);
+      } catch {
+        /* ignore */
+      }
     };
   }, [map]);
 

@@ -47,7 +47,12 @@ const PORTS_FALLBACK_URL = 'https://raw.githubusercontent.com/nvkelso/natural-ea
 
 let portsCache: GeoJSON.FeatureCollection | null = null;
 
-async function fetchPortsData(): Promise<GeoJSON.FeatureCollection | null> {
+/**
+ * Exported so the Route Planner's port-search bar can reuse the same
+ * cached Natural Earth dataset without paying for a separate fetch.
+ * Resolves to `null` if both local + remote sources fail.
+ */
+export async function fetchPortsData(): Promise<GeoJSON.FeatureCollection | null> {
   if (portsCache) return portsCache;
 
   // Try local URL first
