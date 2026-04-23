@@ -237,6 +237,44 @@ export const addWaypoint = (
 };
 
 /**
+ * Remove a waypoint by index. Refuses to remove the start or destination
+ * (index 0 or last) — route must always have both endpoints. Returns the
+ * route unchanged if the index is invalid.
+ */
+export const removeWaypoint = (route: Route, index: number): Route => {
+  if (
+    index <= 0 ||
+    index >= route.waypoints.length - 1 ||
+    route.waypoints.length <= 2
+  ) {
+    return route;
+  }
+  const newWaypoints = route.waypoints.filter((_, i) => i !== index);
+  const totalDistance = calculateRouteDistance(newWaypoints);
+  const estimatedTime = totalDistance / route.averageSpeed;
+  return { ...route, waypoints: newWaypoints, totalDistance, estimatedTime };
+};
+
+/**
+ * Move an existing waypoint to a new position. Preserves the waypoint's
+ * id/type/name so type='start' and type='destination' markers continue to
+ * render correctly after a drag.
+ */
+export const moveWaypoint = (
+  route: Route,
+  index: number,
+  newLatLon: { lat: number; lon: number },
+): Route => {
+  if (index < 0 || index >= route.waypoints.length) return route;
+  const newWaypoints = route.waypoints.map((wp, i) =>
+    i === index ? { ...wp, lat: newLatLon.lat, lon: newLatLon.lon } : wp,
+  );
+  const totalDistance = calculateRouteDistance(newWaypoints);
+  const estimatedTime = totalDistance / route.averageSpeed;
+  return { ...route, waypoints: newWaypoints, totalDistance, estimatedTime };
+};
+
+/**
  * Save route to localStorage
  */
 export const saveRoute = (route: Route): void => {

@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Navigation,
   MapPin,
+  Map as MapIcon,
   Save,
   Play,
   Pause,
@@ -36,9 +37,18 @@ import {
 import { VesselSettingsModal, VesselSettings } from './VesselSettingsModal';
 import { HazardAlert } from './HazardAlert';
 import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
+import { useRoute } from '../src/contexts/RouteContext';
 
-export const RoutePlanningView: React.FC = () => {
-  const [route, setRoute] = useState<Route | null>(null);
+interface RoutePlanningViewProps {
+  /** Switch the app view to the live map so the user can see / edit
+   *  their route on top of the basemap. Optional — when absent the
+   *  "Show on Map" button is hidden (keeps the component standalone). */
+  onShowOnMap?: () => void;
+}
+
+export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMap }) => {
+  // Route lives in shared context so the map layers + form stay in sync.
+  const { route, setRoute, removeWaypoint } = useRoute();
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const [alerts, setAlerts] = useState<NavigationAlert[]>([]);
@@ -85,6 +95,21 @@ export const RoutePlanningView: React.FC = () => {
       offlineNavigation.off('destinationReached');
     };
   }, []);
+
+  // Re-run hazard analysis whenever the shared route changes (e.g. user
+  // added/moved/deleted a waypoint from the map). Debounced so a drag
+  // doesn't spam the Overpass API.
+  useEffect(() => {
+    if (!route) {
+      setHazardAnalysis(null);
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      analyzeRoute(route);
+    }, 500);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.id, route?.waypoints.length, route?.totalDistance]);
 
   const setupNavigationListeners = () => {
     offlineNavigation.on('navigationUpdate', (state: NavigationState) => {
@@ -163,7 +188,7 @@ export const RoutePlanningView: React.FC = () => {
     }
 
     setRoute(newRoute);
-    await analyzeRoute(newRoute);
+    // Hazard analysis fires automatically via the route-change effect.
   };
 
   const handleSaveRoute = () => {
@@ -247,12 +272,24 @@ export const RoutePlanningView: React.FC = () => {
             <Navigation className="w-8 h-8 text-blue-400" />
             Route Planner
           </h1>
-          <button
-            onClick={() => setShowSavedRoutes(!showSavedRoutes)}
-            className="px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/10"
-          >
-            {showSavedRoutes ? 'Hide' : 'View'} Saved Routes
-          </button>
+          <div className="flex gap-2">
+            {onShowOnMap && route && (
+              <button
+                onClick={onShowOnMap}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2"
+                title="View route on the live map — right-click / long-press to drop waypoints"
+              >
+                <MapIcon className="w-4 h-4" />
+                Show on Map
+              </button>
+            )}
+            <button
+              onClick={() => setShowSavedRoutes(!showSavedRoutes)}
+              className="px-4 py-2 glass-panel text-white rounded-lg hover:bg-white/10"
+            >
+              {showSavedRoutes ? 'Hide' : 'View'} Saved Routes
+            </button>
+          </div>
         </div>
 
         <div className="flex justify-end mb-4">
@@ -510,6 +547,60 @@ export const RoutePlanningView: React.FC = () => {
               <p className="text-2xl font-bold text-white">{route.averageSpeed} kts</p>
             </div>
           </div>
+
+          {/* Waypoint list editor — reflects map edits live, allows
+              deleting intermediate waypoints from the form side. */}
+          {route.waypoints.length > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-white/70">
+                  Waypoints ({route.waypoints.length})
+                </p>
+                <p className="text-[11px] text-white/40">
+                  Tip: right-click / long-press the map to add · tap a pin to delete
+                </p>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {route.waypoints.map((wp, i) => {
+                  const isStart = wp.type === 'start';
+                  const isEnd = wp.type === 'destination';
+                  const badge = isStart ? 'Start' : isEnd ? 'End' : `WP ${i}`;
+                  const badgeColor = isStart
+                    ? 'bg-green-600/30 text-green-300 border-green-500/40'
+                    : isEnd
+                      ? 'bg-red-600/30 text-red-300 border-red-500/40'
+                      : 'bg-blue-600/30 text-blue-300 border-blue-500/40';
+                  return (
+                    <div
+                      key={wp.id}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-black/20 border border-white/10"
+                    >
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded border ${badgeColor}`}
+                      >
+                        {badge}
+                      </span>
+                      <span className="flex-1 text-sm text-white/80 truncate">
+                        {wp.name || '(unnamed)'}
+                      </span>
+                      <span className="text-[11px] text-white/40 font-mono">
+                        {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
+                      </span>
+                      {!isStart && !isEnd && (
+                        <button
+                          onClick={() => removeWaypoint(i)}
+                          className="p-1 text-red-400/70 hover:text-red-400 hover:bg-red-500/10 rounded"
+                          title="Remove waypoint"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3">
             {!isNavigating ? (

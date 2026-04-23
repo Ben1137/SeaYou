@@ -14,6 +14,8 @@ import { DARK_MAP_CONFIG } from '../../utils/particleConfig';
 
 // MapLibre Native Layers (Phase 1)
 import { PortsLayerML } from './layers/PortsLayerML';
+import { RouteLayerML } from './layers/RouteLayerML';
+import { RouteInteractionLayer } from './layers/RouteInteractionLayer';
 import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
@@ -1518,6 +1520,14 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         visible={geoJSONLayers.ports}
         onPortClick={handlePortClick}
       />
+
+      {/* Route Planner 2.0 — always-mounted route overlay + edit interactions.
+          The layer is driven by RouteContext so the form and the map stay
+          in sync. Interactions (right-click/long-press to add a waypoint,
+          tap a pin to delete) are scoped to a sibling component so the
+          render layer itself stays declarative. */}
+      <RouteLayerML visible={true} />
+      <RouteInteractionLayer />
       <ReefLayerML
         visible={geoJSONLayers.reefs}
         opacity={0.7}

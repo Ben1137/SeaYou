@@ -11,6 +11,7 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { LanguageSelector } from './src/components/LanguageSelector';
 import { AlertProvider } from './src/contexts/AlertContext';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { RouteProvider } from './src/contexts/RouteContext';
 import { TsunamiBanner } from './components/TsunamiBanner';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe, LogOut, Heart, Clock, Star } from 'lucide-react';
 import { searchLocations, reverseGeocode, SavedLocation } from '@seame/core';
@@ -929,7 +930,7 @@ const AppContent: React.FC = () => {
                   console.error('Route Planning error:', error, errorInfo);
                 }}
               >
-                <RoutePlanningView />
+                <RoutePlanningView onShowOnMap={() => setView(ViewState.MAP)} />
               </ErrorBoundary>
             )}
             {view === ViewState.COASTS_MARINAS && (
@@ -1069,7 +1070,9 @@ const App: React.FC = () => (
   >
     <AuthProvider>
       <AlertProvider>
-        <AuthGate />
+        <RouteProvider>
+          <AuthGate />
+        </RouteProvider>
       </AlertProvider>
     </AuthProvider>
   </ErrorBoundary>
