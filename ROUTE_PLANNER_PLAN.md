@@ -13,11 +13,11 @@ Do NOT start the next phase without explicit user approval.
 
 ## Phase Status
 
-- [~] **Phase 1 — Core Map Integration & Waypoint UI** (core shipped; search bar deferred)
+- [x] **Phase 1 — Core Map Integration & Waypoint UI** ✅
   - [x] `RouteLayerML` GeoJSON layer (line + waypoint circles) on MapContainerML
   - [x] Route drawn live on MapContainerML (via shared RouteContext) — "Show on Map" button in Planner
-  - [x] Long-press / right-click to drop waypoint; drag to move; tap to delete (endpoints protected)
-  - [ ] Port/Marina search bar → `fetchMarinaDetails()` → "Add as waypoint" *(Phase 1.5)*
+  - [x] Long-press / right-click to drop waypoint; drag (ghost pin, Esc snap-back) to move; tap to delete (endpoints protected)
+  - [x] Port/Marina search bar → `fetchMarinaDetails()` → "Add as waypoint" (Phase 1.5)
   - [x] Wire existing `addWaypoint()` to the UI (context `appendWaypoint` + waypoint list editor)
   - **Exit:** 3+ waypoint route on map, line + pins visible, form in sync ✅
 
@@ -76,4 +76,4 @@ Do NOT start the next phase without explicit user approval.
 
 ## Current Status
 
-Plan approved. **Awaiting user approval to begin Phase 1.**
+Phase 1 + 1.5 shipped. **Starting Phase 2 — Weather-Along-Route & Safety Checks.**
