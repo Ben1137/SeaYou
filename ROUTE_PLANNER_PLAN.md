@@ -37,11 +37,16 @@ Do NOT start the next phase without explicit user approval.
   - [x] "Optimize Route" button + "Best Departure" card wired into RoutePlanningView
   - **Exit:** optimizer returns isochrone path with ETA delta vs rhumb; falls back gracefully when weather API is offline ✅
 
-- [ ] **Phase 4 — Persona-Specific Routing Modes**
-  - [ ] Surfer Mode: offshore-wind bias, swell period/direction preferences
-  - [ ] Diver Mode: filter segments with current > 0.5 m/s; slack-tide preference
-  - [ ] Auto-select mode from `alertConfig.persona`
-  - **Exit:** changing persona re-costs route with no user re-input
+- [x] **Phase 4 — Persona-Specific Routing Modes** ✅
+  - [x] Surfer Mode: ×0.7 cost discount on coastal cells with 8–14s swell + 0.5–3 m wave, extra ×0.6 when wind is offshore
+  - [x] Diver Mode: hard-filter (Infinity cost) any cell where ocean current > 0.5 m/s; bonus penalty on swell > 1.5 m
+  - [x] Beachgoer Mode: extra comfort penalty above 2 m swell
+  - [x] Mariner Mode: default fastest-safe-ETA behaviour
+  - [x] `OptimizeOptions.persona` threaded through `optimizeRoute` → A* cost fn
+  - [x] Grid fetch extended with `wave_period`; coastal cells tagged with landward bearing
+  - [x] Auto-select mode from `AlertContext.persona`; button shows persona badge + mode-specific label
+  - [x] Route auto-re-analyzes on persona change (useEffect dep)
+  - **Exit:** changing persona re-costs route with no user re-input ✅
 
 - [ ] **Phase 5 — Live Navigation & Tracking**
   - [ ] Fix `useDeadReckoning` — actually update nav state, not just log
@@ -76,4 +81,4 @@ Do NOT start the next phase without explicit user approval.
 
 ## Current Status
 
-Phases 1, 1.5, 2, and 3 shipped. **Awaiting user approval to begin Phase 4 — Persona-Specific Routing Modes.**
+Phases 1, 1.5, 2, 3, and 4 shipped. **Awaiting user approval to begin Phase 5 — Live Navigation & Tracking.**

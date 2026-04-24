@@ -126,11 +126,15 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   }, []);
 
   // Re-run hazard analysis whenever the shared route changes (e.g. user
-  // added/moved/deleted a waypoint from the map). Debounced so a drag
-  // doesn't spam the Overpass API.
+  // added/moved/deleted a waypoint from the map) OR the active persona
+  // changes (Phase 4 — different persona = different severity thresholds
+  // and different departure-window ranking). Debounced so a drag doesn't
+  // spam the Overpass API.
   useEffect(() => {
     if (!route) {
       setHazardAnalysis(null);
+      // Stale departure windows no longer match the active persona.
+      setDepartureWindows(null);
       return;
     }
     const handle = window.setTimeout(() => {
@@ -138,7 +142,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     }, 500);
     return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route?.id, route?.waypoints.length, route?.totalDistance]);
+  }, [route?.id, route?.waypoints.length, route?.totalDistance, persona]);
 
   const setupNavigationListeners = () => {
     offlineNavigation.on('navigationUpdate', (state: NavigationState) => {
@@ -262,6 +266,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
         {
           coastline,
           departureTime: new Date(),
+          persona, // Phase 4 — persona-aware cost function
         },
       );
       const next = buildOptimizedRoute(route, opt);
@@ -663,18 +668,54 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
             </div>
           </div>
 
-          {/* Phase 3 — Isochrone optimizer + departure-window recommender */}
-          {!isNavigating && (
+          {/* Phase 3/4 — Isochrone optimizer + persona-aware cost fn. */}
+          {!isNavigating && (() => {
+            // Phase 4 — persona label & cost-function description.
+            const personaCopy: Record<
+              string,
+              { badge: string; optimizeLabel: string; hint: string; color: string }
+            > = {
+              surfer: {
+                badge: 'Surf Mode',
+                optimizeLabel: 'Optimize for Surf',
+                hint: 'Biasing coastal cells with 8–14s swell + offshore wind.',
+                color: 'text-cyan-300 bg-cyan-900/30 border-cyan-500/40',
+              },
+              diver: {
+                badge: 'Dive Mode',
+                optimizeLabel: 'Optimize for Dive',
+                hint: 'Hard-filtering any cell with current > 0.5 m/s; prefers calm seas.',
+                color: 'text-teal-200 bg-teal-900/30 border-teal-500/40',
+              },
+              beachgoer: {
+                badge: 'Beach Mode',
+                optimizeLabel: 'Optimize for Beach',
+                hint: 'Extra penalty above 2 m swell — keeping the crossing comfy.',
+                color: 'text-amber-200 bg-amber-900/30 border-amber-500/40',
+              },
+              mariner: {
+                badge: 'Mariner',
+                optimizeLabel: 'Optimize Route',
+                hint: 'Fastest safe ETA — standard weather routing.',
+                color: 'text-blue-200 bg-blue-900/30 border-blue-500/40',
+              },
+            };
+            const active = personaCopy[persona ?? 'mariner'] ?? personaCopy.mariner;
+            return (
             <div className="mb-6 p-4 rounded-lg border border-white/10 bg-black/20">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <p className="text-sm font-semibold text-white/90 flex items-center gap-2">
                     <Zap className="w-4 h-4 text-yellow-400" />
                     Weather-Optimized Routing
+                    <span
+                      className={`ml-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide rounded border ${active.color}`}
+                      title="Cost function adapts to your onboarding persona — change it in Settings."
+                    >
+                      {active.badge}
+                    </span>
                   </p>
-                  <p className="text-[11px] text-white/50">
-                    Isochrone router uses your vessel polar + live wind / current / waves.
-                  </p>
+                  <p className="text-[11px] text-white/50">{active.hint}</p>
                 </div>
               </div>
 
@@ -692,7 +733,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   ) : (
                     <>
                       <Zap className="w-4 h-4" />
-                      Optimize Route
+                      {active.optimizeLabel}
                     </>
                   )}
                 </button>
@@ -764,7 +805,8 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 </p>
               )}
             </div>
-          )}
+            );
+          })()}
 
           <PortSearchBar />
 

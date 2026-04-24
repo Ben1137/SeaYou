@@ -34,6 +34,7 @@ import { lineString } from '@turf/helpers';
 import lineIntersect from '@turf/line-intersect';
 import { haversineNM, sampleWeatherAlongRoute, analyzeRouteSafety } from './routeSafetyService';
 import type { Waypoint, Route } from '../types/navigation';
+import type { OnboardingPersona } from '../types/preferences';
 import { API_ENDPOINTS, WEATHER_CONSTANTS } from '../constants';
 import { deduplicatedFetch } from '../utils/requestDeduplication';
 import { globalRateLimiter } from './apiRateLimiter';
@@ -55,6 +56,14 @@ export interface OptimizeOptions {
   coastline?: FeatureCollection | null;
   departureTime?: Date;
   maxCells?: number;       // hard ceiling on grid size (default 200)
+  /**
+   * Phase 4 — persona-aware cost adaptation.
+   *  - mariner (default): fastest safe ETA
+   *  - surfer: bonus for coastal cells with offshore wind + 8-14s swell
+   *  - diver: hard-filter cells where ocean current > 0.5 m/s
+   *  - beachgoer: same as mariner but with stricter sea-state penalty
+   */
+  persona?: OnboardingPersona | null;
 }
 
 export interface OptimizedRoute {
@@ -148,8 +157,17 @@ interface GridCell {
   currentV: number | null;
   /** meters */
   waveHeight: number | null;
+  /** seconds — dominant wave period (Phase 4, surfer mode). */
+  wavePeriod: number | null;
   /** True when the cell is unsafe (land intersect, etc.). */
   blocked: boolean;
+  /** True when at least one adjacent grid cell is blocked — cell sits
+   *  near the coast. Used by surfer mode as a proxy for "surf spot". */
+  coastal?: boolean;
+  /** Rough bearing to the nearest blocked neighbour (°, compass). When
+   *  the wind blows in the OPPOSITE direction it is "offshore" — the
+   *  classic surf-condition signal. Computed only for coastal cells. */
+  landwardBearing?: number | null;
 }
 
 async function fetchGridWeather(
@@ -170,7 +188,7 @@ async function fetchGridWeather(
       latitude: lats,
       longitude: lngs,
       hourly:
-        'wave_height,ocean_current_velocity,ocean_current_direction',
+        'wave_height,wave_period,ocean_current_velocity,ocean_current_direction',
       timezone: 'UTC',
       forecast_days: String(forecastDays),
       cell_selection: WEATHER_CONSTANTS.MARINE_CELL_SELECTION,
@@ -223,6 +241,8 @@ async function fetchGridWeather(
 
       const waveH: number | null =
         mIdx >= 0 ? m.hourly?.wave_height?.[mIdx] ?? null : null;
+      const waveP: number | null =
+        mIdx >= 0 ? m.hourly?.wave_period?.[mIdx] ?? null : null;
       const curSpd: number | null =
         mIdx >= 0 ? m.hourly?.ocean_current_velocity?.[mIdx] ?? null : null;
       const curDir: number | null =
@@ -243,6 +263,7 @@ async function fetchGridWeather(
         cell.currentV = cv;
       }
       cell.waveHeight = waveH;
+      cell.wavePeriod = waveP;
     });
   }
 }
@@ -298,6 +319,41 @@ function flagCoastalCells(
         .length > 0
     ) {
       c.blocked = true;
+    }
+  }
+}
+
+/**
+ * Phase 4 helper — tag every non-blocked cell whose 8-neighbourhood
+ * contains a blocked cell as "coastal", and record the compass bearing
+ * toward the average blocked-neighbour direction (i.e. landward).
+ * Surfer mode uses this to detect offshore-wind conditions.
+ */
+function tagCoastalCells(cells: GridCell[], size: number): void {
+  for (const c of cells) {
+    if (c.blocked) continue;
+    let landDx = 0;
+    let landDy = 0;
+    let landHits = 0;
+    for (let dj = -1; dj <= 1; dj++) {
+      for (let di = -1; di <= 1; di++) {
+        if (di === 0 && dj === 0) continue;
+        const ni = c.i + di;
+        const nj = c.j + dj;
+        if (ni < 0 || ni >= size || nj < 0 || nj >= size) continue;
+        const nb = cells[cellIndex(ni, nj, size)];
+        if (nb.blocked) {
+          landDx += nb.lon - c.lon;
+          landDy += nb.lat - c.lat;
+          landHits++;
+        }
+      }
+    }
+    if (landHits > 0) {
+      c.coastal = true;
+      // Bearing from cell → land direction (compass, 0=N, 90=E).
+      const br = (Math.atan2(landDx, landDy) * 180) / Math.PI;
+      c.landwardBearing = (br + 360) % 360;
     }
   }
 }
@@ -372,6 +428,83 @@ function sogBetween(
   };
 }
 
+/**
+ * Phase 4 — adjust raw edge cost (time in hours) by the active persona's
+ * preferences. Returns `Infinity` for hard-filtered segments (e.g. diver
+ * hitting a strong-current cell). The cost returned remains in "hours"
+ * units so the A* heuristic still dominates for non-persona modes.
+ *
+ *  - Mariner / default: no change.
+ *  - Beachgoer:        extra penalty above 2 m swell.
+ *  - Diver:            HARD filter current > 0.5 m/s + prefer low-swell.
+ *  - Surfer:           strong discount for coastal cells with 8-14s
+ *                      swell period AND offshore wind component.
+ */
+function personaEdgeCost(
+  edgeHours: number,
+  from: GridCell,
+  to: GridCell,
+  persona: OnboardingPersona | null | undefined,
+): number {
+  if (!persona || persona === 'mariner') return edgeHours;
+
+  // Diver — hard current filter on EITHER endpoint.
+  if (persona === 'diver') {
+    for (const c of [from, to]) {
+      if (c.currentU !== null && c.currentV !== null) {
+        const curMs = Math.hypot(c.currentU, c.currentV);
+        if (curMs > 0.5) return Infinity;
+      }
+      if ((c.waveHeight ?? 0) > 1.5) return edgeHours * 1.8;
+    }
+    return edgeHours;
+  }
+
+  // Beachgoer — extra penalty above 2 m swell.
+  if (persona === 'beachgoer') {
+    const maxWave = Math.max(from.waveHeight ?? 0, to.waveHeight ?? 0);
+    if (maxWave > 2.0) return edgeHours * (1 + (maxWave - 2.0) * 0.5);
+    return edgeHours;
+  }
+
+  // Surfer — discount cells with 8-14s swell period + offshore wind.
+  if (persona === 'surfer') {
+    let multiplier = 1.0;
+    for (const c of [from, to]) {
+      if (!c.coastal) continue;
+      const period = c.wavePeriod ?? 0;
+      const height = c.waveHeight ?? 0;
+      const periodGood = period >= 8 && period <= 14;
+      const heightGood = height >= 0.5 && height <= 3.0;
+      if (periodGood && heightGood) {
+        multiplier *= 0.7; // bonus — routes prefer these cells
+        // Offshore wind = wind blowing FROM land TO sea.
+        // Wind UV is in meteorological "TO" convention post-conversion.
+        if (
+          c.windU !== null &&
+          c.windV !== null &&
+          c.landwardBearing !== null &&
+          c.landwardBearing !== undefined
+        ) {
+          const windMs = Math.hypot(c.windU, c.windV);
+          if (windMs > 1) {
+            // Wind TO-bearing (where wind is going).
+            const windToBearing =
+              (Math.atan2(c.windU, c.windV) * 180) / Math.PI;
+            const windTo = (windToBearing + 360) % 360;
+            // Offshore wind points AWAY from land: delta > 90°.
+            const delta = angleDelta(windTo, c.landwardBearing);
+            if (delta > 90) multiplier *= 0.6; // extra surf bonus
+          }
+        }
+      }
+    }
+    return edgeHours * multiplier;
+  }
+
+  return edgeHours;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Grid construction + A*
 // ─────────────────────────────────────────────────────────────────
@@ -401,6 +534,7 @@ function buildGrid(
         currentU: null,
         currentV: null,
         waveHeight: null,
+        wavePeriod: null,
         blocked: false,
       });
     }
@@ -441,6 +575,7 @@ function aStar(
   startIdx: number,
   goalIdx: number,
   polar: VesselPolar,
+  persona: OnboardingPersona | null | undefined,
 ): { path: number[]; totalHours: number; cellsVisited: number } | null {
   const N = cells.length;
   const gScore = new Float64Array(N).fill(Infinity) as unknown as Float64Array;
@@ -505,7 +640,9 @@ function aStar(
       if (nb.blocked) continue;
 
       const { timeHours } = sogBetween(cells[current], nb, polar);
-      const tentativeG = gScore[current] + timeHours;
+      const adjusted = personaEdgeCost(timeHours, cells[current], nb, persona);
+      if (!Number.isFinite(adjusted)) continue; // hard filter (e.g. diver current)
+      const tentativeG = gScore[current] + adjusted;
       if (tentativeG < gScore[nIdx]) {
         cameFrom[nIdx] = current;
         gScore[nIdx] = tentativeG;
@@ -564,6 +701,7 @@ export async function optimizeRoute(
     );
     await fetchGridWeather(cells, departureTime);
     flagCoastalCells(cells, options.coastline, cellSpacingDeg);
+    tagCoastalCells(cells, size);
 
     // Make sure start + goal cells are not mistakenly blocked.
     const startIdx = nearestCell(cells, size, start);
@@ -581,7 +719,7 @@ export async function optimizeRoute(
       0,
     );
 
-    const result = aStar(cells, size, startIdx, goalIdx, polar);
+    const result = aStar(cells, size, startIdx, goalIdx, polar, options.persona);
     if (!result) return fallback();
 
     const waypoints: Waypoint[] = result.path.map((idx, k) => {
