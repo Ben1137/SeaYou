@@ -32,8 +32,11 @@ import {
   formatBearing,
   offlineNavigation,
   analyzeRouteHazards,
+  analyzeRouteSafety,
   RouteAnalysis,
 } from '@seame/core';
+import { fetchCoastlineData } from './map/layers/CoastlineLayerML';
+import { useAlertConfig } from '../src/contexts/AlertContext';
 import { VesselSettingsModal, VesselSettings } from './VesselSettingsModal';
 import { HazardAlert } from './HazardAlert';
 import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
@@ -49,7 +52,8 @@ interface RoutePlanningViewProps {
 
 export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMap }) => {
   // Route lives in shared context so the map layers + form stay in sync.
-  const { route, setRoute, removeWaypoint } = useRoute();
+  const { route, setRoute, removeWaypoint, safety, setSafety } = useRoute();
+  const { persona } = useAlertConfig();
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const [alerts, setAlerts] = useState<NavigationAlert[]>([]);
@@ -149,16 +153,34 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
 
   const analyzeRoute = async (routeToAnalyze: Route) => {
     if (!vesselSettings) return;
-    
+
     setIsAnalyzing(true);
     try {
+      // Phase 1 — static OSM seamark hazards.
       const analysis = await analyzeRouteHazards(
         routeToAnalyze.waypoints,
         vesselSettings.draft,
         500 // 500m safety margin
       );
-      
       setHazardAnalysis(analysis);
+
+      // Phase 2 — weather-along-route + persona coloring + landmask + depth.
+      // Coastline pulls from Natural Earth (cached by CoastlineLayerML).
+      // If the user isn't viewing the map yet we still want the check — the
+      // fetch is cheap and cached at module level.
+      const coastline = await fetchCoastlineData();
+      const safetyAnalysis = await analyzeRouteSafety(
+        routeToAnalyze.waypoints,
+        routeToAnalyze.averageSpeed,
+        {
+          persona,
+          vesselDraftM: vesselSettings.draft,
+          safetyMarginM: 2.0,
+          coastline,
+          departureTime: new Date(),
+        },
+      );
+      setSafety(safetyAnalysis);
     } catch (error) {
       console.error('Error analyzing route:', error);
       alert('Failed to analyze route for hazards. Please try again.');
@@ -510,7 +532,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
               <p>Analyzing route hazards...</p>
             </div>
           ) : hazardAnalysis && (
-            <HazardAlert analysis={hazardAnalysis} />
+            <HazardAlert analysis={hazardAnalysis} safety={safety} />
           )}
 
           <div className="flex items-center justify-between mb-4">

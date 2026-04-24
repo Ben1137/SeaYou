@@ -35,7 +35,12 @@ const COASTLINE_COLOR = '#00bcd4'; // Cyan — matches the UI button color
 
 let coastlineCache: GeoJSON.FeatureCollection | null = null;
 
-async function fetchCoastlineData(): Promise<GeoJSON.FeatureCollection | null> {
+/**
+ * Exported so the Route Planner's safety analyzer can reuse the same
+ * cached Natural Earth coastline GeoJSON as input to Turf.js's
+ * `lineIntersect` landmask check — zero extra network round-trips.
+ */
+export async function fetchCoastlineData(): Promise<GeoJSON.FeatureCollection | null> {
   if (coastlineCache) return coastlineCache;
 
   // Try local URL first

@@ -47,7 +47,7 @@ const EMPTY_FC: GeoJSON.FeatureCollection = {
 
 export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
   const map = useMap();
-  const { route } = useRoute();
+  const { route, safety } = useRoute();
   const layersAddedRef = useRef(false);
 
   // Create sources + layers once the map style is ready.
@@ -102,7 +102,16 @@ export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
             visibility: visible ? 'visible' : 'none',
           },
           paint: {
-            'line-color': '#2da8ff', // electric blue
+            // Phase 2 — segment color is driven by the per-feature
+            // `severity` property (set by the safety analyzer). Default
+            // remains electric blue when severity is unknown / safe.
+            'line-color': [
+              'case',
+              ['==', ['get', 'severity'], 'danger'], '#ef4444',  // red
+              ['==', ['get', 'severity'], 'caution'], '#f59e0b', // amber
+              ['==', ['get', 'severity'], 'safe'], '#22c55e',    // green
+              '#2da8ff',                                         // default
+            ],
             'line-opacity': 0.95,
             'line-width': [
               'interpolate',
@@ -223,15 +232,37 @@ export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
       (w) => [w.lon, w.lat] as [number, number],
     );
 
+    // Phase 2: emit one LineString feature *per segment* so each can
+    // carry its own `severity` property (read by the paint expression).
+    // Falls back to a single LineString with severity=undefined when
+    // no analysis is available yet (e.g. while the fetch is in-flight).
+    const segmentFeatures: GeoJSON.Feature[] =
+      coords.length >= 2
+        ? coords.slice(0, -1).map((_, i) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: [coords[i], coords[i + 1]],
+            },
+            properties: {
+              segmentIndex: i,
+              severity:
+                safety?.segments?.[i]?.severity ?? null,
+            },
+          }))
+        : [];
+
     lineSource?.setData({
       type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          geometry: { type: 'LineString', coordinates: coords },
-          properties: { id: route.id, name: route.name },
-        },
-      ],
+      features: segmentFeatures.length
+        ? segmentFeatures
+        : [
+            {
+              type: 'Feature',
+              geometry: { type: 'LineString', coordinates: coords },
+              properties: { id: route.id, name: route.name },
+            },
+          ],
     });
 
     wpSource?.setData({
@@ -253,7 +284,7 @@ export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
         },
       })),
     });
-  }, [map, route]);
+  }, [map, route, safety]);
 
   // Visibility toggling (layout property) so we don't re-add on view switch.
   useEffect(() => {

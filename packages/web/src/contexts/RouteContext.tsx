@@ -21,7 +21,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import type { Route } from '@seame/core';
+import type { Route, RouteSafetyAnalysis } from '@seame/core';
 import {
   addWaypoint as addWaypointPure,
   removeWaypoint as removeWaypointPure,
@@ -40,6 +40,16 @@ interface RouteContextValue {
 
   /** Remove an intermediate waypoint (start/destination are protected). */
   removeWaypoint: (index: number) => void;
+
+  /**
+   * Phase 2 — weather-along-route safety analysis (segment colors, land
+   * intersects, depth). Written by `RoutePlanningView`, consumed by
+   * `RouteLayerML` for per-segment paint and `HazardAlert` for the
+   * Weather Warnings group. `null` while the analysis is in-flight or
+   * when the route is too short to analyze.
+   */
+  safety: RouteSafetyAnalysis | null;
+  setSafety: (s: RouteSafetyAnalysis | null) => void;
 }
 
 const RouteContext = createContext<RouteContextValue | undefined>(undefined);
@@ -48,6 +58,7 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [route, setRoute] = useState<Route | null>(null);
+  const [safety, setSafety] = useState<RouteSafetyAnalysis | null>(null);
 
   const appendWaypoint = useCallback(
     (wp: { lat: number; lon: number; name?: string }) => {
@@ -76,8 +87,16 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const value = useMemo<RouteContextValue>(
-    () => ({ route, setRoute, appendWaypoint, moveWaypoint, removeWaypoint }),
-    [route, appendWaypoint, moveWaypoint, removeWaypoint],
+    () => ({
+      route,
+      setRoute,
+      appendWaypoint,
+      moveWaypoint,
+      removeWaypoint,
+      safety,
+      setSafety,
+    }),
+    [route, safety, appendWaypoint, moveWaypoint, removeWaypoint],
   );
 
   return (

@@ -1,12 +1,33 @@
 import React from 'react';
-import { AlertTriangle, Shield, Info } from 'lucide-react';
-import { RouteAnalysis } from '@seame/core';
+import { AlertTriangle, Shield, Info, CloudRain, Wind, Waves, Anchor, Mountain } from 'lucide-react';
+import type { RouteAnalysis, RouteSafetyAnalysis, WeatherHazard } from '@seame/core';
 
 interface HazardAlertProps {
   analysis: RouteAnalysis;
+  /**
+   * Phase 2 — weather-along-route safety analysis. Optional so existing
+   * callers (pre-Phase 2) keep compiling; when provided, a "Weather
+   * Warnings" group is rendered alongside the OSM hazard groups.
+   */
+  safety?: RouteSafetyAnalysis | null;
 }
 
-export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis }) => {
+const kindIcon = (kind: WeatherHazard['kind']) => {
+  switch (kind) {
+    case 'wind':
+      return <Wind className="w-3.5 h-3.5 inline mr-1" />;
+    case 'wave':
+      return <Waves className="w-3.5 h-3.5 inline mr-1" />;
+    case 'current':
+      return <CloudRain className="w-3.5 h-3.5 inline mr-1" />;
+    case 'shallow':
+      return <Anchor className="w-3.5 h-3.5 inline mr-1" />;
+    case 'land':
+      return <Mountain className="w-3.5 h-3.5 inline mr-1" />;
+  }
+};
+
+export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) => {
   const criticalHazards = analysis.hazards.filter(
     (h) => h.hazard.severity === 'critical'
   );
@@ -17,7 +38,14 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis }) => {
     (h) => h.hazard.severity !== 'critical' && h.hazard.severity !== 'danger'
   );
 
-  if (analysis.isSafe) {
+  const weatherHazards: WeatherHazard[] = safety?.weatherHazards ?? [];
+  const weatherDanger = weatherHazards.filter((h) => h.severity === 'danger');
+  const weatherCaution = weatherHazards.filter((h) => h.severity === 'caution');
+
+  // Fully clear: no OSM hazards AND no weather hazards. When the route
+  // is "OSM-clear" but the weather analyzer fired, fall through to the
+  // hazard UI so we can render only the Weather Warnings group.
+  if (analysis.isSafe && weatherHazards.length === 0) {
     return (
       <div className="bg-green-900/30 border border-green-700/50 p-4 mb-4 rounded-lg">
         <div className="flex items-center">
@@ -35,7 +63,57 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis }) => {
 
   return (
     <div className="space-y-4 mb-4">
+      {/* Phase 2 — Weather Warnings group (wind / wave / current / land / depth) */}
+      {weatherHazards.length > 0 && (
+        <div className={`${weatherDanger.length > 0 ? 'bg-red-900/30 border-red-700/50' : 'bg-amber-900/30 border-amber-700/50'} border p-4 rounded-lg`}>
+          <div className="flex items-start">
+            <AlertTriangle className={`w-6 h-6 mr-2 flex-shrink-0 mt-0.5 ${weatherDanger.length > 0 ? 'text-red-400' : 'text-amber-400'}`} />
+            <div className="flex-1">
+              <h3 className={`font-bold mb-1 ${weatherDanger.length > 0 ? 'text-red-300' : 'text-amber-300'}`}>
+                Weather Warnings
+              </h3>
+              <p className="text-xs text-white/60 mb-3">
+                Forecast sampled at each segment's estimated arrival time, scored against your persona's thresholds.
+              </p>
+
+              {weatherDanger.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs font-bold text-red-400 uppercase tracking-wide mb-1">
+                    Danger ({weatherDanger.length})
+                  </p>
+                  <ul className="list-none space-y-1 text-sm text-red-200">
+                    {weatherDanger.map((h, i) => (
+                      <li key={i}>
+                        {kindIcon(h.kind)}
+                        <strong>Segment {h.segmentIndex + 1}:</strong> {h.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {weatherCaution.length > 0 && (
+                <div>
+                  <p className="text-xs font-bold text-amber-400 uppercase tracking-wide mb-1">
+                    Caution ({weatherCaution.length})
+                  </p>
+                  <ul className="list-none space-y-1 text-sm text-amber-200">
+                    {weatherCaution.map((h, i) => (
+                      <li key={i}>
+                        {kindIcon(h.kind)}
+                        <strong>Segment {h.segmentIndex + 1}:</strong> {h.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hazard Warnings header */}
+      {analysis.hazards.length > 0 && (
       <div className="bg-amber-900/30 border border-amber-700/50 p-4 rounded-lg">
         <div className="flex items-start">
           <AlertTriangle className="w-6 h-6 text-amber-400 mr-2 flex-shrink-0 mt-0.5" />
@@ -98,6 +176,7 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis }) => {
           </div>
         </div>
       </div>
+      )}
 
       {/* Recommendations */}
       {analysis.recommendations && analysis.recommendations.length > 0 && (

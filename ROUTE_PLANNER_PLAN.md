@@ -21,13 +21,13 @@ Do NOT start the next phase without explicit user approval.
   - [x] Wire existing `addWaypoint()` to the UI (context `appendWaypoint` + waypoint list editor)
   - **Exit:** 3+ waypoint route on map, line + pins visible, form in sync ✅
 
-- [ ] **Phase 2 — Weather-Along-Route & Safety Checks**
-  - [ ] `sampleWeatherAlongRoute()` at ETA intervals (reuse marineGrid cache)
-  - [ ] Segment recolor green/amber/red by wind/wave/current thresholds
-  - [ ] Turf.js `booleanIntersects(route, coastline)` landmask check
-  - [ ] Implement real `getDepthAtLocation()` via GEBCO WMS GetFeatureInfo
-  - [ ] `HazardAlert` gets "Weather Warnings" group
-  - **Exit:** shallow/stormy route shows red + hazards before Start Nav
+- [x] **Phase 2 — Weather-Along-Route & Safety Checks** ✅
+  - [x] `sampleWeatherAlongRoute()` at ETA intervals (Open-Meteo hourly, bulk coords)
+  - [x] Segment recolor green/amber/red by persona-aware wind/wave/current thresholds
+  - [x] Turf.js `lineIntersect(route, coastline)` landmask check (Natural Earth 10m)
+  - [x] Real `getDepthAtLocationGEBCO()` via GEBCO WMS GetFeatureInfo
+  - [x] `HazardAlert` gets "Weather Warnings" group (wind/wave/current/land/shallow)
+  - **Exit:** shallow/stormy route shows red + hazards before Start Nav ✅
 
 - [ ] **Phase 3 — Route Optimization & Isochrone Routing**
   - [ ] `VesselSettings.polar` added; seeded defaults per vessel type
@@ -76,4 +76,4 @@ Do NOT start the next phase without explicit user approval.
 
 ## Current Status
 
-Phase 1 + 1.5 shipped. **Starting Phase 2 — Weather-Along-Route & Safety Checks.**
+Phase 1, 1.5, and 2 shipped. **Awaiting user approval to begin Phase 3 — Route Optimization & Isochrone Routing.**
