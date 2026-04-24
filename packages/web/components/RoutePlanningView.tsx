@@ -49,6 +49,9 @@ import { HazardAlert } from './HazardAlert';
 import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
 import { useRoute } from '../src/contexts/RouteContext';
 import { PortSearchBar } from './route/PortSearchBar';
+import { toast } from './ui/Toast';
+import { confirmDialog, promptDialog } from './ui/Dialog';
+import { parseCoord, toDMS, toDDString, type CoordAxis } from './route/coordFormat';
 
 interface RoutePlanningViewProps {
   /** Switch the app view to the live map so the user can see / edit
@@ -76,6 +79,8 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   const [destLat, setDestLat] = useState('');
   const [destLon, setDestLon] = useState('');
   const [averageSpeed, setAverageSpeed] = useState(5);
+  // Phase 7 — coordinate input format toggle (Decimal vs DMS).
+  const [coordFormat, setCoordFormat] = useState<'DD' | 'DMS'>('DD');
 
   // Hazard analysis state
   const [hazardAnalysis, setHazardAnalysis] = useState<RouteAnalysis | null>(null);
@@ -216,20 +221,23 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
       setSafety(safetyAnalysis);
     } catch (error) {
       console.error('Error analyzing route:', error);
-      alert('Failed to analyze route for hazards. Please try again.');
+      toast.error('Failed to analyze route for hazards. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
   const handleCreateRoute = async () => {
-    const sLat = parseFloat(startLat);
-    const sLon = parseFloat(startLon);
-    const dLat = parseFloat(destLat);
-    const dLon = parseFloat(destLon);
+    // parseCoord accepts both decimal and DMS strings → same code path.
+    const sLat = parseCoord(startLat, 'lat');
+    const sLon = parseCoord(startLon, 'lon');
+    const dLat = parseCoord(destLat, 'lat');
+    const dLon = parseCoord(destLon, 'lon');
 
     if (isNaN(sLat) || isNaN(sLon) || isNaN(dLat) || isNaN(dLon)) {
-      alert('Please enter valid coordinates');
+      toast.error('Please enter valid coordinates', {
+        title: 'Invalid input',
+      });
       return;
     }
 
@@ -319,18 +327,27 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   const handleSaveRoute = async () => {
     if (!route) return;
 
-    const name = routeName || prompt('Enter route name:');
+    const name =
+      routeName ||
+      (await promptDialog('Name this route', {
+        title: 'Save route',
+        placeholder: 'e.g., Weekend cruise',
+        confirmLabel: 'Save',
+      }));
     if (!name) return;
     const routeToSave = { ...route, name };
-    // Cloud-first save; falls back to localStorage when anonymous.
-    const canonical = await saveRouteCloud(
-      routeToSave,
-      vesselSettings as unknown as Record<string, unknown>,
-    );
-    // Swap in the canonical row so subsequent edits reference the cloud uuid.
-    setRoute(canonical);
-    await loadSavedRoutes();
-    alert('Route saved!');
+    try {
+      const canonical = await saveRouteCloud(
+        routeToSave,
+        vesselSettings as unknown as Record<string, unknown>,
+      );
+      setRoute(canonical);
+      await loadSavedRoutes();
+      toast.success('Route saved');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to save route');
+    }
   };
 
   const handleLoadRoute = (savedRoute: Route) => {
@@ -339,9 +356,19 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   };
 
   const handleDeleteRoute = async (routeId: string) => {
-    if (confirm('Delete this route?')) {
+    const ok = await confirmDialog('Delete this route?', {
+      title: 'Delete route',
+      tone: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
+    try {
       await deleteRouteCloud(routeId);
       await loadSavedRoutes();
+      toast.success('Route deleted');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to delete route');
     }
   };
 
@@ -357,7 +384,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
       await offlineNavigation.startNavigation(route);
       setIsNavigating(true);
     } catch (error) {
-      alert('Failed to start navigation: ' + (error as Error).message);
+      toast.error('Failed to start navigation: ' + (error as Error).message);
     }
   };
 
@@ -371,8 +398,14 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const lat = position.coords.latitude.toFixed(4);
-          const lon = position.coords.longitude.toFixed(4);
+          const fmtLat = coordFormat === 'DMS'
+            ? toDMS(position.coords.latitude, 'lat')
+            : position.coords.latitude.toFixed(4);
+          const fmtLon = coordFormat === 'DMS'
+            ? toDMS(position.coords.longitude, 'lon')
+            : position.coords.longitude.toFixed(4);
+          const lat = fmtLat;
+          const lon = fmtLon;
 
           if (type === 'start') {
             setStartLat(lat);
@@ -385,11 +418,11 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
           }
         },
         (error) => {
-          alert('Failed to get location: ' + error.message);
+          toast.error('Failed to get location: ' + error.message);
         }
       );
     } else {
-      alert('Geolocation not supported');
+      toast.error('Geolocation not supported on this device');
     }
   };
 
@@ -427,7 +460,43 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
           </div>
         </div>
 
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-between items-center mb-4 gap-2">
+          {/* Phase 7 — DD / DMS coordinate format toggle. Active values
+              are re-rendered in the new format; user can still type in
+              either (parseCoord handles both). */}
+          <div className="inline-flex rounded-lg border border-white/10 bg-black/20 text-[11px] overflow-hidden">
+            {(['DD', 'DMS'] as const).map((fmt) => (
+              <button
+                key={fmt}
+                type="button"
+                onClick={() => {
+                  if (fmt === coordFormat) return;
+                  const cvt = (v: string, axis: CoordAxis) => {
+                    const n = parseCoord(v, axis);
+                    if (!Number.isFinite(n)) return v;
+                    return fmt === 'DMS' ? toDMS(n, axis) : toDDString(n);
+                  };
+                  setStartLat(cvt(startLat, 'lat'));
+                  setStartLon(cvt(startLon, 'lon'));
+                  setDestLat(cvt(destLat, 'lat'));
+                  setDestLon(cvt(destLon, 'lon'));
+                  setCoordFormat(fmt);
+                }}
+                className={`px-3 py-1 transition-colors ${
+                  coordFormat === fmt
+                    ? 'bg-blue-600 text-white'
+                    : 'text-white/60 hover:text-white'
+                }`}
+                title={
+                  fmt === 'DD'
+                    ? 'Decimal degrees (43.7384)'
+                    : "Degrees / minutes / seconds (43°44'18.2\"N)"
+                }
+              >
+                {fmt}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => setShowVesselSettings(true)}
             className="text-[10px] text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2 flex items-center gap-1"
@@ -564,14 +633,14 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   type="text"
                   value={startLat}
                   onChange={(e) => setStartLat(e.target.value)}
-                  placeholder="Latitude"
+                  placeholder={coordFormat === 'DD' ? 'Latitude (43.7384)' : "Latitude (43°44'18\"N)"}
                   className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <input
                   type="text"
                   value={startLon}
                   onChange={(e) => setStartLon(e.target.value)}
-                  placeholder="Longitude"
+                  placeholder={coordFormat === 'DD' ? 'Longitude (-79.4)' : "Longitude (79°24'00\"W)"}
                   className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>
@@ -601,14 +670,14 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   type="text"
                   value={destLat}
                   onChange={(e) => setDestLat(e.target.value)}
-                  placeholder="Latitude"
+                  placeholder={coordFormat === 'DD' ? 'Latitude (43.7384)' : "Latitude (43°44'18\"N)"}
                   className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
                 <input
                   type="text"
                   value={destLon}
                   onChange={(e) => setDestLon(e.target.value)}
-                  placeholder="Longitude"
+                  placeholder={coordFormat === 'DD' ? 'Longitude (-79.4)' : "Longitude (79°24'00\"W)"}
                   className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 />
               </div>

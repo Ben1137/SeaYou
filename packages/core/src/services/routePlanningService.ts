@@ -192,6 +192,69 @@ export const isNearWaypoint = (
 };
 
 /**
+ * Great-circle interpolation — intermediate point at fraction `f`
+ * (0..1) along the great-circle arc from A to B. Uses the spherical
+ * slerp formula and is accurate across the anti-meridian.
+ */
+export const greatCircleIntermediate = (
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+  f: number,
+): { lat: number; lon: number } => {
+  const φ1 = toRadians(a.lat);
+  const λ1 = toRadians(a.lon);
+  const φ2 = toRadians(b.lat);
+  const λ2 = toRadians(b.lon);
+  const d =
+    calculateDistance(a.lat, a.lon, b.lat, b.lon) / 3440.065; // angular dist
+  if (d < 1e-9) return { lat: a.lat, lon: a.lon };
+  const A = Math.sin((1 - f) * d) / Math.sin(d);
+  const B = Math.sin(f * d) / Math.sin(d);
+  const x = A * Math.cos(φ1) * Math.cos(λ1) + B * Math.cos(φ2) * Math.cos(λ2);
+  const y = A * Math.cos(φ1) * Math.sin(λ1) + B * Math.cos(φ2) * Math.sin(λ2);
+  const z = A * Math.sin(φ1) + B * Math.sin(φ2);
+  const φ = Math.atan2(z, Math.sqrt(x * x + y * y));
+  const λ = Math.atan2(y, x);
+  return { lat: toDegrees(φ), lon: toDegrees(λ) };
+};
+
+/**
+ * Phase 7 — if a leg exceeds `thresholdNM` (default 60 NM), subdivide
+ * into ~`segmentNM` (default 10 NM) great-circle intermediate points so
+ * the drawn line follows the sphere instead of cutting through high
+ * latitudes. Preserves start/end waypoint ids & types; inserts new
+ * `type: 'waypoint'` points in between.
+ */
+export const subdivideLongLegs = (
+  waypoints: Waypoint[],
+  thresholdNM: number = 60,
+  segmentNM: number = 10,
+): Waypoint[] => {
+  if (waypoints.length < 2) return waypoints;
+  const out: Waypoint[] = [waypoints[0]];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i];
+    const b = waypoints[i + 1];
+    const legNM = calculateDistance(a.lat, a.lon, b.lat, b.lon);
+    if (legNM > thresholdNM) {
+      const steps = Math.max(2, Math.ceil(legNM / segmentNM));
+      for (let s = 1; s < steps; s++) {
+        const p = greatCircleIntermediate(a, b, s / steps);
+        out.push({
+          id: generateId(),
+          lat: p.lat,
+          lon: p.lon,
+          name: `${a.name} → ${b.name} (${s}/${steps})`,
+          type: 'waypoint',
+        });
+      }
+    }
+    out.push(b);
+  }
+  return out;
+};
+
+/**
  * Generate route with optimal waypoints
  */
 export const generateRoute = (
@@ -199,7 +262,7 @@ export const generateRoute = (
   destination: { lat: number; lon: number; name: string },
   averageSpeed: number = 5 // default 5 knots
 ): Route => {
-  const waypoints: Waypoint[] = [
+  let waypoints: Waypoint[] = [
     {
       id: 'start',
       lat: start.lat,
@@ -216,6 +279,10 @@ export const generateRoute = (
       type: 'destination',
     },
   ];
+
+  // Phase 7 — legs > 60 NM become ~10 NM great-circle segments so long
+  // passages don't look like rhumb lines cutting through the pole.
+  waypoints = subdivideLongLegs(waypoints, 60, 10);
 
   const distance = calculateRouteDistance(waypoints);
   const estimatedTime = distance / averageSpeed;

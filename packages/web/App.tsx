@@ -12,6 +12,8 @@ import { LanguageSelector } from './src/components/LanguageSelector';
 import { AlertProvider } from './src/contexts/AlertContext';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { RouteProvider } from './src/contexts/RouteContext';
+import { ToastHost, toast } from './components/ui/Toast';
+import { DialogHost } from './components/ui/Dialog';
 import { TsunamiBanner } from './components/TsunamiBanner';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe, LogOut, Heart, Clock, Star } from 'lucide-react';
 import { searchLocations, reverseGeocode, SavedLocation } from '@seame/core';
@@ -415,9 +417,9 @@ const AppContent: React.FC = () => {
         },
         (err) => {
           console.warn("Geolocation failed", err);
-          if (err.code === 1) alert(t('location.permissionDenied'));
-          else if (err.code === 2) alert(t('location.unavailable'));
-          else if (err.code === 3) alert(t('location.timeout'));
+          if (err.code === 1) toast.error(t('location.permissionDenied'));
+          else if (err.code === 2) toast.error(t('location.unavailable'));
+          else if (err.code === 3) toast.warning(t('location.timeout'));
         },
         { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
       );
@@ -1084,6 +1086,11 @@ const App: React.FC = () => (
       <AlertProvider>
         <RouteProvider>
           <AuthGate />
+          {/* Phase 7 — global glass toast + modal stack, mounted once at
+              the root so any module (including non-React services) can
+              call toast.success() / confirmDialog() etc. */}
+          <ToastHost />
+          <DialogHost />
         </RouteProvider>
       </AlertProvider>
     </AuthProvider>

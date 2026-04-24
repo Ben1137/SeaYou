@@ -18,6 +18,8 @@ import {
   offlineNavigation,
   type VoyageLog,
 } from '@seame/core';
+import { confirmDialog } from './ui/Dialog';
+import { toast } from './ui/Toast';
 
 function formatDuration(start: Date, end: Date): string {
   const mins = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
@@ -61,9 +63,20 @@ export const VoyageLogbookCard: React.FC<{ className?: string }> = ({
   };
 
   const onDelete = async (log: VoyageLog) => {
-    if (!window.confirm(`Delete voyage "${log.name ?? log.id}"?`)) return;
-    await deleteVoyageLog(log.id);
-    await refresh();
+    const ok = await confirmDialog(`Delete voyage "${log.name ?? log.id}"?`, {
+      title: 'Delete voyage log',
+      tone: 'danger',
+      confirmLabel: 'Delete',
+    });
+    if (!ok) return;
+    try {
+      await deleteVoyageLog(log.id);
+      await refresh();
+      toast.success('Voyage deleted');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to delete voyage');
+    }
   };
 
   return (

@@ -25,6 +25,7 @@ import { aisService, type CPAWarning } from '../../src/services/aisService';
 import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
+import { NOAAEncLayerML } from './layers/NOAAEncLayerML';
 import { RainRadarLayerML } from './layers/RainRadarLayerML';
 import { CoastlineLayerML } from './layers/CoastlineLayerML';
 import { MarineAreasLayerML } from './layers/MarineAreasLayerML';
@@ -386,7 +387,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   }, []);
 
   /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
-  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc') => {
+  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc') => {
     if (isFreeUser) {
       setShowPaywall(true);
       return;
@@ -450,6 +451,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     marineAreas: false,
     radar: false,
     enc: false, // OpenSeaMap navigational charts
+    noaaEnc: false, // Phase 7 — NOAA ENC Online raster (US waters)
   });
 
   // Detail view state
@@ -1266,6 +1268,13 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             >
               <Compass size={12} /> <span className="flex-1">{t('map.navCharts') || 'Navigational Charts (ENC)'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
+            <button
+              onClick={() => tryToggleOverlay('noaaEnc')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.noaaEnc ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              title="Official NOAA Electronic Navigational Charts — US waters only"
+            >
+              <Compass size={12} /> <span className="flex-1">NOAA ENC (US)</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+            </button>
           </div>
           {(loadingGrid || sharedMarineData.loading || sharedForecastData.loading) && (
             <div className="pb-2 px-2 text-[10px] text-center text-blue-300 animate-pulse">{t('map.updatingForecast')}</div>
@@ -1581,6 +1590,11 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         visible={geoJSONLayers.enc}
         opacity={0.85}
       />
+
+      {/* NOAA ENC Online overlay — Phase 7. Official US navigational
+          charts. No-op outside US waters (service simply serves empty
+          tiles). */}
+      <NOAAEncLayerML enabled={geoJSONLayers.noaaEnc} opacity={0.85} />
 
       {/*
         Wave Composite Layer — heatmap base + whitecap particles on top.
