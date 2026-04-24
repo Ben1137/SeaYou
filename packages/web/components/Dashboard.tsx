@@ -18,6 +18,7 @@ import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
+import { VoyageLogbookCard } from './VoyageLogbookCard';
 
 interface DashboardProps {
   weatherData: MarineWeatherData | null | undefined;
@@ -764,6 +765,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             ))}
           </div>
         )}
+      </section>
+
+      {/* Phase 6 — Past Voyages / Logbook. Auto-saves completed navigation
+          sessions, shows cloud-synced trips when signed in. */}
+      <section className="px-2">
+        <VoyageLogbookCard />
       </section>
 
     </div>

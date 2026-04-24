@@ -26,9 +26,11 @@ import {
 import type { Route, NavigationState, NavigationAlert, DepartureWindowScore } from '@seame/core';
 import {
   generateRoute,
-  saveRoute,
-  getSavedRoutes,
-  deleteRoute,
+  saveRouteCloud,
+  getSavedRoutesCloud,
+  deleteRouteCloud,
+  routeToGpx,
+  downloadGpx,
   formatDistance,
   formatTime,
   formatBearing,
@@ -109,7 +111,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
         maxHeadSea: parsed.maxHeadSea ?? def.maxHeadSea,
       });
     }
-    loadSavedRoutes();
+    void loadSavedRoutes();
     setupNavigationListeners();
 
     // Auto-init start location if empty
@@ -164,8 +166,11 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     });
   };
 
-  const loadSavedRoutes = () => {
-    setSavedRoutes(getSavedRoutes());
+  const loadSavedRoutes = async () => {
+    // Phase 6 — cloud-aware loader; falls back to localStorage silently
+    // when the user is anonymous or Supabase is misconfigured.
+    const rows = await getSavedRoutesCloud();
+    setSavedRoutes(rows);
   };
 
   const handleSaveVesselSettings = (settings: VesselSettings) => {
@@ -311,16 +316,21 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     }
   };
 
-  const handleSaveRoute = () => {
+  const handleSaveRoute = async () => {
     if (!route) return;
-    
+
     const name = routeName || prompt('Enter route name:');
-    if (name) {
-      const routeToSave = { ...route, name };
-      saveRoute(routeToSave);
-      loadSavedRoutes();
-      alert('Route saved!');
-    }
+    if (!name) return;
+    const routeToSave = { ...route, name };
+    // Cloud-first save; falls back to localStorage when anonymous.
+    const canonical = await saveRouteCloud(
+      routeToSave,
+      vesselSettings as unknown as Record<string, unknown>,
+    );
+    // Swap in the canonical row so subsequent edits reference the cloud uuid.
+    setRoute(canonical);
+    await loadSavedRoutes();
+    alert('Route saved!');
   };
 
   const handleLoadRoute = (savedRoute: Route) => {
@@ -328,11 +338,16 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     setShowSavedRoutes(false);
   };
 
-  const handleDeleteRoute = (routeId: string) => {
+  const handleDeleteRoute = async (routeId: string) => {
     if (confirm('Delete this route?')) {
-      deleteRoute(routeId);
-      loadSavedRoutes();
+      await deleteRouteCloud(routeId);
+      await loadSavedRoutes();
     }
+  };
+
+  const handleExportRouteGpx = (savedRoute: Route) => {
+    const xml = routeToGpx(savedRoute);
+    downloadGpx(savedRoute.name || `route-${savedRoute.id}`, xml);
   };
 
   const handleStartNavigation = async () => {
@@ -484,6 +499,13 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
                     >
                       Load
+                    </button>
+                    <button
+                      onClick={() => handleExportRouteGpx(savedRoute)}
+                      className="px-3 py-2 bg-slate-600 text-white rounded hover:bg-slate-500"
+                      title="Export as GPX"
+                    >
+                      GPX
                     </button>
                     <button
                       onClick={() => handleDeleteRoute(savedRoute.id)}

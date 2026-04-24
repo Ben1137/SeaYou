@@ -24,6 +24,8 @@ import { UserProfileModal } from './components/profile/UserProfileModal';
 import { WaveLoader } from './components/ui/WaveLoader';
 import { useCachedWeather } from './src/hooks/useCachedWeather';
 import { useTheme } from './src/hooks/useTheme';
+import { useVoyageAutoSave } from './hooks/useVoyageAutoSave';
+import { reconcileLocalRoutesToCloud } from '@seame/core';
 import { useTranslation } from 'react-i18next';
 import './src/pwa';
 import {
@@ -113,6 +115,16 @@ const AppContent: React.FC = () => {
   const { t, i18n } = useTranslation();
   const alertConfig = useAlertConfig();
   const { loading: authLoading, user: authUser } = useAuth();
+
+  // Phase 6 — Auto-persist completed voyages to the cloud logbook.
+  useVoyageAutoSave();
+
+  // Phase 6 — On sign-in, push any local-only routes to the cloud so
+  // the user's anonymous work isn't orphaned. Idempotent (upsert by id).
+  useEffect(() => {
+    if (!authUser) return;
+    void reconcileLocalRoutesToCloud();
+  }, [authUser]);
 
   // Synchronous localStorage read — immediately blocks tour during the first
   // render cycle, before Supabase responds with cloud preferences.

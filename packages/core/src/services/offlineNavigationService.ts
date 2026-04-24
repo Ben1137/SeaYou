@@ -136,6 +136,13 @@ class OfflineNavigationSystem {
       window.removeEventListener('deviceorientation', this.handleOrientation);
     }
 
+    // Snapshot history + route BEFORE we clear them so the
+    // `navigationStopped` event payload lets listeners (voyage log
+    // auto-save) persist the completed trip without racing against
+    // the cleanup below.
+    const finishedRoute = this.route;
+    const finishedHistory = [...this.navigationHistory];
+
     this.isNavigating = false;
     this.route = null;
     this.currentWaypointIndex = 0;
@@ -145,7 +152,10 @@ class OfflineNavigationSystem {
       this.drTimer = null;
     }
 
-    this.emit('navigationStopped', {});
+    this.emit('navigationStopped', {
+      route: finishedRoute,
+      history: finishedHistory,
+    });
     console.log('🛑 Navigation Stopped');
   }
 
