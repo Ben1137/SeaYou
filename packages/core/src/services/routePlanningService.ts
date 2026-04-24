@@ -79,6 +79,25 @@ export const calculateETA = (
 };
 
 /**
+ * Great-circle cross-track distance of point `p` from the leg AB,
+ * in nautical miles. Sign: + right of course, − left of course.
+ * Spherical Earth approximation — adequate for the ≤ 500 NM legs this
+ * planner targets.
+ */
+export const calculateCrossTrackError = (
+  p: { lat: number; lon: number },
+  a: { lat: number; lon: number },
+  b: { lat: number; lon: number },
+): number => {
+  const R = 3440.065; // NM
+  const d13 = calculateDistance(a.lat, a.lon, p.lat, p.lon) / R; // angular dist
+  const brng13 = toRadians(calculateBearing(a.lat, a.lon, p.lat, p.lon));
+  const brng12 = toRadians(calculateBearing(a.lat, a.lon, b.lat, b.lon));
+  const dxt = Math.asin(Math.sin(d13) * Math.sin(brng13 - brng12)) * R;
+  return dxt;
+};
+
+/**
  * Calculate current navigation state
  */
 export const calculateNavigationState = (
@@ -130,6 +149,16 @@ export const calculateNavigationState = (
   }
   const progress = (completedDistance / totalDistance) * 100;
 
+  // Phase 5 — XTE relative to the current leg (previous waypoint → next).
+  const legStart = route.waypoints[currentWaypointIndex];
+  const crossTrackError = legStart
+    ? calculateCrossTrackError(
+        currentPosition,
+        { lat: legStart.lat, lon: legStart.lon },
+        { lat: nextWaypoint.lat, lon: nextWaypoint.lon },
+      )
+    : undefined;
+
   return {
     currentPosition,
     heading: currentPosition.heading,
@@ -139,6 +168,7 @@ export const calculateNavigationState = (
     bearingToNext,
     etaToNext,
     progress,
+    crossTrackError,
   };
 };
 

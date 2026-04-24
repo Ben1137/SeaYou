@@ -16,6 +16,12 @@ import { DARK_MAP_CONFIG } from '../../utils/particleConfig';
 import { PortsLayerML } from './layers/PortsLayerML';
 import { RouteLayerML } from './layers/RouteLayerML';
 import { RouteInteractionLayer } from './layers/RouteInteractionLayer';
+// Phase 5 — Live Navigation overlays
+import { TrackHistoryLayerML } from './layers/TrackHistoryLayerML';
+import { MOBLayerML } from './layers/MOBLayerML';
+import { AISLayerML } from './layers/AISLayerML';
+import { RouteStatsOverlay } from '../RouteStatsOverlay';
+import { aisService, type CPAWarning } from '../../src/services/aisService';
 import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
@@ -346,6 +352,21 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
   const [advancedLayer, setAdvancedLayer] = useState<AdvancedLayer>('NONE');
   const [isLayersPanelExpanded, setIsLayersPanelExpanded] = useState(false);
+
+  // Phase 5 — CPA warning from AIS service, auto-clears after 20s.
+  const [cpaWarning, setCpaWarning] = useState<CPAWarning | null>(null);
+  useEffect(() => {
+    const onCpa = (w: CPAWarning) => {
+      setCpaWarning(w);
+      window.setTimeout(() => {
+        setCpaWarning((cur) => (cur && cur.mmsi === w.mmsi ? null : cur));
+      }, 20_000);
+    };
+    aisService.on('cpaWarning', onCpa);
+    return () => {
+      aisService.off('cpaWarning', onCpa);
+    };
+  }, []);
 
   /** Attempt to activate an advanced layer — gated by subscription tier. Auto-closes panel on success. */
   const trySetAdvancedLayer = useCallback((layer: AdvancedLayer) => {
@@ -1528,6 +1549,11 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
           render layer itself stays declarative. */}
       <RouteLayerML visible={true} />
       <RouteInteractionLayer />
+      {/* Phase 5 — Live navigation map overlays */}
+      <TrackHistoryLayerML visible={true} />
+      <MOBLayerML />
+      <AISLayerML visible={true} />
+      <RouteStatsOverlay cpaWarning={cpaWarning} />
       <ReefLayerML
         visible={geoJSONLayers.reefs}
         opacity={0.7}

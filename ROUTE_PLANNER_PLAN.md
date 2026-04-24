@@ -48,14 +48,18 @@ Do NOT start the next phase without explicit user approval.
   - [x] Route auto-re-analyzes on persona change (useEffect dep)
   - **Exit:** changing persona re-costs route with no user re-input ✅
 
-- [ ] **Phase 5 — Live Navigation & Tracking**
-  - [ ] Fix `useDeadReckoning` — actually update nav state, not just log
-  - [ ] `RouteStatsOverlay` floating on map (SOG/COG/XTE/ETA/TWA/TWS)
-  - [ ] Render `navigationHistory` as faded track polyline
-  - [ ] Throttle waypoint-approaching alerts (30s min between repeats)
-  - [ ] MOB button — drops red pin, live bearing/distance
-  - [ ] AIS via aisstream.io WebSocket + CPA/TCPA alarms
-  - **Exit:** own-ship + track + AIS + working MOB recovery
+- [x] **Phase 5 — Live Navigation & Tracking** ✅
+  - [x] Fixed `useDeadReckoning` — now spherically projects new lat/lon on a 2 s timer, emits synthetic `navigationUpdate` with `isDeadReckoning: true`, and cancels automatically when a real GPS fix returns (`markGotFix()`).
+  - [x] Added `crossTrackError` + `isDeadReckoning` to `NavigationState`; `calculateCrossTrackError()` uses great-circle math, + right / − left in NM.
+  - [x] `RouteStatsOverlay` floating HUD: SOG / COG / XTE (L/R, amber > 0.5 NM) / BRG / DIST / ETA, with DR badge + MOB button (two-step confirm) + MOB Recovery card (reciprocal bearing).
+  - [x] Multi-subscriber event bus on `offlineNavigation` so overlay + map layers + AIS service can share one singleton.
+  - [x] `TrackHistoryLayerML` — dashed cyan polyline driven by new `trackUpdate` event.
+  - [x] `MOBLayerML` — pulsing red halo + dot; listens to `mobDropped` / `mobCleared`.
+  - [x] Per-waypoint 45 s throttle on "approaching waypoint" voice/haptic alerts.
+  - [x] `aisService` — aisstream.io WebSocket with bbox subscription, auto-reconnect, CPA/TCPA sweep every 5 s, 60 s per-MMSI alert throttle. Gracefully inert when `VITE_AISSTREAM_API_KEY` is missing.
+  - [x] `AISLayerML` — circle markers sized/colored by SOG; bbox auto-follows map pan.
+  - [x] MapContainerML wires all Phase 5 layers + mounts the HUD with live CPA warnings.
+  - **Exit:** own-ship + track + AIS + working MOB recovery ✅
 
 - [ ] **Phase 6 — Cloud Sync & Voyage Logs**
   - [ ] Supabase migration: `user_routes` table with RLS
@@ -81,4 +85,4 @@ Do NOT start the next phase without explicit user approval.
 
 ## Current Status
 
-Phases 1, 1.5, 2, 3, and 4 shipped. **Awaiting user approval to begin Phase 5 — Live Navigation & Tracking.**
+Phases 1, 1.5, 2, 3, 4, and 5 shipped. **Awaiting user approval to begin Phase 6 — Cloud Sync & Voyage Logs.**

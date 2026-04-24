@@ -32,13 +32,35 @@ export interface Route {
 
 export interface NavigationState {
   currentPosition: { lat: number; lon: number };
-  heading: number; // degrees (0-360)
-  speed: number; // knots
+  /** Course Over Ground — degrees (0-360). GPS-reported when moving;
+   *  falls back to compass heading when speed ≈ 0. */
+  heading: number;
+  /** Speed Over Ground — knots. */
+  speed: number;
   nextWaypoint: Waypoint | null;
   distanceToNext: number; // nautical miles
   bearingToNext: number; // degrees (0-360)
   etaToNext: number; // minutes
   progress: number; // percentage 0-100
+  /** Phase 5 — Cross-Track Error. Perpendicular distance from the
+   *  current leg's great-circle line. Positive = right of course,
+   *  negative = left of course. Units: nautical miles. */
+  crossTrackError?: number;
+  /** Phase 5 — true when this state was synthesized by dead reckoning
+   *  (GPS signal lost), so the UI can show a DR badge. */
+  isDeadReckoning?: boolean;
+}
+
+/**
+ * Phase 5 — Man Overboard pin. Persisted across the session in memory
+ * and rendered as a red marker on the map with a live bearing/distance
+ * readout in the nav overlay.
+ */
+export interface MOBPin {
+  id: string;
+  lat: number;
+  lon: number;
+  droppedAt: Date;
 }
 
 export interface NavigationAlert {

@@ -3,7 +3,14 @@
  * Provides navigation without internet using GPS, compass, and dead reckoning
  */
 
-import type { Waypoint, Route, NavigationState, NavigationAlert, OfflineNavigationConfig } from '../types/navigation';
+import type {
+  Waypoint,
+  Route,
+  NavigationState,
+  NavigationAlert,
+  OfflineNavigationConfig,
+  MOBPin,
+} from '../types/navigation';
 import {
   calculateDistance,
   calculateBearing,
@@ -11,13 +18,46 @@ import {
   isNearWaypoint,
 } from './routePlanningService';
 
+/**
+ * Spherical forward projection — give it (lat, lon) + bearing + distance
+ * and it returns the destination lat/lon. Used by the Phase 5 dead-
+ * reckoning engine when GPS drops out.
+ */
+function projectPosition(
+  lat: number,
+  lon: number,
+  bearingDeg: number,
+  distanceNM: number,
+): { lat: number; lon: number } {
+  const R = 3440.065; // NM
+  const d = distanceNM / R;
+  const brng = (bearingDeg * Math.PI) / 180;
+  const lat1 = (lat * Math.PI) / 180;
+  const lon1 = (lon * Math.PI) / 180;
+  const lat2 = Math.asin(
+    Math.sin(lat1) * Math.cos(d) +
+      Math.cos(lat1) * Math.sin(d) * Math.cos(brng),
+  );
+  const lon2 =
+    lon1 +
+    Math.atan2(
+      Math.sin(brng) * Math.sin(d) * Math.cos(lat1),
+      Math.cos(d) - Math.sin(lat1) * Math.sin(lat2),
+    );
+  return {
+    lat: (lat2 * 180) / Math.PI,
+    lon: (((lon2 * 180) / Math.PI + 540) % 360) - 180,
+  };
+}
+
 class OfflineNavigationSystem {
   private watchId: number | null = null;
   private route: Route | null = null;
   private currentWaypointIndex: number = 0;
   private isNavigating: boolean = false;
   private config: OfflineNavigationConfig;
-  private listeners: Map<string, Function> = new Map();
+  /** listeners is keyed by event — each event supports multiple callbacks. */
+  private listeners: Map<string, Set<Function>> = new Map();
   private navigationHistory: Array<{
     lat: number;
     lon: number;
@@ -27,6 +67,19 @@ class OfflineNavigationSystem {
   private currentHeading: number = 0;
   private currentSpeed: number = 0;
   private smoothedSpeeds: number[] = [];
+
+  // Phase 5 — throttle "waypoint-approaching" alerts per waypoint.
+  private lastApproachAlertAt: Map<string, number> = new Map();
+  private readonly APPROACH_ALERT_THROTTLE_MS = 45_000; // 45s per waypoint
+
+  // Phase 5 — Dead-reckoning timer. When GPS errors keep firing we
+  // synthesize navigation updates from the last known speed/heading.
+  private drTimer: number | null = null;
+  private lastFixAt: number = 0;
+  private readonly DR_TICK_MS = 2_000;
+
+  // Phase 5 — Man Overboard pin (at most one active at a time).
+  private mobPin: MOBPin | null = null;
 
   constructor(config?: Partial<OfflineNavigationConfig>) {
     this.config = {
@@ -86,6 +139,11 @@ class OfflineNavigationSystem {
     this.isNavigating = false;
     this.route = null;
     this.currentWaypointIndex = 0;
+    this.lastApproachAlertAt.clear();
+    if (this.drTimer !== null) {
+      window.clearInterval(this.drTimer);
+      this.drTimer = null;
+    }
 
     this.emit('navigationStopped', {});
     console.log('🛑 Navigation Stopped');
@@ -195,6 +253,9 @@ class OfflineNavigationSystem {
   private handlePositionUpdate(position: GeolocationPosition): void {
     if (!this.route || !this.isNavigating) return;
 
+    // Phase 5 — real fix in, stop any running dead-reckoning ticker.
+    this.markGotFix();
+
     const { latitude, longitude, speed, heading } = position.coords;
 
     // Update heading (use GPS heading if available, otherwise use compass)
@@ -233,6 +294,8 @@ class OfflineNavigationSystem {
 
     // Emit navigation update
     this.emit('navigationUpdate', navState);
+    // Phase 5 — track history to the map layer.
+    this.emit('trackUpdate', this.navigationHistory.slice());
 
     // Check if waypoint reached
     this.checkWaypointProximity(latitude, longitude, navState);
@@ -303,18 +366,26 @@ class OfflineNavigationSystem {
   ): void {
     if (!navState.nextWaypoint) return;
 
-    // Approaching waypoint (within 0.5 NM)
+    // Approaching waypoint (within 0.5 NM). Phase 5 — throttle to one
+    // alert per waypoint per APPROACH_ALERT_THROTTLE_MS to prevent the
+    // old every-frame spam.
     if (
       navState.distanceToNext < 0.5 &&
       navState.distanceToNext > this.config.waypointThresholdNM
     ) {
-      this.emitAlert({
-        type: 'waypoint-approaching',
-        message: `Approaching ${navState.nextWaypoint.name} - ${navState.distanceToNext.toFixed(2)} NM`,
-        severity: 'info',
-        timestamp: new Date(),
-        autoClose: true,
-      });
+      const wpId = navState.nextWaypoint.id;
+      const last = this.lastApproachAlertAt.get(wpId) ?? 0;
+      const now = Date.now();
+      if (now - last > this.APPROACH_ALERT_THROTTLE_MS) {
+        this.lastApproachAlertAt.set(wpId, now);
+        this.emitAlert({
+          type: 'waypoint-approaching',
+          message: `Approaching ${navState.nextWaypoint.name} - ${navState.distanceToNext.toFixed(2)} NM`,
+          severity: 'info',
+          timestamp: new Date(),
+          autoClose: true,
+        });
+      }
     }
 
     // Waypoint reached
@@ -435,29 +506,128 @@ class OfflineNavigationSystem {
   }
 
   /**
-   * Use dead reckoning when GPS unavailable
+   * Use dead reckoning when GPS unavailable. Phase 5 — actually project
+   * a new lat/lon forward from the last fix based on heading + speed,
+   * emit it as a NavigationState with `isDeadReckoning: true`, and push
+   * the synthetic position into the history so the track line stays
+   * continuous. A tick is scheduled until GPS returns, at which point
+   * handlePositionUpdate() will cancel the timer via `markGotFix()`.
    */
   private useDeadReckoning(): void {
-    if (this.navigationHistory.length < 2) return;
+    if (this.navigationHistory.length < 1 || !this.route) return;
 
-    const lastPosition = this.navigationHistory[this.navigationHistory.length - 1];
-    const prevPosition =
-      this.navigationHistory[this.navigationHistory.length - 2];
+    // Stop any prior timer before starting a new one.
+    if (this.drTimer !== null) {
+      window.clearInterval(this.drTimer);
+      this.drTimer = null;
+    }
 
-    // Calculate time difference
-    const timeDiff =
-      (lastPosition.timestamp.getTime() - prevPosition.timestamp.getTime()) /
-      1000 /
-      3600; // hours
+    const tick = () => {
+      const last = this.navigationHistory[this.navigationHistory.length - 1];
+      if (!last || !this.route) return;
+      const now = new Date();
+      const dtHours =
+        (now.getTime() - last.timestamp.getTime()) / 3_600_000;
+      if (dtHours <= 0) return;
 
-    // Estimate new position based on last known heading and speed
-    const distanceNM = lastPosition.speed * timeDiff;
+      const distanceNM = this.currentSpeed * dtHours;
+      // Project forward along currentHeading.
+      const { lat, lon } = projectPosition(
+        last.lat,
+        last.lon,
+        this.currentHeading,
+        distanceNM,
+      );
 
-    console.log(
-      '🧭 Using dead reckoning - estimated distance:',
-      distanceNM,
-      'NM'
-    );
+      this.navigationHistory.push({
+        lat,
+        lon,
+        timestamp: now,
+        speed: this.currentSpeed,
+      });
+      if (this.navigationHistory.length > 100) this.navigationHistory.shift();
+
+      const navState = calculateNavigationState(
+        { lat, lon, heading: this.currentHeading, speed: this.currentSpeed },
+        this.route,
+        this.currentWaypointIndex,
+      );
+      navState.isDeadReckoning = true;
+      this.emit('navigationUpdate', navState);
+      this.emit('trackUpdate', this.navigationHistory.slice());
+    };
+
+    // Fire immediately so the UI updates on GPS loss instead of freezing.
+    tick();
+    this.drTimer = window.setInterval(tick, this.DR_TICK_MS);
+  }
+
+  /**
+   * Called from handlePositionUpdate() to cancel DR once a real fix
+   * comes back.
+   */
+  private markGotFix(): void {
+    this.lastFixAt = Date.now();
+    if (this.drTimer !== null) {
+      window.clearInterval(this.drTimer);
+      this.drTimer = null;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Phase 5 — Man Overboard
+  // ─────────────────────────────────────────────────────────────
+
+  /**
+   * Drop a MOB pin at the current GPS position. Emits 'mobDropped'
+   * and causes the overlay to switch into recovery mode.
+   */
+  dropMOB(): MOBPin | null {
+    const last = this.navigationHistory[this.navigationHistory.length - 1];
+    if (!last) {
+      this.emitAlert({
+        type: 'gps-error',
+        message: 'Cannot drop MOB — no GPS fix yet.',
+        severity: 'error',
+        timestamp: new Date(),
+      });
+      return null;
+    }
+    this.mobPin = {
+      id: `mob-${Date.now()}`,
+      lat: last.lat,
+      lon: last.lon,
+      droppedAt: new Date(),
+    };
+    // Loud alert + vibration pattern for MOB.
+    if ('vibrate' in navigator) {
+      navigator.vibrate([500, 200, 500, 200, 500]);
+    }
+    if (this.config.enableVoiceAlerts && 'speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance(
+        'Man overboard. Recovery bearing armed.',
+      );
+      u.rate = 1.1;
+      speechSynthesis.speak(u);
+    }
+    this.emitAlert({
+      type: 'gps-error',
+      message: 'MAN OVERBOARD — recovery bearing locked.',
+      severity: 'error',
+      timestamp: new Date(),
+    });
+    this.emit('mobDropped', this.mobPin);
+    return this.mobPin;
+  }
+
+  clearMOB(): void {
+    if (!this.mobPin) return;
+    this.mobPin = null;
+    this.emit('mobCleared', {});
+  }
+
+  getMOB(): MOBPin | null {
+    return this.mobPin;
   }
 
   /**
@@ -505,20 +675,40 @@ class OfflineNavigationSystem {
   }
 
   /**
-   * Event listener management
+   * Event listener management — now supports multiple subscribers per
+   * event (Phase 5 — overlay, track layer, MOB, AIS all listen to
+   * the same 'navigationUpdate').
    */
   on(event: string, callback: Function): void {
-    this.listeners.set(event, callback);
+    let set = this.listeners.get(event);
+    if (!set) {
+      set = new Set();
+      this.listeners.set(event, set);
+    }
+    set.add(callback);
   }
 
-  off(event: string): void {
-    this.listeners.delete(event);
+  off(event: string, callback?: Function): void {
+    if (!callback) {
+      this.listeners.delete(event);
+      return;
+    }
+    const set = this.listeners.get(event);
+    if (set) {
+      set.delete(callback);
+      if (set.size === 0) this.listeners.delete(event);
+    }
   }
 
   private emit(event: string, data: any): void {
-    const callback = this.listeners.get(event);
-    if (callback) {
-      callback(data);
+    const set = this.listeners.get(event);
+    if (!set) return;
+    for (const cb of set) {
+      try {
+        cb(data);
+      } catch (e) {
+        console.warn('[offlineNavigation] listener threw', event, e);
+      }
     }
   }
 
