@@ -4,6 +4,7 @@ export * from './nauticalChartService';
 export * from './offlineNavigationService';
 export * from './routePlanningService';
 export * from './routeSafetyService';
+export * from './isochroneRouter';
 export * from './cacheService';
 export * from './marineGridService';
 export * from './forecastGridService';

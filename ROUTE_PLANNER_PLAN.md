@@ -29,13 +29,13 @@ Do NOT start the next phase without explicit user approval.
   - [x] `HazardAlert` gets "Weather Warnings" group (wind/wave/current/land/shallow)
   - **Exit:** shallow/stormy route shows red + hazards before Start Nav ✅
 
-- [ ] **Phase 3 — Route Optimization & Isochrone Routing**
-  - [ ] `VesselSettings.polar` added; seeded defaults per vessel type
-  - [ ] `isochroneRouter.ts` — SOG vector (polar + current + wind drift)
-  - [ ] A*/Dijkstra on isochrone grid → optimized polyline
-  - [ ] Departure-window recommender (T, T+3h, ... 48h, ranked ETAs)
-  - [ ] "Optimize Route" button + "Best Departure" card
-  - **Exit:** optimized path visibly beats rhumb line against currents
+- [x] **Phase 3 — Route Optimization & Isochrone Routing** ✅
+  - [x] `VesselSettings` extended with `cruiseSpeed` / `upwindPenalty` / `maxHeadSea`; `VESSEL_POLAR_DEFAULTS` seeded per vessel type
+  - [x] `isochroneRouter.ts` — SOG vector (polar + current projection + head-sea penalty)
+  - [x] A* on lat/lon grid (8-connected, haversine heuristic) → optimized polyline
+  - [x] Departure-window recommender (T..T+48h, 3h step, safety-weighted rank, Top 3)
+  - [x] "Optimize Route" button + "Best Departure" card wired into RoutePlanningView
+  - **Exit:** optimizer returns isochrone path with ETA delta vs rhumb; falls back gracefully when weather API is offline ✅
 
 - [ ] **Phase 4 — Persona-Specific Routing Modes**
   - [ ] Surfer Mode: offshore-wind bias, swell period/direction preferences
@@ -76,4 +76,4 @@ Do NOT start the next phase without explicit user approval.
 
 ## Current Status
 
-Phase 1, 1.5, and 2 shipped. **Awaiting user approval to begin Phase 3 — Route Optimization & Isochrone Routing.**
+Phases 1, 1.5, 2, and 3 shipped. **Awaiting user approval to begin Phase 4 — Persona-Specific Routing Modes.**

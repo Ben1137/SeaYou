@@ -20,8 +20,10 @@ import {
   Check,
   X,
   ChevronRight,
+  Zap,
+  CalendarClock,
 } from 'lucide-react';
-import type { Route, NavigationState, NavigationAlert } from '@seame/core';
+import type { Route, NavigationState, NavigationAlert, DepartureWindowScore } from '@seame/core';
 import {
   generateRoute,
   saveRoute,
@@ -33,11 +35,14 @@ import {
   offlineNavigation,
   analyzeRouteHazards,
   analyzeRouteSafety,
+  optimizeRoute,
+  recommendDepartureWindows,
+  buildOptimizedRoute,
   RouteAnalysis,
 } from '@seame/core';
 import { fetchCoastlineData } from './map/layers/CoastlineLayerML';
 import { useAlertConfig } from '../src/contexts/AlertContext';
-import { VesselSettingsModal, VesselSettings } from './VesselSettingsModal';
+import { VesselSettingsModal, VesselSettings, VESSEL_POLAR_DEFAULTS } from './VesselSettingsModal';
 import { HazardAlert } from './HazardAlert';
 import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
 import { useRoute } from '../src/contexts/RouteContext';
@@ -74,16 +79,35 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   const [hazardAnalysis, setHazardAnalysis] = useState<RouteAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showVesselSettings, setShowVesselSettings] = useState(false);
+
+  // Phase 3 — isochrone optimizer + departure-window recommender
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizeStatus, setOptimizeStatus] = useState<string | null>(null);
+  const [isScoringWindows, setIsScoringWindows] = useState(false);
+  const [departureWindows, setDepartureWindows] = useState<DepartureWindowScore[] | null>(null);
   const [vesselSettings, setVesselSettings] = useState<VesselSettings>({
     draft: 2.0,
     name: 'My Vessel',
     type: 'sail',
+    ...VESSEL_POLAR_DEFAULTS.sail,
   });
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('vesselSettings');
     if (savedSettings) {
-      setVesselSettings(JSON.parse(savedSettings));
+      // Merge saved settings with polar defaults so upgrading users
+      // (pre-Phase 3) still get sensible baseline speed numbers.
+      const parsed = JSON.parse(savedSettings) as Partial<VesselSettings>;
+      const t = (parsed.type ?? 'sail') as VesselSettings['type'];
+      const def = VESSEL_POLAR_DEFAULTS[t];
+      setVesselSettings({
+        draft: parsed.draft ?? 2.0,
+        name: parsed.name ?? 'My Vessel',
+        type: t,
+        cruiseSpeed: parsed.cruiseSpeed ?? def.cruiseSpeed,
+        upwindPenalty: parsed.upwindPenalty ?? def.upwindPenalty,
+        maxHeadSea: parsed.maxHeadSea ?? def.maxHeadSea,
+      });
     }
     loadSavedRoutes();
     setupNavigationListeners();
@@ -212,6 +236,74 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
 
     setRoute(newRoute);
     // Hazard analysis fires automatically via the route-change effect.
+  };
+
+  // Phase 3 — run the isochrone optimizer over the current route's
+  // start/destination pair and replace the shared route with the
+  // optimized polyline. Uses the vessel polar (cruise speed / upwind
+  // penalty / head-sea cap) from VesselSettings.
+  const handleOptimizeRoute = async () => {
+    if (!route || route.waypoints.length < 2) return;
+    const start = route.waypoints[0];
+    const dest = route.waypoints[route.waypoints.length - 1];
+    setIsOptimizing(true);
+    setOptimizeStatus(null);
+    try {
+      const coastline = await fetchCoastlineData();
+      const opt = await optimizeRoute(
+        start,
+        dest,
+        {
+          cruiseSpeed: vesselSettings.cruiseSpeed,
+          upwindPenalty: vesselSettings.upwindPenalty,
+          maxHeadSea: vesselSettings.maxHeadSea,
+          isSailboat: vesselSettings.type === 'sail',
+        },
+        {
+          coastline,
+          departureTime: new Date(),
+        },
+      );
+      const next = buildOptimizedRoute(route, opt);
+      setRoute(next);
+      if (opt.fellBackToRhumb) {
+        setOptimizeStatus(
+          'Optimizer fell back to rhumb line — weather data unavailable for this area.',
+        );
+      } else {
+        const rhumbEta = opt.rhumbEtaHours;
+        const optEta = opt.etaHours;
+        const savedMin = Math.round((rhumbEta - optEta) * 60);
+        setOptimizeStatus(
+          savedMin > 0
+            ? `Optimized path saves ~${savedMin} min vs. rhumb (visited ${opt.diagnostics.cellsVisited} of ${opt.diagnostics.gridSize * opt.diagnostics.gridSize} cells).`
+            : `Optimizer couldn't beat rhumb here — weather is favorable. ETA unchanged.`,
+        );
+      }
+    } catch (e) {
+      console.error('optimize failed', e);
+      setOptimizeStatus('Optimizer failed — see console for details.');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleFindBestDeparture = async () => {
+    if (!route || route.waypoints.length < 2) return;
+    setIsScoringWindows(true);
+    try {
+      const windows = await recommendDepartureWindows(
+        route.waypoints,
+        route.averageSpeed,
+        { persona, horizonH: 48, stepHours: 3, topN: 3 },
+      );
+      setDepartureWindows(windows);
+    } catch (e) {
+      console.error('recommendDepartureWindows failed', e);
+      setDepartureWindows([]);
+    } finally {
+      setIsScoringWindows(false);
+    }
   };
 
   const handleSaveRoute = () => {
@@ -570,6 +662,109 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
               <p className="text-2xl font-bold text-white">{route.averageSpeed} kts</p>
             </div>
           </div>
+
+          {/* Phase 3 — Isochrone optimizer + departure-window recommender */}
+          {!isNavigating && (
+            <div className="mb-6 p-4 rounded-lg border border-white/10 bg-black/20">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-sm font-semibold text-white/90 flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-yellow-400" />
+                    Weather-Optimized Routing
+                  </p>
+                  <p className="text-[11px] text-white/50">
+                    Isochrone router uses your vessel polar + live wind / current / waves.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  onClick={handleOptimizeRoute}
+                  disabled={isOptimizing || route.waypoints.length < 2}
+                  className="py-2 px-3 rounded-lg bg-yellow-600 hover:bg-yellow-500 disabled:bg-white/10 disabled:text-white/40 text-white font-semibold flex items-center justify-center gap-2 text-sm"
+                >
+                  {isOptimizing ? (
+                    <>
+                      <div className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      Optimizing…
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4" />
+                      Optimize Route
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleFindBestDeparture}
+                  disabled={isScoringWindows || route.waypoints.length < 2}
+                  className="py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:bg-white/10 disabled:text-white/40 text-white font-semibold flex items-center justify-center gap-2 text-sm"
+                >
+                  {isScoringWindows ? (
+                    <>
+                      <div className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                      Scoring 48h…
+                    </>
+                  ) : (
+                    <>
+                      <CalendarClock className="w-4 h-4" />
+                      Best Departure
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {optimizeStatus && (
+                <p className="mt-2 text-xs text-yellow-200/90">{optimizeStatus}</p>
+              )}
+
+              {departureWindows && departureWindows.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <p className="text-xs font-bold text-indigo-300 uppercase tracking-wide mb-2">
+                    Top 3 Departure Windows (next 48h)
+                  </p>
+                  <ul className="space-y-1.5">
+                    {departureWindows.map((w, idx) => {
+                      const rel = Math.round(
+                        (w.departureTime.getTime() - Date.now()) / 3600000,
+                      );
+                      const relLabel =
+                        rel <= 0 ? 'Now' : `+${rel}h`;
+                      return (
+                        <li
+                          key={idx}
+                          className="flex items-center justify-between gap-3 p-2 rounded bg-indigo-900/30 border border-indigo-500/20 text-xs"
+                        >
+                          <span className="font-mono text-indigo-200 w-16">
+                            #{idx + 1} {relLabel}
+                          </span>
+                          <span className="flex-1 text-white/80 truncate">
+                            {w.departureTime.toLocaleString(undefined, {
+                              weekday: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}{' '}
+                            — {w.summary}
+                          </span>
+                          <span className="text-white/60 tabular-nums">
+                            ETA {formatTime(w.etaHours * 60)}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {departureWindows && departureWindows.length === 0 && (
+                <p className="mt-2 text-xs text-red-300/90">
+                  No window scored — weather API may be offline.
+                </p>
+              )}
+            </div>
+          )}
 
           <PortSearchBar />
 

@@ -4,7 +4,39 @@ export interface VesselSettings {
   draft: number; // meters
   name: string;
   type: 'sail' | 'power' | 'fishing' | 'commercial';
+
+  /**
+   * Phase 3 — baseline speed profile used by the isochrone router.
+   *
+   * `cruiseSpeed` is the boat's still-water speed in knots. For sailboats
+   * this is the average performance in ~15 kt of beam wind; for power
+   * boats it is the vessel's economical cruising speed.
+   *
+   * `upwindPenalty` (0–1) shaves cruise speed when the true wind angle is
+   * inside the close-hauled cone (~45°). Sailboats ~0.4, power boats 0.1.
+   *
+   * `maxHeadSea` (meters) — the wave height above which the router
+   * should avoid pushing the vessel directly into the seas. Used as a
+   * soft cost in the isochrone grid.
+   */
+  cruiseSpeed: number;
+  upwindPenalty: number;
+  maxHeadSea: number;
 }
+
+/**
+ * Sensible defaults per vessel type — exported so `generateRoute()`
+ * callers can seed a freshly-created vessel without prompting the user.
+ */
+export const VESSEL_POLAR_DEFAULTS: Record<
+  VesselSettings['type'],
+  Pick<VesselSettings, 'cruiseSpeed' | 'upwindPenalty' | 'maxHeadSea'>
+> = {
+  sail:       { cruiseSpeed: 5.5, upwindPenalty: 0.40, maxHeadSea: 2.5 },
+  power:      { cruiseSpeed: 18,  upwindPenalty: 0.10, maxHeadSea: 2.0 },
+  fishing:    { cruiseSpeed: 9,   upwindPenalty: 0.15, maxHeadSea: 2.5 },
+  commercial: { cruiseSpeed: 14,  upwindPenalty: 0.10, maxHeadSea: 3.5 },
+};
 
 interface VesselSettingsModalProps {
   settings: VesselSettings;
@@ -20,12 +52,32 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
   const [draft, setDraft] = useState(settings.draft);
   const [name, setName] = useState(settings.name);
   const [type, setType] = useState<VesselSettings['type']>(settings.type);
+  const [cruiseSpeed, setCruiseSpeed] = useState(
+    settings.cruiseSpeed ?? VESSEL_POLAR_DEFAULTS[settings.type].cruiseSpeed,
+  );
+  const [upwindPenalty, setUpwindPenalty] = useState(
+    settings.upwindPenalty ??
+      VESSEL_POLAR_DEFAULTS[settings.type].upwindPenalty,
+  );
+  const [maxHeadSea, setMaxHeadSea] = useState(
+    settings.maxHeadSea ?? VESSEL_POLAR_DEFAULTS[settings.type].maxHeadSea,
+  );
+
+  // Switching type re-seeds the polar defaults so the numbers in the
+  // form match the archetype for the new selection.
+  const handleTypeChange = (next: VesselSettings['type']) => {
+    setType(next);
+    const def = VESSEL_POLAR_DEFAULTS[next];
+    setCruiseSpeed(def.cruiseSpeed);
+    setUpwindPenalty(def.upwindPenalty);
+    setMaxHeadSea(def.maxHeadSea);
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-slate-900">Vessel Settings</h2>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-700">Vessel Name</label>
@@ -39,7 +91,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
 
           <div>
             <label className="block text-sm font-semibold mb-2 text-slate-700">
-              Draft (meters) - Critical for shallow water detection
+              Draft (meters) — Critical for shallow water detection
             </label>
             <input
               type="number"
@@ -59,7 +111,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
             <label className="block text-sm font-semibold mb-2 text-slate-700">Vessel Type</label>
             <select
               value={type}
-              onChange={(e) => setType(e.target.value as any)}
+              onChange={(e) => handleTypeChange(e.target.value as VesselSettings['type'])}
               className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
             >
               <option value="sail">Sailboat</option>
@@ -67,12 +119,89 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
               <option value="fishing">Fishing Vessel</option>
               <option value="commercial">Commercial Vessel</option>
             </select>
+            <p className="text-xs text-slate-500 mt-1">
+              Selecting a type re-seeds the polar baseline below.
+            </p>
+          </div>
+
+          {/* Phase 3 — polar profile */}
+          <div className="pt-2 border-t border-slate-200">
+            <h3 className="text-sm font-semibold text-slate-800 mb-2">
+              Speed Profile (isochrone router)
+            </h3>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-600">
+                  Cruise speed (knots)
+                </label>
+                <input
+                  type="number"
+                  value={cruiseSpeed}
+                  onChange={(e) => setCruiseSpeed(parseFloat(e.target.value))}
+                  step="0.5"
+                  min="1"
+                  max="50"
+                  className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {type === 'sail'
+                    ? 'Typical performance in ~15 kt of beam wind.'
+                    : 'Economical cruising speed.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-600">
+                  Upwind penalty (0 – 1)
+                </label>
+                <input
+                  type="number"
+                  value={upwindPenalty}
+                  onChange={(e) => setUpwindPenalty(parseFloat(e.target.value))}
+                  step="0.05"
+                  min="0"
+                  max="0.9"
+                  className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Fraction of cruise speed lost when heading inside ~45° of the wind.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1 text-slate-600">
+                  Max comfortable head sea (m)
+                </label>
+                <input
+                  type="number"
+                  value={maxHeadSea}
+                  onChange={(e) => setMaxHeadSea(parseFloat(e.target.value))}
+                  step="0.5"
+                  min="0.5"
+                  max="8"
+                  className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+                />
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Router adds cost when pushing bow-on into larger seas.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="mt-6 flex gap-2">
           <button
-            onClick={() => onSave({ draft, name, type })}
+            onClick={() =>
+              onSave({
+                draft,
+                name,
+                type,
+                cruiseSpeed,
+                upwindPenalty,
+                maxHeadSea,
+              })
+            }
             className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Save
