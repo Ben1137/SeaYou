@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useMapContext } from './MapProvider';
-import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, fetchDepth, toTelHref } from '@seame/core';
+import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, fetchDepth, toTelHref, offlineNavigation } from '@seame/core';
+import { FollowModeController } from './FollowModeController';
 import type { MarinaDetails } from '@seame/core';
 import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -356,6 +357,26 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
   // Phase 5 — CPA warning from AIS service, auto-clears after 20s.
   const [cpaWarning, setCpaWarning] = useState<CPAWarning | null>(null);
+
+  // Sea Trial — Waze-style follow mode + nav-active flag.
+  const [followMode, setFollowMode] = useState(false);
+  const [isNavActive, setIsNavActive] = useState(false);
+  useEffect(() => {
+    const onStart = () => {
+      setIsNavActive(true);
+      setFollowMode(true); // default ON when nav/sim begins
+    };
+    const onStop = () => {
+      setIsNavActive(false);
+      setFollowMode(false);
+    };
+    offlineNavigation.on('navigationStarted', onStart);
+    offlineNavigation.on('navigationStopped', onStop);
+    return () => {
+      offlineNavigation.off('navigationStarted', onStart);
+      offlineNavigation.off('navigationStopped', onStop);
+    };
+  }, []);
   useEffect(() => {
     const onCpa = (w: CPAWarning) => {
       setCpaWarning(w);
@@ -1563,6 +1584,24 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       <MOBLayerML />
       <AISLayerML visible={true} />
       <RouteStatsOverlay cpaWarning={cpaWarning} />
+      {/* Sea Trial — Waze camera. Pans + rotates with the vessel
+          when navigation/simulation is running. */}
+      <FollowModeController enabled={isNavActive && followMode} />
+      {isNavActive && (
+        <button
+          onClick={() => setFollowMode((v) => !v)}
+          className={`absolute bottom-24 right-4 z-[1100] px-3 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-semibold backdrop-blur-md border transition-colors ${
+            followMode
+              ? 'bg-blue-600/90 border-blue-300/50 text-white'
+              : 'bg-slate-900/80 border-white/20 text-white/80 hover:bg-slate-800'
+          }`}
+          title={followMode ? 'Following vessel — tap to unlock map' : 'Tap to follow vessel'}
+          aria-pressed={followMode}
+        >
+          <Compass size={14} />
+          {followMode ? 'Following' : 'Follow'}
+        </button>
+      )}
       <ReefLayerML
         visible={geoJSONLayers.reefs}
         opacity={0.7}

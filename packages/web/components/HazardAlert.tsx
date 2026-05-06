@@ -47,7 +47,7 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
   // hazard UI so we can render only the Weather Warnings group.
   if (analysis.isSafe && weatherHazards.length === 0) {
     return (
-      <div className="bg-green-900/30 border border-green-700/50 p-4 mb-4 rounded-lg">
+      <div className="bg-green-900/85 backdrop-blur-md border border-green-700 shadow-xl p-4 mb-4 rounded-lg">
         <div className="flex items-center">
           <Shield className="w-6 h-6 text-green-400 mr-2" />
           <div>
@@ -62,10 +62,16 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
   }
 
   return (
-    <div className="space-y-4 mb-4">
+    // Sea Trial fix — make the hazard stack legible:
+    //   • opaque-glass backgrounds (was /30 alpha, now /85 + backdrop-blur)
+    //   • z-[600] so they sit above the map but below the app header
+    //   • shadow-xl so they visually separate from the bottom nav strip
+    //   • sticky top-2 so they stay on screen while the user scrolls the
+    //     planner form looking for the offending waypoint.
+    <div className="relative z-[600] sticky top-2 space-y-3 mb-4">
       {/* Phase 2 — Weather Warnings group (wind / wave / current / land / depth) */}
       {weatherHazards.length > 0 && (
-        <div className={`${weatherDanger.length > 0 ? 'bg-red-900/30 border-red-700/50' : 'bg-amber-900/30 border-amber-700/50'} border p-4 rounded-lg`}>
+        <div className={`${weatherDanger.length > 0 ? 'bg-red-900/85 border-red-600' : 'bg-amber-900/85 border-amber-600'} border backdrop-blur-md shadow-xl p-4 rounded-lg`}>
           <div className="flex items-start">
             <AlertTriangle className={`w-6 h-6 mr-2 flex-shrink-0 mt-0.5 ${weatherDanger.length > 0 ? 'text-red-400' : 'text-amber-400'}`} />
             <div className="flex-1">
@@ -114,7 +120,7 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
 
       {/* Hazard Warnings header */}
       {analysis.hazards.length > 0 && (
-      <div className="bg-amber-900/30 border border-amber-700/50 p-4 rounded-lg">
+      <div className="bg-amber-900/85 backdrop-blur-md border border-amber-600 shadow-xl p-4 rounded-lg">
         <div className="flex items-start">
           <AlertTriangle className="w-6 h-6 text-amber-400 mr-2 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
@@ -180,7 +186,7 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
 
       {/* Recommendations */}
       {analysis.recommendations && analysis.recommendations.length > 0 && (
-        <div className="bg-blue-900/30 border border-blue-700/50 p-4 rounded-lg">
+        <div className="bg-blue-900/85 backdrop-blur-md border border-blue-600 shadow-xl p-4 rounded-lg">
           <div className="flex items-start">
             <Info className="w-6 h-6 text-blue-400 mr-2 flex-shrink-0 mt-0.5" />
             <div>
@@ -196,7 +202,7 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
       )}
 
       {/* Official Chart Warning */}
-      <div className="bg-yellow-900/30 border border-yellow-700/50 p-4 rounded-lg">
+      <div className="bg-yellow-900/85 backdrop-blur-md border border-yellow-600 shadow-xl p-4 rounded-lg">
         <div className="flex items-start">
           <AlertTriangle className="w-6 h-6 text-yellow-500 mr-2 flex-shrink-0" />
           <div>

@@ -173,9 +173,14 @@ const AppContent: React.FC = () => {
   //   2. Strict async guard — requires auth finished loading AND preferences
   //      finished loading AND Supabase says hasCompletedTour === false.
   // Any one of these evaluating "still loading" keeps the tour off-screen.
-  const prefsLoaded =
-    alertConfig.cloudSyncStatus === 'synced' ||
-    alertConfig.cloudSyncStatus === 'error'; // 'error' = give up waiting, use local
+  // Sea Trial — tightened gate. Signed-in users MUST have a 'synced'
+  // cloud read before the tour can fire (no more 'error' fallback that
+  // let the local default `hasCompletedTour: false` win). Signed-out
+  // users gate on local flag only — cloud isn't available to them.
+  const isSignedIn = !!authUser;
+  const prefsLoaded = isSignedIn
+    ? alertConfig.cloudSyncStatus === 'synced'
+    : true;
   const showAppTour =
     !tourLocallyCompleted &&
     !authLoading &&

@@ -232,12 +232,33 @@ const classifySeamark = (
       radius: 100,
       description: "Shipwreck - Submerged or partially submerged",
     },
-    restricted_area: {
-      type: "restricted_area",
-      severity: "critical",
-      radius: 500,
-      description: "Restricted area - Entry prohibited",
-    },
+    // Sea Trial — read seamark:restricted_area:category for subtype.
+    // Values seen in OSM: nature_reserve, no_entry, no_anchoring,
+    // no_fishing, military, firing, swimming, etc. Military / firing /
+    // border / no_entry escalate to CRITICAL (regardless of being inside
+    // 'restricted_area'). Tel Aviv → Cyprus and similar Eastern-Med routes
+    // commonly clip Israeli/Cypriot/Lebanese military exclusion zones —
+    // these MUST be flagged before the user hits "Start Navigation".
+    restricted_area: (() => {
+      const cat = (tags["seamark:restricted_area:category"] || '').toLowerCase();
+      const isHardExclusion =
+        cat === 'military' ||
+        cat === 'firing' ||
+        cat === 'border' ||
+        cat === 'no_entry' ||
+        cat === 'entry_prohibited';
+      const niceLabel = cat
+        ? cat.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+        : 'Restricted';
+      return {
+        type: isHardExclusion ? 'military_zone' : 'restricted_area',
+        severity: isHardExclusion ? 'critical' : 'danger',
+        radius: isHardExclusion ? 1000 : 500,
+        description: isHardExclusion
+          ? `${niceLabel} zone — entry strictly prohibited`
+          : `${niceLabel} restricted area — entry restricted`,
+      };
+    })(),
     military_area: {
       type: "military_zone",
       severity: "critical",

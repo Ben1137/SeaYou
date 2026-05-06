@@ -189,5 +189,15 @@ export function mergePreferences(
 
   const localTime = new Date(localUpdatedAt).getTime();
   const cloudTime = new Date(cloudUpdatedAt).getTime();
-  return cloudTime > localTime ? cloud : local;
+  const winner = cloudTime > localTime ? cloud : local;
+
+  // Sea Trial fix — `hasCompletedTour` is monotonic: once true on ANY
+  // device the tour must never replay. The blanket latest-write-wins
+  // above caused the tour to flash on every fresh sign-in because the
+  // local default `hasCompletedTour: false` (written at sign-in) carried
+  // a newer timestamp than the cloud row that already had it set true.
+  return {
+    ...winner,
+    hasCompletedTour: Boolean(local.hasCompletedTour || cloud.hasCompletedTour),
+  };
 }

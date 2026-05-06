@@ -81,6 +81,20 @@ class OfflineNavigationSystem {
   // Phase 5 — Man Overboard pin (at most one active at a time).
   private mobPin: MOBPin | null = null;
 
+  // ─── Sea Trial — Navigation Simulator ────────────────────────────────
+  // When `simTimer` is non-null we are in simulation mode: instead of
+  // subscribing to `geolocation.watchPosition`, we tick a timer that
+  // walks the vessel along the active route at `simSpeedKnots` and
+  // synthesizes GPS fixes through the same `handlePositionUpdate` path
+  // — so the HUD, XTE math, waypoint detection, voyage log, and AIS
+  // CPA layer all behave identically to a real fix.
+  private simTimer: number | null = null;
+  private simLegIndex: number = 0; // index of leg start in route.waypoints
+  private simProgressNM: number = 0; // distance walked along current leg
+  private simSpeedKnots: number = 5;
+  private readonly SIM_TICK_MS = 1000; // 1 Hz feels like real GPS
+  private simIsSimulating: boolean = false;
+
   constructor(config?: Partial<OfflineNavigationConfig>) {
     this.config = {
       updateIntervalMs: 1000,
@@ -124,9 +138,125 @@ class OfflineNavigationSystem {
   }
 
   /**
+   * Sea Trial — Navigation Simulator.
+   *
+   * Replaces the real GPS feed with a 1 Hz timer that walks the vessel
+   * along the active `route.waypoints` polyline at `cruiseSpeedKnots`.
+   * Heading is computed from current → next-waypoint bearing. Each tick
+   * synthesizes a `GeolocationPosition` and pumps it through the exact
+   * same `handlePositionUpdate()` pipeline the real GPS uses, so HUD /
+   * XTE / waypoint detection / voyage log all run unchanged.
+   *
+   * Call `stopNavigation()` to end the simulation.
+   */
+  async startSimulation(route: Route, cruiseSpeedKnots: number = 5): Promise<void> {
+    if (this.isNavigating) {
+      this.stopNavigation();
+    }
+
+    this.route = route;
+    this.currentWaypointIndex = 0;
+    this.isNavigating = true;
+    this.navigationHistory = [];
+    this.simIsSimulating = true;
+    this.simSpeedKnots = Math.max(0.5, cruiseSpeedKnots);
+    this.simLegIndex = 0;
+    this.simProgressNM = 0;
+
+    this.emit('navigationStarted', { route, simulated: true });
+    this.cacheRouteData(route);
+
+    // Kick the first synthetic fix immediately so the HUD lights up.
+    this.tickSimulation();
+
+    this.simTimer = window.setInterval(
+      () => this.tickSimulation(),
+      this.SIM_TICK_MS,
+    );
+
+    console.log(
+      `🧪 Simulation started: ${route.name} @ ${this.simSpeedKnots.toFixed(1)} kn`,
+    );
+  }
+
+  /** True iff a navigation simulation is currently running. */
+  isSimulation(): boolean {
+    return this.simIsSimulating;
+  }
+
+  /**
+   * Drive the vessel along the current leg by one tick. When the leg is
+   * exhausted, advance to the next leg; when the route is exhausted the
+   * simulator stops itself.
+   */
+  private tickSimulation(): void {
+    if (!this.route || !this.simIsSimulating) return;
+    const wps = this.route.waypoints;
+    if (wps.length < 2) {
+      this.stopNavigation();
+      return;
+    }
+
+    // NM travelled this tick.
+    const stepNM = this.simSpeedKnots * (this.SIM_TICK_MS / 3_600_000);
+
+    let i = this.simLegIndex;
+    let progress = this.simProgressNM + stepNM;
+
+    // Walk forward across legs until we land inside one.
+    while (i < wps.length - 1) {
+      const a = wps[i];
+      const b = wps[i + 1];
+      const legNM = calculateDistance(a.lat, a.lon, b.lat, b.lon);
+      if (progress < legNM || i === wps.length - 2) {
+        // Inside this leg (or final leg — clamp at destination).
+        const f = legNM > 0 ? Math.min(progress / legNM, 1) : 1;
+        const bearing = calculateBearing(a.lat, a.lon, b.lat, b.lon);
+        const proj = projectPosition(a.lat, a.lon, bearing, progress);
+        this.simLegIndex = i;
+        this.simProgressNM = progress;
+
+        const synth = {
+          coords: {
+            latitude: proj.lat,
+            longitude: proj.lon,
+            speed: this.simSpeedKnots / 1.94384, // knots → m/s
+            heading: bearing,
+            accuracy: 5,
+            altitude: null,
+            altitudeAccuracy: null,
+            speedAccuracy: null,
+          },
+          timestamp: Date.now(),
+        } as unknown as GeolocationPosition;
+
+        this.handlePositionUpdate(synth);
+
+        // Final leg + reached destination — let stopNavigation fire from
+        // checkWaypointProximity / handleDestinationReached as normal.
+        if (i === wps.length - 2 && f >= 1) {
+          // handleDestinationReached calls stopNavigation; nothing more.
+        }
+        return;
+      }
+      // Skip this leg, carry remainder onto the next.
+      progress -= legNM;
+      i++;
+    }
+  }
+
+  /**
    * Stop navigation
    */
   stopNavigation(): void {
+    if (this.simTimer !== null) {
+      window.clearInterval(this.simTimer);
+      this.simTimer = null;
+    }
+    this.simIsSimulating = false;
+    this.simLegIndex = 0;
+    this.simProgressNM = 0;
+
     if (this.watchId !== null) {
       navigator.geolocation.clearWatch(this.watchId);
       this.watchId = null;

@@ -388,6 +388,27 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     }
   };
 
+  /**
+   * Sea Trial — desktop simulator. Walks the vessel along the route at
+   * the user's `vesselSettings.cruiseSpeed` so the HUD / map / XTE math
+   * exercise without needing a real GPS feed (or a real boat).
+   */
+  const handleSimulateNavigation = async () => {
+    if (!route) return;
+    try {
+      await offlineNavigation.startSimulation(
+        route,
+        vesselSettings.cruiseSpeed ?? 5,
+      );
+      setIsNavigating(true);
+      toast.info('Simulation running', {
+        title: 'Sea Trial',
+      });
+    } catch (error) {
+      toast.error('Failed to start simulation: ' + (error as Error).message);
+    }
+  };
+
   const handleStopNavigation = () => {
     offlineNavigation.stopNavigation();
     setIsNavigating(false);
@@ -957,13 +978,26 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
 
           <div className="flex gap-3">
             {!isNavigating ? (
-              <button
-                onClick={handleStartNavigation}
-                className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-500 font-semibold flex items-center justify-center gap-2"
-              >
-                <Play className="w-5 h-5" />
-                Start Navigation
-              </button>
+              <>
+                <button
+                  onClick={handleStartNavigation}
+                  className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-500 font-semibold flex items-center justify-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Start Navigation
+                </button>
+                {/* Sea Trial — desktop simulator. Walks the route at the
+                    vessel's cruise speed so the HUD/XTE/CPA exercise
+                    without leaving the dock. */}
+                <button
+                  onClick={handleSimulateNavigation}
+                  className="flex-1 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-500 font-semibold flex items-center justify-center gap-2"
+                  title="Simulate the route on this device — moves the vessel along the polyline at the cruise speed without using GPS"
+                >
+                  <Zap className="w-5 h-5" />
+                  Simulate
+                </button>
+              </>
             ) : (
               <button
                 onClick={handleStopNavigation}
