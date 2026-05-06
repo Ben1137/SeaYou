@@ -79,7 +79,7 @@ function routeToRow(
     distance_nm: route.totalDistance,
     duration_min: route.estimatedTime * 60,
     average_speed: route.averageSpeed,
-    created_at: route.createdAt.toISOString(),
+    created_at: new Date(route.createdAt).toISOString(),
   };
 }
 

@@ -651,7 +651,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         </div>
 
         <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-0' : 'h-64'}`}>
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
             {activeGraph === 'tide' ? (
               <AreaChart data={tideChartData}>
                 <defs>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertTriangle, Shield, Info, CloudRain, Wind, Waves, Anchor, Mountain } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertTriangle, Shield, Info, CloudRain, Wind, Waves, Anchor, Mountain, X } from 'lucide-react';
 import type { RouteAnalysis, RouteSafetyAnalysis, WeatherHazard } from '@seame/core';
 
 interface HazardAlertProps {
@@ -28,6 +28,8 @@ const kindIcon = (kind: WeatherHazard['kind']) => {
 };
 
 export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) => {
+  const [isDismissed, setIsDismissed] = useState(false);
+
   const criticalHazards = analysis.hazards.filter(
     (h) => h.hazard.severity === 'critical'
   );
@@ -42,12 +44,21 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
   const weatherDanger = weatherHazards.filter((h) => h.severity === 'danger');
   const weatherCaution = weatherHazards.filter((h) => h.severity === 'caution');
 
+  if (isDismissed) return null;
+
   // Fully clear: no OSM hazards AND no weather hazards. When the route
   // is "OSM-clear" but the weather analyzer fired, fall through to the
   // hazard UI so we can render only the Weather Warnings group.
   if (analysis.isSafe && weatherHazards.length === 0) {
     return (
-      <div className="bg-green-900/85 backdrop-blur-md border border-green-700 shadow-xl p-4 mb-4 rounded-lg">
+      <div className="relative bg-green-900/85 backdrop-blur-md border border-green-700 shadow-xl p-4 mb-4 rounded-lg">
+        <button
+          onClick={() => setIsDismissed(true)}
+          className="absolute top-2 right-2 p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+          aria-label="Dismiss"
+        >
+          <X className="w-4 h-4" />
+        </button>
         <div className="flex items-center">
           <Shield className="w-6 h-6 text-green-400 mr-2" />
           <div>
@@ -68,7 +79,14 @@ export const HazardAlert: React.FC<HazardAlertProps> = ({ analysis, safety }) =>
     //   • shadow-xl so they visually separate from the bottom nav strip
     //   • sticky top-2 so they stay on screen while the user scrolls the
     //     planner form looking for the offending waypoint.
-    <div className="relative z-[600] sticky top-2 space-y-3 mb-4">
+    <div className="relative z-[600] sticky top-2 space-y-3 mb-4 max-h-[50vh] overflow-y-auto">
+      <button
+        onClick={() => setIsDismissed(true)}
+        className="absolute top-2 right-2 p-1 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors z-10"
+        aria-label="Dismiss"
+      >
+        <X className="w-4 h-4" />
+      </button>
       {/* Phase 2 — Weather Warnings group (wind / wave / current / land / depth) */}
       {weatherHazards.length > 0 && (
         <div className={`${weatherDanger.length > 0 ? 'bg-red-900/85 border-red-600' : 'bg-amber-900/85 border-amber-600'} border backdrop-blur-md shadow-xl p-4 rounded-lg`}>

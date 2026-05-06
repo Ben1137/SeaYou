@@ -51,26 +51,29 @@ export const TrackHistoryLayerML: React.FC<Props> = ({ visible = true }) => {
     if (!map) return;
 
     const ensureLayer = () => {
-      if (map.getSource(TRACK_HISTORY_SOURCE_ID)) return;
-      map.addSource(TRACK_HISTORY_SOURCE_ID, {
-        type: 'geojson',
-        data: toGeoJSON([]),
-      });
-      map.addLayer({
-        id: TRACK_HISTORY_LAYER_ID,
-        type: 'line',
-        source: TRACK_HISTORY_SOURCE_ID,
-        layout: {
-          'line-cap': 'round',
-          'line-join': 'round',
-        },
-        paint: {
-          'line-color': '#e0f2fe',
-          'line-width': 2.5,
-          'line-opacity': 0.7,
-          'line-dasharray': [2, 1.5],
-        },
-      });
+      if (!map.getSource(TRACK_HISTORY_SOURCE_ID)) {
+        map.addSource(TRACK_HISTORY_SOURCE_ID, {
+          type: 'geojson',
+          data: toGeoJSON([]),
+        });
+      }
+      if (!map.getLayer(TRACK_HISTORY_LAYER_ID)) {
+        map.addLayer({
+          id: TRACK_HISTORY_LAYER_ID,
+          type: 'line',
+          source: TRACK_HISTORY_SOURCE_ID,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#e0f2fe',
+            'line-width': 2.5,
+            'line-opacity': 0.7,
+            'line-dasharray': [2, 1.5],
+          },
+        });
+      }
     };
 
     if (map.isStyleLoaded()) ensureLayer();
@@ -98,23 +101,31 @@ export const TrackHistoryLayerML: React.FC<Props> = ({ visible = true }) => {
     return () => {
       offlineNavigation.off('trackUpdate', handleTrack);
       offlineNavigation.off('navigationStopped', handleStop);
-      if (map.getLayer(TRACK_HISTORY_LAYER_ID)) {
-        map.removeLayer(TRACK_HISTORY_LAYER_ID);
-      }
-      if (map.getSource(TRACK_HISTORY_SOURCE_ID)) {
-        map.removeSource(TRACK_HISTORY_SOURCE_ID);
+      try {
+        if (map && map.getLayer(TRACK_HISTORY_LAYER_ID)) {
+          map.removeLayer(TRACK_HISTORY_LAYER_ID);
+        }
+        if (map && map.getSource(TRACK_HISTORY_SOURCE_ID)) {
+          map.removeSource(TRACK_HISTORY_SOURCE_ID);
+        }
+      } catch (_e) {
+        // map already destroyed
       }
     };
   }, [map]);
 
   useEffect(() => {
     if (!map) return;
-    if (!map.getLayer(TRACK_HISTORY_LAYER_ID)) return;
-    map.setLayoutProperty(
-      TRACK_HISTORY_LAYER_ID,
-      'visibility',
-      visible ? 'visible' : 'none',
-    );
+    try {
+      if (!map.getLayer(TRACK_HISTORY_LAYER_ID)) return;
+      map.setLayoutProperty(
+        TRACK_HISTORY_LAYER_ID,
+        'visibility',
+        visible ? 'visible' : 'none',
+      );
+    } catch (_e) {
+      // map already destroyed
+    }
   }, [map, visible]);
 
   return null;

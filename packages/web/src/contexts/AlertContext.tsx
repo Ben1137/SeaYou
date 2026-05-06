@@ -194,6 +194,11 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
   const [cloudSyncError, setCloudSyncError] = useState<string | null>(null);
 
+  // Always-current mirror so callbacks can read the latest preferences
+  // without stale closures and without being added to useCallback deps.
+  const preferencesRef = useRef<UserPreferences>(preferences);
+  useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
+
   // Track whether the current in-memory preferences have already been
   // reconciled with the cloud, so we don't thrash upsert on hydration.
   const hasHydratedFromCloud = useRef(false);
@@ -432,7 +437,16 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setHasCompletedTour = useCallback((done: boolean) => {
     update((p) => ({ ...p, hasCompletedTour: done }));
-  }, [update]);
+    // Eagerly write to Supabase on the same tick so the cloud row is
+    // updated even if the user closes the tab before the auto-upsert
+    // effect fires. suppressUpsertRef prevents the effect from
+    // double-writing on the subsequent render.
+    if (user && authConfigured && hasHydratedFromCloud.current) {
+      suppressUpsertRef.current = true;
+      const next = { ...preferencesRef.current, hasCompletedTour: done };
+      void upsertPreferences(user.id, next);
+    }
+  }, [update, user, authConfigured]);
 
   // Persist the OneSignal Player ID into preferences JSONB so the daily
   // surf-report Edge Function can target this user. No-op if unchanged,

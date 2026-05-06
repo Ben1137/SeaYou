@@ -41,35 +41,40 @@ export const MOBLayerML: React.FC = () => {
     if (!map) return;
 
     const ensureLayer = () => {
-      if (map.getSource(MOB_SOURCE_ID)) return;
-      map.addSource(MOB_SOURCE_ID, {
-        type: 'geojson',
-        data: toGeoJSON(offlineNavigation.getMOB()),
-      });
-      map.addLayer({
-        id: MOB_HALO_LAYER_ID,
-        type: 'circle',
-        source: MOB_SOURCE_ID,
-        paint: {
-          'circle-radius': 22,
-          'circle-color': '#ef4444',
-          'circle-opacity': 0.25,
-          'circle-stroke-color': '#ef4444',
-          'circle-stroke-width': 2,
-          'circle-stroke-opacity': 0.8,
-        },
-      });
-      map.addLayer({
-        id: MOB_DOT_LAYER_ID,
-        type: 'circle',
-        source: MOB_SOURCE_ID,
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#ef4444',
-          'circle-stroke-color': '#fff',
-          'circle-stroke-width': 2,
-        },
-      });
+      if (!map.getSource(MOB_SOURCE_ID)) {
+        map.addSource(MOB_SOURCE_ID, {
+          type: 'geojson',
+          data: toGeoJSON(offlineNavigation.getMOB()),
+        });
+      }
+      if (!map.getLayer(MOB_HALO_LAYER_ID)) {
+        map.addLayer({
+          id: MOB_HALO_LAYER_ID,
+          type: 'circle',
+          source: MOB_SOURCE_ID,
+          paint: {
+            'circle-radius': 22,
+            'circle-color': '#ef4444',
+            'circle-opacity': 0.25,
+            'circle-stroke-color': '#ef4444',
+            'circle-stroke-width': 2,
+            'circle-stroke-opacity': 0.8,
+          },
+        });
+      }
+      if (!map.getLayer(MOB_DOT_LAYER_ID)) {
+        map.addLayer({
+          id: MOB_DOT_LAYER_ID,
+          type: 'circle',
+          source: MOB_SOURCE_ID,
+          paint: {
+            'circle-radius': 8,
+            'circle-color': '#ef4444',
+            'circle-stroke-color': '#fff',
+            'circle-stroke-width': 2,
+          },
+        });
+      }
     };
 
     if (map.isStyleLoaded()) ensureLayer();
@@ -86,10 +91,14 @@ export const MOBLayerML: React.FC = () => {
     return () => {
       offlineNavigation.off('mobDropped', refresh);
       offlineNavigation.off('mobCleared', refresh);
-      for (const id of [MOB_DOT_LAYER_ID, MOB_HALO_LAYER_ID]) {
-        if (map.getLayer(id)) map.removeLayer(id);
+      try {
+        for (const id of [MOB_DOT_LAYER_ID, MOB_HALO_LAYER_ID]) {
+          if (map && map.getLayer(id)) map.removeLayer(id);
+        }
+        if (map && map.getSource(MOB_SOURCE_ID)) map.removeSource(MOB_SOURCE_ID);
+      } catch (_e) {
+        // map already destroyed
       }
-      if (map.getSource(MOB_SOURCE_ID)) map.removeSource(MOB_SOURCE_ID);
     };
   }, [map]);
 

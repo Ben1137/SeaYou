@@ -1327,7 +1327,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                 <div className="glass-inner rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-right-8">
                   <h3 className="text-xs font-bold text-white/60 uppercase mb-4 flex items-center gap-2"><Waves size={14}/> {t('map.waveSwellHeight')}</h3>
                   <div className="h-40 w-full min-h-[160px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <AreaChart data={detailChartData}>
                         <defs>
                           <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1360,7 +1360,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                 <div className="glass-inner rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-right-10">
                   <h3 className="text-xs font-bold text-white/60 uppercase mb-4 flex items-center gap-2"><Wind size={14}/> {t('map.windSpeedChart')}</h3>
                   <div className="h-40 w-full min-h-[160px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <AreaChart data={detailChartData}>
                         <defs>
                           <linearGradient id="windGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1388,7 +1388,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                 <div className="glass-inner rounded-xl p-4 border border-white/10 animate-in fade-in slide-in-from-right-8">
                   <h3 className="text-xs font-bold text-white/60 uppercase mb-4 flex items-center gap-2"><Activity size={14}/> {t('map.currentVelocity')}</h3>
                   <div className="h-40 w-full min-h-[160px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                       <AreaChart data={detailChartData}>
                         <defs>
                           <linearGradient id="currentGrad" x1="0" y1="0" x2="0" y2="1">
