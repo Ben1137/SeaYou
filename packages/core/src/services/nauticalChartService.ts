@@ -80,7 +80,7 @@ export const fetchNauticalHazards = async (boundingBox: {
 
     return hazards;
   } catch (error) {
-    console.error("Error fetching nautical hazards:", error);
+    console.warn("[NauticalChart] Overpass API unavailable (CORS/network) — returning cached or empty hazards:", error instanceof Error ? error.message : error);
 
     // Return cached data if available
     return getCachedNauticalData(boundingBox) || [];

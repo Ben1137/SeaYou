@@ -113,11 +113,15 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     aisService.on('targets', refresh);
 
     return () => {
-      map.off('moveend', scheduleBBox);
       aisService.off('targets', refresh);
       if (bboxTimer.current) window.clearTimeout(bboxTimer.current);
-      if (map.getLayer(AIS_LAYER_ID)) map.removeLayer(AIS_LAYER_ID);
-      if (map.getSource(AIS_SOURCE_ID)) map.removeSource(AIS_SOURCE_ID);
+      try {
+        map.off('moveend', scheduleBBox);
+        if (map && map.getLayer(AIS_LAYER_ID)) map.removeLayer(AIS_LAYER_ID);
+        if (map && map.getSource(AIS_SOURCE_ID)) map.removeSource(AIS_SOURCE_ID);
+      } catch (_e) {
+        // map already destroyed
+      }
     };
   }, [map]);
 

@@ -1028,8 +1028,8 @@ const AppContent: React.FC = () => {
           setHasCompletedOnboarding(true);
         }} />
 
-        {/* Post-onboarding Interactive Tour — react-joyride coach marks */}
-        <InteractiveTour
+        {/* Post-onboarding Interactive Tour — only mount after prefs are confirmed loaded */}
+        {showAppTour && <InteractiveTour
           run={showAppTour}
           onFinish={() => {
             // Write local cache FIRST so the next page load is instantly guarded
@@ -1049,7 +1049,7 @@ const AppContent: React.FC = () => {
             hasPromptedRef.current = true; // suppress the fallback effect
             promptPushAndCapture();
           }}
-        />
+        />}
       </div>
     </>
   );
