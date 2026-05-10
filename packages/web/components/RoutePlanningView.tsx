@@ -117,7 +117,23 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
       });
     }
     void loadSavedRoutes();
-    setupNavigationListeners();
+    const onNavUpdate = (state: NavigationState) => {
+      setNavigationState(state);
+    };
+    const onAlert = (alert: NavigationAlert) => {
+      setAlerts((prev) => [alert, ...prev].slice(0, 5));
+      if (alert.autoClose) {
+        setTimeout(() => {
+          setAlerts((prev) => prev.filter((a) => a !== alert));
+        }, 5000);
+      }
+    };
+    const onDestinationReached = () => {
+      setIsNavigating(false);
+    };
+    offlineNavigation.on('navigationUpdate', onNavUpdate);
+    offlineNavigation.on('alert', onAlert);
+    offlineNavigation.on('destinationReached', onDestinationReached);
 
     // Auto-init start location if empty
     if (!startLocation && !startLat && 'geolocation' in navigator) {
@@ -125,10 +141,9 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     }
 
     return () => {
-      offlineNavigation.off('navigationUpdate');
-      offlineNavigation.off('alert');
-      offlineNavigation.off('waypointReached');
-      offlineNavigation.off('destinationReached');
+      offlineNavigation.off('navigationUpdate', onNavUpdate);
+      offlineNavigation.off('alert', onAlert);
+      offlineNavigation.off('destinationReached', onDestinationReached);
     };
   }, []);
 
@@ -150,26 +165,6 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     return () => window.clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [route?.id, route?.waypoints.length, route?.totalDistance, persona]);
-
-  const setupNavigationListeners = () => {
-    offlineNavigation.on('navigationUpdate', (state: NavigationState) => {
-      setNavigationState(state);
-    });
-
-    offlineNavigation.on('alert', (alert: NavigationAlert) => {
-      setAlerts((prev) => [alert, ...prev].slice(0, 5));
-      
-      if (alert.autoClose) {
-        setTimeout(() => {
-          setAlerts((prev) => prev.filter((a) => a !== alert));
-        }, 5000);
-      }
-    });
-
-    offlineNavigation.on('destinationReached', () => {
-      setIsNavigating(false);
-    });
-  };
 
   const loadSavedRoutes = async () => {
     // Phase 6 — cloud-aware loader; falls back to localStorage silently

@@ -113,6 +113,7 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     aisService.on('targets', refresh);
 
     return () => {
+      map.off('styledata', ensureLayer);
       aisService.off('targets', refresh);
       if (bboxTimer.current) window.clearTimeout(bboxTimer.current);
       try {

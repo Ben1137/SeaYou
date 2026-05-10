@@ -191,6 +191,7 @@ export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
     }
 
     return () => {
+      map.off('style.load', setup);
       if (!map || !map.getStyle()) return;
       try {
         for (const id of [

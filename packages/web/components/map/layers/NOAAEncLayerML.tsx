@@ -56,6 +56,7 @@ export const NOAAEncLayerML: React.FC<NOAAEncLayerMLProps> = ({
     else map.once('style.load', addLayer);
 
     return () => {
+      map.off('style.load', addLayer);
       try {
         if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
         if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);

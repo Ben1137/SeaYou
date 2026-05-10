@@ -202,6 +202,7 @@ export function ReefLayerML({ visible, opacity = 0.7 }: ReefLayerMLProps) {
 
     // Cleanup
     return () => {
+      map.off('style.load', setupLayers);
       if (!map || !map.getStyle()) return;
 
       try {

@@ -87,6 +87,7 @@ export function BathymetryLayerML({ visible, opacity = 0.75 }: BathymetryLayerML
     }
 
     return () => {
+      map.off('style.load', setup);
       if (!map || !map.getStyle()) return;
       try {
         if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);

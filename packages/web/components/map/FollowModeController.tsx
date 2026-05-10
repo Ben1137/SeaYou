@@ -47,13 +47,17 @@ export const FollowModeController: React.FC<FollowModeControllerProps> = ({
           ? state.heading
           : state.bearingToNext ?? 0;
 
-      map.easeTo({
-        center: [lon, lat],
-        bearing,
-        zoom,
-        pitch,
-        duration: 800,
-      });
+      try {
+        map.easeTo({
+          center: [lon, lat],
+          bearing,
+          zoom,
+          pitch,
+          duration: 800,
+        });
+      } catch {
+        // map destroyed during teardown tick
+      }
     };
 
     offlineNavigation.on('navigationUpdate', onUpdate);
@@ -66,7 +70,11 @@ export const FollowModeController: React.FC<FollowModeControllerProps> = ({
   // freely again.
   useEffect(() => {
     if (!map || enabled) return;
-    map.easeTo({ pitch: 0, bearing: 0, duration: 600 });
+    try {
+      map.easeTo({ pitch: 0, bearing: 0, duration: 600 });
+    } catch {
+      // map destroyed during teardown tick
+    }
   }, [map, enabled]);
 
   return null;

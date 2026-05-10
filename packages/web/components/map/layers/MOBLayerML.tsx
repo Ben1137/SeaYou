@@ -89,6 +89,7 @@ export const MOBLayerML: React.FC = () => {
     offlineNavigation.on('mobCleared', refresh);
 
     return () => {
+      map.off('styledata', ensureLayer);
       offlineNavigation.off('mobDropped', refresh);
       offlineNavigation.off('mobCleared', refresh);
       try {

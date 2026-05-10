@@ -203,6 +203,7 @@ export function PortsLayerML({ visible, onPortClick }: PortsLayerMLProps) {
 
     // Cleanup
     return () => {
+      map.off('style.load', setupLayers);
       if (!map || !map.getStyle()) return;
 
       try {

@@ -99,6 +99,7 @@ export const TrackHistoryLayerML: React.FC<Props> = ({ visible = true }) => {
     offlineNavigation.on('navigationStopped', handleStop);
 
     return () => {
+      map.off('styledata', ensureLayer);
       offlineNavigation.off('trackUpdate', handleTrack);
       offlineNavigation.off('navigationStopped', handleStop);
       try {

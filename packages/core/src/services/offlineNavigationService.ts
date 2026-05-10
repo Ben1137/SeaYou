@@ -282,6 +282,9 @@ class OfflineNavigationSystem {
       this.drTimer = null;
     }
 
+    this.mobPin = null;
+    this.emit('mobCleared', {});
+
     this.emit('navigationStopped', {
       route: finishedRoute,
       history: finishedHistory,
