@@ -21,6 +21,7 @@
  */
 
 import React from 'react';
+import { useMap } from '../useMap';
 import { SeaTemperatureLayerML } from './SeaTemperatureLayerML';
 import { WindParticleLayerML } from './WindParticleLayerML';
 import type { MarineGridData, ForecastGridData } from '@seame/core';
@@ -47,6 +48,9 @@ export function CompoundSeaTempWindML({
   sharedGridData,
   sharedForecastData,
 }: CompoundSeaTempWindMLProps) {
+  const map = useMap();
+  if (!map) return null;
+
   return (
     <>
       {/* Layer 1 (bottom): Sea surface temperature heatmap

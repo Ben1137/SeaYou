@@ -3,7 +3,22 @@
 Project context, architecture decisions, and constraints for AI assistants working on this codebase.
 
 ---
+## 0. THE MEMORY PIPELINE — CRITICAL INSTRUCTION
+Before you begin any task, write any code, or answer any architectural questions, you MUST follow this memory pipeline in order:
 
+### 1. Read the Architecture Guidelines
+You must read the live architecture rules stored in my Obsidian Vault:
+`cat C:\Users\user01\vault\Architecture\Guidelines.md`
+*Do not proceed until you have read and understood the rules, naming conventions, and known debt listed in this file.*
+
+### 2. The Graphify Rule
+Before creating any new utility, helper, or shared component, you must query the local Graphify map to ensure you are not duplicating code.
+* Use `graphify query "<keyword>"` or read the `graphify-out/graph.json` file to check for existing functions.
+* Pay special attention to the "God Nodes" listed in the Obsidian Guidelines. If your task touches them, use Graphify to map their dependencies first.
+
+If you learn a new pattern or solve a major architectural problem during our session, remind me to update the Obsidian Guidelines!
+
+---
 ## 1. Two-Codebase Situation — CRITICAL
 
 This repository contains **two distinct codebases** that must never be confused:

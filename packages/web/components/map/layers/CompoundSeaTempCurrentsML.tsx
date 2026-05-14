@@ -20,6 +20,7 @@
  */
 
 import React from 'react';
+import { useMap } from '../useMap';
 import { SeaTemperatureLayerML } from './SeaTemperatureLayerML';
 import { CurrentParticleLayerML } from './CurrentParticleLayerML';
 import type { MarineGridData } from '@seame/core';
@@ -43,6 +44,9 @@ export function CompoundSeaTempCurrentsML({
   maxTemp = 35,
   sharedGridData,
 }: CompoundSeaTempCurrentsMLProps) {
+  const map = useMap();
+  if (!map) return null;
+
   return (
     <>
       {/* Layer 1 (bottom): Sea surface temperature heatmap

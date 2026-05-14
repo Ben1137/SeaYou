@@ -20,6 +20,7 @@
  */
 
 import React from 'react';
+import { useMap } from '../useMap';
 import { WaveHeatmapLayerML } from './WaveHeatmapLayerML';
 import { WaveParticleLayerML } from './WaveParticleLayerML';
 import type { MarineGridData } from '@seame/core';
@@ -38,6 +39,9 @@ export function CompoundWaveHeatmapParticlesML({
   heatmapOpacity = 0.50,
   sharedGridData,
 }: CompoundWaveHeatmapParticlesMLProps) {
+  const map = useMap();
+  if (!map) return null;
+
   return (
     <>
       {/* Layer 1 (bottom): Wave height heatmap (purple → fuchsia → pink) */}

@@ -11,6 +11,7 @@ import type { Marina, CoastSearchOptions, MarinaType } from '../types/navigation
 import type { OverpassApiResponse, OverpassElement, NominatimApiResponse } from '../types/apiResponses';
 import { calculateDistance, formatDistance } from './routePlanningService';
 import { fetchWithRetry, fetchWithRetrySafe, isTimeoutError, isRateLimitError } from '../utils/fetchWithRetry';
+import { globalRateLimiter } from './apiRateLimiter';
 import { API_ENDPOINTS, NAVIGATION_CONSTANTS, REQUEST_CONFIG, CACHE_CONFIG, ERROR_MESSAGES } from '../constants';
 
 /**
@@ -31,18 +32,20 @@ export const searchNearbyCoasts = async (
 
     // Query Overpass API with retry logic and extended timeout
     // Overpass API can take up to 25 seconds, so we use a custom timeout
-    const response = await fetchWithRetry(
-      API_ENDPOINTS.OVERPASS,
-      {
-        method: 'POST',
-        body: query,
-      },
-      {
-        timeoutMs: REQUEST_CONFIG.OVERPASS_TIMEOUT_SECONDS * 1000, // 25 seconds
-        maxRetries: 2, // Lower retries for long-running queries
-        initialDelayMs: 2000, // Longer initial delay for Overpass
-        logRetries: true,
-      }
+    const response = await globalRateLimiter.enqueue(() =>
+      fetchWithRetry(
+        API_ENDPOINTS.OVERPASS,
+        {
+          method: 'POST',
+          body: query,
+        },
+        {
+          timeoutMs: REQUEST_CONFIG.OVERPASS_TIMEOUT_SECONDS * 1000, // 25 seconds
+          maxRetries: 2, // Lower retries for long-running queries
+          initialDelayMs: 2000, // Longer initial delay for Overpass
+          logRetries: true,
+        }
+      )
     );
 
     if (!response.ok) {
@@ -339,19 +342,21 @@ export const searchMarinasByName = async (
     // - Longer delays between retries
     // - fetchWithRetrySafe to handle failures gracefully
     const fetches = typesToSearch.map((t) =>
-      fetchWithRetrySafe(
-        `${API_ENDPOINTS.NOMINATIM}?` +
-          `q=${encodeURIComponent(query + ' ' + t)}&` +
-          `format=json&` +
-          `limit=20&` +
-          `addressdetails=1`,
-        {},
-        {
-          maxRetries: 2, // Lower retries for rate-limited API
-          initialDelayMs: 2000, // Longer delay to respect rate limits
-          timeoutMs: 15000, // Longer timeout for Nominatim
-          logRetries: true,
-        }
+      globalRateLimiter.enqueue(() =>
+        fetchWithRetrySafe(
+          `${API_ENDPOINTS.NOMINATIM}?` +
+            `q=${encodeURIComponent(query + ' ' + t)}&` +
+            `format=json&` +
+            `limit=20&` +
+            `addressdetails=1`,
+          {},
+          {
+            maxRetries: 2, // Lower retries for rate-limited API
+            initialDelayMs: 2000, // Longer delay to respect rate limits
+            timeoutMs: 15000, // Longer timeout for Nominatim
+            logRetries: true,
+          }
+        )
       )
     );
 

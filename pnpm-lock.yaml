@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@types/geojson':
+        specifier: ^7946.0.16
+        version: 7946.0.16
       '@types/node':
         specifier: ^22.14.0
         version: 22.19.3

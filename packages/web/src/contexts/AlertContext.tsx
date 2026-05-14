@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
 import {
   ActivityPersona,
   UserPreferences,
@@ -506,50 +506,56 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   // Legacy thresholds adapter
   const thresholds: AlertThresholds = preferences.alerts;
 
+  const contextValue = useMemo(() => ({
+    preferences,
+    thresholds,
+    primaryPersona: preferences.primaryPersona,
+    setPrimaryPersona,
+    persona: preferences.persona ?? null,
+    setPersona,
+    subscriptionTier: preferences.subscriptionTier ?? 'free',
+    setSubscriptionTier,
+    setWaveThreshold,
+    setWindThreshold,
+    setMinScore,
+    setNotifyHours,
+    toggleHighWaves,
+    toggleStrongWinds,
+    toggleTsunamiWarning,
+    toggleTsunamiAlerts,
+    // Always expose arrays to consumers — never bubble an `undefined`
+    // out of the context, even if a legacy/partial cloud blob hydrated
+    // the preferences without these keys.
+    favoriteLocations: preferences.favoriteLocations ?? [],
+    recentSearches: preferences.recentSearches ?? [],
+    addFavorite,
+    removeFavorite,
+    isFavorite,
+    addRecentSearch,
+    isDismissed,
+    dismiss,
+    resetDismiss,
+    hasCompletedTour: preferences.hasCompletedTour ?? false,
+    setHasCompletedTour,
+    onesignalPlayerId: preferences.onesignal_player_id ?? null,
+    setOnesignalPlayerId,
+    pushOptIn: preferences.push_opt_in ?? true,
+    setPushOptIn,
+    setPushRegistration,
+    homeLat: preferences.home_lat ?? null,
+    homeLon: preferences.home_lon ?? null,
+    cloudSyncStatus,
+    cloudSyncError,
+  }), [preferences, isDismissed, cloudSyncStatus, cloudSyncError,
+    setPrimaryPersona, setPersona, setSubscriptionTier, setWaveThreshold,
+    setWindThreshold, setMinScore, setNotifyHours, toggleHighWaves,
+    toggleStrongWinds, toggleTsunamiWarning, toggleTsunamiAlerts,
+    addFavorite, removeFavorite, isFavorite, addRecentSearch,
+    dismiss, resetDismiss, setHasCompletedTour, setOnesignalPlayerId,
+    setPushOptIn, setPushRegistration]);
+
   return (
-    <AlertContext.Provider
-      value={{
-        preferences,
-        thresholds,
-        primaryPersona: preferences.primaryPersona,
-        setPrimaryPersona,
-        persona: preferences.persona ?? null,
-        setPersona,
-        subscriptionTier: preferences.subscriptionTier ?? 'free',
-        setSubscriptionTier,
-        setWaveThreshold,
-        setWindThreshold,
-        setMinScore,
-        setNotifyHours,
-        toggleHighWaves,
-        toggleStrongWinds,
-        toggleTsunamiWarning,
-        toggleTsunamiAlerts,
-        // Always expose arrays to consumers — never bubble an `undefined`
-        // out of the context, even if a legacy/partial cloud blob hydrated
-        // the preferences without these keys.
-        favoriteLocations: preferences.favoriteLocations ?? [],
-        recentSearches: preferences.recentSearches ?? [],
-        addFavorite,
-        removeFavorite,
-        isFavorite,
-        addRecentSearch,
-        isDismissed,
-        dismiss,
-        resetDismiss,
-        hasCompletedTour: preferences.hasCompletedTour ?? false,
-        setHasCompletedTour,
-        onesignalPlayerId: preferences.onesignal_player_id ?? null,
-        setOnesignalPlayerId,
-        pushOptIn: preferences.push_opt_in ?? true,
-        setPushOptIn,
-        setPushRegistration,
-        homeLat: preferences.home_lat ?? null,
-        homeLon: preferences.home_lon ?? null,
-        cloudSyncStatus,
-        cloudSyncError,
-      }}
-    >
+    <AlertContext.Provider value={contextValue}>
       {children}
     </AlertContext.Provider>
   );
