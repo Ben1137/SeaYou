@@ -58,6 +58,7 @@ export const CoastsMarinasView: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [currentSpeed] = useState(5); // knots
   const [activeTab, setActiveTab] = useState<'nearby' | 'favorites' | 'search'>('nearby');
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Filter states
   const [radius, setRadius] = useState(25); // nautical miles
@@ -69,27 +70,37 @@ export const CoastsMarinasView: React.FC = () => {
   }, []);
 
   const getCurrentLocation = () => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lon: position.coords.longitude,
-          };
-          setCurrentLocation(location);
-          // Auto-search on load
-          handleSearch(location);
-        },
-        (error) => {
-          console.error('Geolocation error:', error);
-        }
-      );
+    if (!('geolocation' in navigator)) {
+      setLocationError('Your browser does not support location. Search by name instead.');
+      return;
     }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationError(null);
+        const location = {
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+        };
+        setCurrentLocation(location);
+        // Auto-search on load
+        handleSearch(location);
+      },
+      (err) => {
+        console.error('Geolocation error:', err);
+        const messages: Record<number, string> = {
+          1: 'Location access denied. Enable it in browser settings, or search by name above.',
+          2: 'Your location could not be determined. Search by name instead.',
+          3: 'Location request timed out. Search by name instead.',
+        };
+        setLocationError(messages[err.code] ?? 'Location unavailable. Search by name instead.');
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   const handleSearch = async (location = currentLocation) => {
     if (!location) {
-      alert('Location not available');
+      setLocationError('Location not available. Enable location access or search by name.');
       return;
     }
 
@@ -112,7 +123,7 @@ export const CoastsMarinasView: React.FC = () => {
 
   const handleNameSearch = async () => {
     if (searchQuery.length < 3) {
-      alert('Please enter at least 3 characters');
+      setLocationError('Please enter at least 3 characters to search.');
       return;
     }
 
@@ -207,6 +218,21 @@ export const CoastsMarinasView: React.FC = () => {
             Favorites ({favorites.length})
           </button>
         </div>
+
+        {/* Location error banner */}
+        {locationError && (
+          <div className="flex items-start gap-2 mt-3 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-sm">
+            <MapPin className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{locationError}</span>
+            <button
+              onClick={() => setLocationError(null)}
+              className="ml-auto shrink-0 text-amber-400/60 hover:text-amber-300 transition-colors"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {/* Search Bar (visible in search tab) */}
         {activeTab === 'search' && (

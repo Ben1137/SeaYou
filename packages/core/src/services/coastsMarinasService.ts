@@ -30,26 +30,43 @@ export const searchNearbyCoasts = async (
     // Build Overpass query
     const query = buildOverpassQuery(lat, lon, radiusMeters, options.types);
 
-    // Query Overpass API with retry logic and extended timeout
-    // Overpass API can take up to 25 seconds, so we use a custom timeout
-    const response = await globalRateLimiter.enqueue(() =>
-      fetchWithRetry(
-        API_ENDPOINTS.OVERPASS,
-        {
-          method: 'POST',
-          body: query,
-        },
-        {
-          timeoutMs: REQUEST_CONFIG.OVERPASS_TIMEOUT_SECONDS * 1000, // 25 seconds
-          maxRetries: 2, // Lower retries for long-running queries
-          initialDelayMs: 2000, // Longer initial delay for Overpass
-          logRetries: true,
-        }
-      )
-    );
+    // Query Overpass API with waterfall fallback across mirrors.
+    // overpass-api.de drops connections under load and the browser reports
+    // it as a CORS error — the actual cause is the server being overloaded.
+    // Falling through to Kumi or OSM.ch recovers transparently.
+    const OVERPASS_MIRRORS = [
+      API_ENDPOINTS.OVERPASS,                           // overpass-api.de (primary)
+      'https://overpass.kumi.systems/api/interpreter',  // Kumi Systems (fallback 1)
+      'https://overpass.osm.ch/api/interpreter',        // OSM Switzerland (fallback 2)
+    ];
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch coastal data');
+    let response: Response | null = null;
+    for (const endpoint of OVERPASS_MIRRORS) {
+      try {
+        const attempt = await globalRateLimiter.enqueue(() =>
+          fetchWithRetry(
+            endpoint,
+            { method: 'POST', body: query },
+            {
+              timeoutMs: REQUEST_CONFIG.OVERPASS_TIMEOUT_SECONDS * 1000, // 25 seconds
+              maxRetries: 2, // Lower retries for long-running queries
+              initialDelayMs: 2000, // Longer initial delay for Overpass
+              logRetries: true,
+            }
+          )
+        );
+        if (attempt.ok) {
+          response = attempt;
+          break;
+        }
+        console.warn(`[Overpass] ${endpoint} returned ${attempt.status} — trying next mirror`);
+      } catch (err) {
+        console.warn(`[Overpass] ${endpoint} failed (network/CORS) — trying next mirror`, err);
+      }
+    }
+
+    if (!response) {
+      throw new Error('All Overpass mirrors failed');
     }
 
     const data = await response.json();

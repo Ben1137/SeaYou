@@ -199,6 +199,20 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const preferencesRef = useRef<UserPreferences>(preferences);
   useEffect(() => { preferencesRef.current = preferences; }, [preferences]);
 
+  // Debounce OneSignal tag writes to 1500ms to prevent 409 Conflict races
+  // when hydration and a persona change fire in rapid succession.
+  const onesignalSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSyncToOneSignal = useCallback((prefs: UserPreferences) => {
+    if (onesignalSyncTimerRef.current) clearTimeout(onesignalSyncTimerRef.current);
+    onesignalSyncTimerRef.current = setTimeout(() => {
+      syncToOneSignal(prefs);
+      onesignalSyncTimerRef.current = null;
+    }, 1500);
+  }, []);
+  useEffect(() => () => {
+    if (onesignalSyncTimerRef.current) clearTimeout(onesignalSyncTimerRef.current);
+  }, []);
+
   // Track whether the current in-memory preferences have already been
   // reconciled with the cloud, so we don't thrash upsert on hydration.
   const hasHydratedFromCloud = useRef(false);
@@ -244,7 +258,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       suppressUpsertRef.current = true;
       setPreferences(merged);
       persistPreferences(merged, result.updatedAt ?? new Date().toISOString());
-      syncToOneSignal(merged);
+      scheduleSyncToOneSignal(merged);
 
       // If cloud was empty (first-time sign-in), push local up so future
       // devices start from the same point.
@@ -290,7 +304,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         recentSearches: cloudPrefs.recentSearches ?? [],
       });
       persistPreferences(cloudPrefs, new Date().toISOString());
-      syncToOneSignal(cloudPrefs);
+      scheduleSyncToOneSignal(cloudPrefs);
       setCloudSyncStatus('synced');
     });
 
@@ -351,10 +365,10 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const setPrimaryPersona = useCallback((persona: ActivityPersona) => {
     update((p) => {
       const next = { ...p, primaryPersona: persona };
-      syncToOneSignal(next);
+      scheduleSyncToOneSignal(next);
       return next;
     });
-  }, [update]);
+  }, [update, scheduleSyncToOneSignal]);
 
   // ─── Onboarding persona ───
 
