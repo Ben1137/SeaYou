@@ -304,7 +304,6 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         recentSearches: cloudPrefs.recentSearches ?? [],
       });
       persistPreferences(cloudPrefs, new Date().toISOString());
-      scheduleSyncToOneSignal(cloudPrefs);
       setCloudSyncStatus('synced');
     });
 

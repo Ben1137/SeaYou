@@ -11,6 +11,12 @@ import type { UserProfile } from '@seame/core';
 
 let initialized = false;
 
+// Cooldown timestamp set when registerUserTags detects corruption and triggers
+// a reset. Rejects all further tag calls for 10s to prevent a reload loop
+// where each new call re-detects corruption before the page has finished
+// reloading and triggers another reset attempt.
+let resettingUntil = 0;
+
 /**
  * Probe the global OneSignal SDK instance directly. The wrapper's `initialized`
  * flag can get out of sync with reality when:
@@ -368,6 +374,13 @@ export async function requestPushPermission(): Promise<boolean> {
  * Register a user profile with OneSignal via tags for segmented push targeting.
  */
 export function registerUserTags(profile: UserProfile): void {
+  // Cooldown gate — if a corruption-triggered reset is in progress, reject
+  // all tag calls for 10s so the page can finish reloading before we try again.
+  if (Date.now() < resettingUntil) {
+    console.warn('[OneSignalWeb] registerUserTags suppressed — reset cooldown active, retrying after page reload');
+    return;
+  }
+
   if (!initialized && !sdkIsLive()) {
     console.warn('[OneSignalWeb] Not initialized — tags will not be applied');
     return;
@@ -378,6 +391,7 @@ export function registerUserTags(profile: UserProfile): void {
   // 400 (unknown user) or 409 (conflicting record). Don't even try —
   // wipe + reload instead.
   if (detectCorruptedOneSignalState()) {
+    resettingUntil = Date.now() + 10_000;
     console.error('[OneSignalWeb] registerUserTags aborted — corrupted local-ID detected. Triggering reset.');
     void scorchedEarthReset('registerUserTags saw local-<uuid>');
     return;
