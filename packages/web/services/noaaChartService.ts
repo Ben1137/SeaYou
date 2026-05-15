@@ -98,13 +98,10 @@ const parseNOAACharts = (data: any): NOAAChart[] => {
  * These are official NOAA chart tiles
  */
 export const getNOAAChartTileUrl = (chartType: 'enc' | 'rnc' = 'enc'): string => {
-  if (chartType === 'enc') {
-    // NOAA ENC Online tile service
-    return 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/tile/{z}/{y}/{x}';
-  } else {
-    // NOAA Raster Navigational Charts (RNC)
-    return 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/RNCOnline/MapServer/tile/{z}/{y}/{x}';
-  }
+  const service = chartType === 'enc' ? 'ENCOnline' : 'RNCOnline';
+  // MapServer/tile/{z}/{y}/{x} was deprecated — use the dynamic export
+  // endpoint with MapLibre's {bbox-epsg-3857} token instead.
+  return `https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/${service}/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image`;
 };
 
 /**

@@ -71,7 +71,6 @@ export function CompoundSeaTempWindML({
         particleCount={128}
         monochrome
         sharedForecastData={sharedForecastData}
-        sharedGridData={sharedGridData}
       />
     </>
   );

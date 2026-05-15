@@ -94,6 +94,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChange((event, newSession) => {
       if (!isMounted) return;
       console.log('[AuthContext] Auth state change:', event);
+      // TOKEN_REFRESHED only rotates the JWT — user identity is unchanged.
+      // Calling setUser here creates a new object reference that causes
+      // AlertContext's hydration effect to re-run unnecessarily.
+      if (event === 'TOKEN_REFRESHED') {
+        setSession(newSession);
+        return;
+      }
       setSession(newSession);
       setUser(newSession?.user ?? null);
     });

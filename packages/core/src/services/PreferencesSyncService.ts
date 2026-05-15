@@ -150,7 +150,7 @@ export function subscribeToPreferences(
     .on(
       'postgres_changes',
       {
-        event: '*',
+        event: 'UPDATE',
         schema: 'public',
         table: TABLE,
         filter: `user_id=eq.${userId}`,
