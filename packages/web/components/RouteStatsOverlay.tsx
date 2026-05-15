@@ -33,6 +33,7 @@ import {
   calculateBearing,
 } from '@seame/core';
 import type { NavigationState, MOBPin } from '@seame/core';
+import { useRoute } from '../src/contexts/RouteContext';
 
 interface CPAWarning {
   mmsi: string;
@@ -48,6 +49,7 @@ interface Props {
 }
 
 export const RouteStatsOverlay: React.FC<Props> = ({ cpaWarning }) => {
+  const { setRoute } = useRoute();
   const [nav, setNav] = useState<NavigationState | null>(null);
   const [mob, setMob] = useState<MOBPin | null>(null);
   const [confirmMob, setConfirmMob] = useState(false);
@@ -173,7 +175,7 @@ export const RouteStatsOverlay: React.FC<Props> = ({ cpaWarning }) => {
           <div className="flex items-center gap-2">
             {isSimulating && (
               <button
-                onClick={() => offlineNavigation.stopNavigation()}
+                onClick={() => { offlineNavigation.stopNavigation(); setRoute(null); }}
                 className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/40 transition-colors flex items-center gap-1"
                 title="Stop simulation"
               >

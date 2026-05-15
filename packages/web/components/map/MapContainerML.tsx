@@ -1661,7 +1661,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         particleCount={256}
         speedFactor={0.5}
         pointSize={2.5}
-        sharedGridData={sharedMarineData.gridData}
+        sharedForecastData={sharedForecastData.gridData}
       />
       <CurrentParticleLayerML
         visible={advancedLayer === 'CURRENT_PARTICLES'}
