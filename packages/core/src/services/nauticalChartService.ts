@@ -6,6 +6,15 @@
  * Always verify routes with official nautical charts before navigation.
  */
 
+import { fetchWithRetry } from '../utils/fetchWithRetry';
+import { globalRateLimiter } from './apiRateLimiter';
+
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',           // primary
+  'https://overpass.kumi.systems/api/interpreter',     // fallback 1
+  'https://overpass.osm.ch/api/interpreter',           // fallback 2
+];
+
 export interface NauticalHazard {
   id: string;
   type:
@@ -63,13 +72,26 @@ export const fetchNauticalHazards = async (boundingBox: {
   try {
     const query = buildSeamarkQuery(boundingBox);
 
-    const response = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: query,
-    });
+    let response: Response | null = null;
+    for (const endpoint of OVERPASS_MIRRORS) {
+      try {
+        const attempt = await globalRateLimiter.enqueue(() =>
+          fetchWithRetry(endpoint, { method: 'POST', body: query }, {
+            timeoutMs: 25000,
+            maxRetries: 2,
+            initialDelayMs: 2000,
+            logRetries: true,
+          })
+        );
+        if (attempt.ok) { response = attempt; break; }
+        console.warn(`[NauticalChart] ${endpoint} returned ${attempt.status} — trying next mirror`);
+      } catch (err) {
+        console.warn(`[NauticalChart] ${endpoint} failed (network/CORS) — trying next mirror`, err);
+      }
+    }
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch nautical data");
+    if (!response) {
+      throw new Error("All Overpass mirrors failed");
     }
 
     const data = await response.json();

@@ -90,7 +90,7 @@ export function useSharedForecastGridData(
     // Adaptive grid resolution: fewer points for large viewports to avoid rate limiting.
     // Viewport spans > 10° → 8x8 (64 pts), > 5° → 12x12 (144 pts), else 16x16 (256 pts).
     const viewportSpan = Math.max(east - west, north - south);
-    const gridSize = viewportSpan > 10 ? 8 : viewportSpan > 5 ? 12 : 16;
+    const gridSize = viewportSpan > 10 ? 6 : viewportSpan > 5 ? 8 : 12;
     const resolution: GridResolution = {
       latPoints: gridSize,
       lngPoints: gridSize,

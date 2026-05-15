@@ -81,7 +81,7 @@ export function useSharedMarineData(
     // Open-Meteo free tier throttles large bulk-coordinate requests (256+ points).
     // Viewport spans > 10° use 8x8 (64 points), > 5° use 12x12 (144 points), else 16x16 (256).
     const viewportSpan = Math.max(east - west, north - south);
-    const gridSize = viewportSpan > 10 ? 8 : viewportSpan > 5 ? 12 : 16;
+    const gridSize = viewportSpan > 10 ? 6 : viewportSpan > 5 ? 8 : 12;
     const resolution: GridResolution = {
       latPoints: gridSize,
       lngPoints: gridSize,

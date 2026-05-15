@@ -12,7 +12,7 @@ interface WindChartProps {
 
 export const WindChart: React.FC<WindChartProps> = ({ data }) => {
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={300} minWidth={1} minHeight={1}>
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
         <XAxis 
