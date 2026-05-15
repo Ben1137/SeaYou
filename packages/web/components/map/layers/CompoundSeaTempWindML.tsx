@@ -70,6 +70,7 @@ export function CompoundSeaTempWindML({
         visible={visible}
         particleCount={128}
         monochrome
+        instanceId="compound"
         sharedForecastData={sharedForecastData}
       />
     </>

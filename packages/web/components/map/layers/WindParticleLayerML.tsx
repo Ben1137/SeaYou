@@ -33,8 +33,8 @@ const WIND_DROP_RATE = 0.004;        // Moderate particle recycling
 const WIND_DROP_RATE_BUMP = 0.003;   // Slight speed-based recycling
 const WIND_POINT_SIZE = 1.2;         // Thin, wispy particles
 
-const SOURCE_ID = 'wind-particles-canvas-src';
-const LAYER_ID = 'wind-particles-canvas-layer';
+const BASE_SOURCE_ID = 'wind-particles-canvas-src';
+const BASE_LAYER_ID = 'wind-particles-canvas-layer';
 
 export interface WindParticleLayerMLProps {
   visible: boolean;
@@ -44,6 +44,9 @@ export interface WindParticleLayerMLProps {
   /** When true, draws particles in neutral gray instead of the colorful wind ramp.
    *  Use in compound layers so particles don't compete with the underlying heatmap. */
   monochrome?: boolean;
+  /** Unique suffix appended to MapLibre source/layer IDs to prevent collisions
+   *  when multiple WindParticleLayerML instances mount simultaneously. */
+  instanceId?: string;
   /** @deprecated Use sharedForecastData for global coverage (land + sea) */
   sharedGridData?: MarineGridData | null;
   /** Forecast grid data — covers entire globe (land + sea), no holes */
@@ -56,9 +59,13 @@ export function WindParticleLayerML({
   visible,
   particleCount = 181,
   monochrome = false,
+  instanceId,
   sharedGridData,
   sharedForecastData,
 }: WindParticleLayerMLProps) {
+  const SOURCE_ID = instanceId ? `${BASE_SOURCE_ID}-${instanceId}` : BASE_SOURCE_ID;
+  const LAYER_ID = instanceId ? `${BASE_LAYER_ID}-${instanceId}` : BASE_LAYER_ID;
+  const FALLBACK_LAYER_ID = instanceId ? `wind-arrows-canvas-${instanceId}` : 'wind-arrows-canvas';
   const map = useMap();
   const mapRef = useRef(map);
   mapRef.current = map; // Always-current ref for rAF closure
@@ -184,7 +191,7 @@ export function WindParticleLayerML({
         const beforeId = getAtmosphereBeforeId(map);
         const safeBeforeId = beforeId && map.getLayer(beforeId) ? beforeId : undefined;
         const fallbackLayer = createCanvasVectorLayer({
-          id: 'wind-arrows-canvas', type: 'wind',
+          id: FALLBACK_LAYER_ID, type: 'wind',
           arrowScale: 0.8, arrowSpacing: 50, maxSpeed: 50,
         });
         map.addLayer(fallbackLayer, safeBeforeId);
@@ -201,7 +208,7 @@ export function WindParticleLayerML({
 
     return () => {
       if (map && fallbackAddedRef.current) {
-        try { if (map.getLayer('wind-arrows-canvas')) map.removeLayer('wind-arrows-canvas'); } catch {}
+        try { if (map.getLayer(FALLBACK_LAYER_ID)) map.removeLayer(FALLBACK_LAYER_ID); } catch {}
         fallbackAddedRef.current = false;
         fallbackLayerRef.current = null;
       }
