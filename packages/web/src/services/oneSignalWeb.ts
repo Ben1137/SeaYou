@@ -293,6 +293,14 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     return;
   }
 
+  // Pre-init corruption check: a corrupted IndexedDB causes init() itself to
+  // throw "Unrecognized operation: login-user" before we can detect corruption
+  // post-init. Wipe first so the SDK bootstraps against a clean store.
+  if (detectCorruptedOneSignalState()) {
+    await scorchedEarthReset('detectCorruptedOneSignalState() returned true before init');
+    return;
+  }
+
   const id = appId || (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_ONESIGNAL_APP_ID;
   if (!id || id === 'YOUR_ONESIGNAL_APP_ID') {
     console.warn(
@@ -337,6 +345,11 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     if (/already initialized/i.test(msg) || sdkIsLive()) {
       initialized = true;
       console.warn('[OneSignalWeb] Treating init error as benign double-init — SDK is live:', msg);
+      return;
+    }
+    if (/unrecognized operation|login-user/i.test(msg)) {
+      console.error('[OneSignalWeb] init() crashed with IndexedDB corruption signature. Triggering reset.', msg);
+      void scorchedEarthReset('init() threw Unrecognized operation / login-user');
       return;
     }
     console.error('[OneSignalWeb] Initialization failed:', err);

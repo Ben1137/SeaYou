@@ -22,6 +22,7 @@ import {
   XCircle,
   Crosshair,
   LifeBuoy,
+  Square,
 } from 'lucide-react';
 import {
   offlineNavigation,
@@ -50,16 +51,20 @@ export const RouteStatsOverlay: React.FC<Props> = ({ cpaWarning }) => {
   const [nav, setNav] = useState<NavigationState | null>(null);
   const [mob, setMob] = useState<MOBPin | null>(null);
   const [confirmMob, setConfirmMob] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(() => offlineNavigation.isSimulation());
 
   useEffect(() => {
     const handleNav = (state: NavigationState) => setNav(state);
     const handleMobDrop = (pin: MOBPin) => setMob(pin);
     const handleMobClear = () => setMob(null);
+    const handleStart = () => setIsSimulating(offlineNavigation.isSimulation());
     const handleStop = () => {
       setNav(null);
       setMob(null);
+      setIsSimulating(false);
     };
     offlineNavigation.on('navigationUpdate', handleNav);
+    offlineNavigation.on('navigationStarted', handleStart);
     offlineNavigation.on('mobDropped', handleMobDrop);
     offlineNavigation.on('mobCleared', handleMobClear);
     offlineNavigation.on('navigationStopped', handleStop);
@@ -68,6 +73,7 @@ export const RouteStatsOverlay: React.FC<Props> = ({ cpaWarning }) => {
     setMob(offlineNavigation.getMOB());
     return () => {
       offlineNavigation.off('navigationUpdate', handleNav);
+      offlineNavigation.off('navigationStarted', handleStart);
       offlineNavigation.off('mobDropped', handleMobDrop);
       offlineNavigation.off('mobCleared', handleMobClear);
       offlineNavigation.off('navigationStopped', handleStop);
@@ -164,9 +170,21 @@ export const RouteStatsOverlay: React.FC<Props> = ({ cpaWarning }) => {
               </span>
             )}
           </p>
-          <span className="text-[10px] text-white/50">
-            {nav.progress.toFixed(0)}%
-          </span>
+          <div className="flex items-center gap-2">
+            {isSimulating && (
+              <button
+                onClick={() => offlineNavigation.stopNavigation()}
+                className="text-[10px] px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/40 transition-colors flex items-center gap-1"
+                title="Stop simulation"
+              >
+                <Square className="w-2.5 h-2.5 fill-current" />
+                Stop Sim
+              </button>
+            )}
+            <span className="text-[10px] text-white/50">
+              {nav.progress.toFixed(0)}%
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-2 mb-2">
