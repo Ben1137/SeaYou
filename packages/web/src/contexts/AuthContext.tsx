@@ -102,7 +102,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
       setSession(newSession);
-      setUser(newSession?.user ?? null);
+      // Use functional update to bail out when the user identity hasn't
+      // changed (INITIAL_SESSION + duplicate SIGNED_IN both fire with the
+      // same user that getCurrentSession() already restored). Returning the
+      // same reference prevents the AlertContext hydration effect from
+      // re-running and eliminates the startup flash.
+      setUser(prev => {
+        const incoming = newSession?.user ?? null;
+        if (prev?.id === incoming?.id) return prev;
+        return incoming;
+      });
     });
 
     return () => {
