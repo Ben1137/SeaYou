@@ -29,6 +29,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/weather/, ''),
         secure: true,
       },
+      '/api/places': {
+        target: 'https://maps.googleapis.com/maps/api/place',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/places/, ''),
+        secure: true,
+      },
     },
   },
   plugins: [

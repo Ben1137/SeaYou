@@ -12,16 +12,32 @@
 import { useEffect } from 'react';
 import type maplibregl from 'maplibre-gl';
 import { useMap } from '../useMap';
-import { boundsToCorners } from '../../../hooks/useCanvasSourceLayer';
 
 const SOURCE_ID = 'noaa-enc-source';
 const LAYER_ID = 'noaa-enc-layer';
 const NOAA_BASE = 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/export';
 
-function buildNoaaUrl(map: maplibregl.Map): string {
-  const b = map.getBounds();
+type ImageCorners = [[number,number],[number,number],[number,number],[number,number]];
+
+/** Returns false if getBounds() produced Infinity/NaN values (map not yet laid out). */
+function isValidBounds(b: maplibregl.LngLatBounds): boolean {
+  return isFinite(b.getWest()) && isFinite(b.getEast()) &&
+         isFinite(b.getSouth()) && isFinite(b.getNorth());
+}
+
+function buildNoaaUrl(b: maplibregl.LngLatBounds): string {
   return `${NOAA_BASE}?bbox=${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}` +
     `&bboxSR=4326&size=1024,1024&imageSR=3857&format=png32&transparent=true&f=image`;
+}
+
+/** MapLibre image source corners: clockwise from NW — [NW, NE, SE, SW]. */
+function buildCorners(b: maplibregl.LngLatBounds): ImageCorners {
+  return [
+    [b.getWest(),  b.getNorth()], // NW (top-left)
+    [b.getEast(),  b.getNorth()], // NE (top-right)
+    [b.getEast(),  b.getSouth()], // SE (bottom-right)
+    [b.getWest(),  b.getSouth()], // SW (bottom-left)
+  ];
 }
 
 export interface NOAAEncLayerMLProps {
@@ -41,15 +57,16 @@ export const NOAAEncLayerML: React.FC<NOAAEncLayerMLProps> = ({
 
     const addLayer = () => {
       const b = map.getBounds();
-      const coords = boundsToCorners(
-        b.getWest(), b.getEast(), b.getSouth(), b.getNorth()
-      );
+      if (!isValidBounds(b)) {
+        // Map container not yet laid out — defer to first moveend
+        return;
+      }
 
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'image',
-          url: buildNoaaUrl(map),
-          coordinates: coords,
+          url: buildNoaaUrl(b),
+          coordinates: buildCorners(b),
         });
       }
       if (!map.getLayer(LAYER_ID)) {
@@ -65,13 +82,15 @@ export const NOAAEncLayerML: React.FC<NOAAEncLayerMLProps> = ({
     };
 
     const handleMoveEnd = () => {
-      const src = map.getSource(SOURCE_ID) as maplibregl.ImageSource | undefined;
-      if (!src) return;
       const b = map.getBounds();
-      src.updateImage({
-        url: buildNoaaUrl(map),
-        coordinates: boundsToCorners(b.getWest(), b.getEast(), b.getSouth(), b.getNorth()),
-      });
+      if (!isValidBounds(b)) return;
+      const src = map.getSource(SOURCE_ID) as maplibregl.ImageSource | undefined;
+      if (src) {
+        src.updateImage({ url: buildNoaaUrl(b), coordinates: buildCorners(b) });
+      } else {
+        // Source wasn't added yet (addLayer bailed on invalid bounds) — add it now
+        addLayer();
+      }
     };
 
     if (map.isStyleLoaded()) addLayer();

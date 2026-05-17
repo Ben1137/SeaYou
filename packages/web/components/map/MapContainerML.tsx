@@ -1037,7 +1037,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     // 3. Fetch enriched details (returns null on missing key / no match / CORS)
     let details: MarinaDetails | null = null;
     try {
-      details = await fetchMarinaDetails(lat, lng, port.name, apiKey);
+      details = await fetchMarinaDetails(lat, lng, port.name, apiKey, '/api/places');
     } catch (err) {
       console.warn('[MapContainerML] Marina details fetch failed:', err);
     }
