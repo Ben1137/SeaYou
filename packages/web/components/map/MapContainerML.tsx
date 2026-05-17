@@ -277,7 +277,7 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
   //              even if Google Places has zero listing data
   const gmapsUrl = details?.url
     ?? (latStr && lngStr
-      ? `http://googleusercontent.com/maps.google.com/?q=${latStr},${lngStr}`
+      ? `https://www.google.com/maps/search/?api=1&query=${latStr},${lngStr}`
       : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(osmName)}`);
 
   const rows: string[] = [];
