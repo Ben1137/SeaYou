@@ -1,34 +1,12 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/|OneSignalSDKWorker\\.js|OneSignalSDKUpdaterWorker\\.js|sw\\.js|workbox-.*\\.js|manifest\\.webmanifest|registerSW\\.js).*)",
+      "source": "/api/places/:path*",
+      "destination": "https://maps.googleapis.com/maps/api/place/:path*"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/OneSignalSDKWorker.js",
-      "headers": [
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" },
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/OneSignalSDKUpdaterWorker.js",
-      "headers": [
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" },
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/sw.js",
-      "headers": [
-        { "key": "Content-Type", "value": "application/javascript; charset=utf-8" },
-        { "key": "Service-Worker-Allowed", "value": "/" },
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
     }
   ]
 }

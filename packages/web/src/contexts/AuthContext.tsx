@@ -98,10 +98,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Calling setUser here creates a new object reference that causes
       // AlertContext's hydration effect to re-run unnecessarily.
       if (event === 'TOKEN_REFRESHED') {
-        setSession(newSession);
+        setSession(newSession);   // JWT rotated — must update
         return;
       }
-      setSession(newSession);
+      setSession(prev =>
+        prev?.access_token === newSession?.access_token ? prev : newSession
+      );
       // Use functional update to bail out when the user identity hasn't
       // changed (INITIAL_SESSION + duplicate SIGNED_IN both fire with the
       // same user that getCurrentSession() already restored). Returning the

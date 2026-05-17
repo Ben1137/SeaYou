@@ -94,17 +94,6 @@ const parseNOAACharts = (data: any): NOAAChart[] => {
 };
 
 /**
- * Get NOAA ENC (Electronic Navigational Chart) tile layer URL
- * These are official NOAA chart tiles
- */
-export const getNOAAChartTileUrl = (chartType: 'enc' | 'rnc' = 'enc'): string => {
-  const service = chartType === 'enc' ? 'ENCOnline' : 'RNCOnline';
-  // MapServer/tile/{z}/{y}/{x} was deprecated — use the dynamic export
-  // endpoint with MapLibre's {bbox-epsg-3857} token instead.
-  return `https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/${service}/MapServer/export?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image`;
-};
-
-/**
  * Fetch hazards from NOAA S-57 ENC data
  * Note: This requires parsing S-57 format data
  * For now, returns placeholder - full implementation would need S-57 parser
