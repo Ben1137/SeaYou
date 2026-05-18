@@ -310,8 +310,9 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
     );
   }
   if (website) {
+    const validWebsite = website.startsWith('http') ? website : `https://${website}`;
     buttons.push(
-      `<a href="${escapeHtml(website)}" target="_blank" rel="noopener" class="seayou-marina-website-btn">\uD83C\uDF10 Visit Website</a>`,
+      `<a href="${escapeHtml(validWebsite)}" target="_blank" rel="noopener" class="seayou-marina-website-btn">\uD83C\uDF10 Visit Website</a>`,
     );
   }
   // Always offer "Open in Google Maps" — works even with zero Google enrichment
