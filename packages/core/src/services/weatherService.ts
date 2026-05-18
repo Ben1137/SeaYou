@@ -87,20 +87,35 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
       cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    // Use rate limiter + deduplicatedFetch to prevent 429s and duplicate API calls
-    const marineData = await globalRateLimiter.enqueue(() =>
-      deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 300000 })
-    );
-    const generalDataRaw = await globalRateLimiter.enqueue(() =>
-      deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${generalParams.toString()}`, undefined, { ttl: 300000 })
-    );
+    // Run both fetches concurrently. Marine API returns 400 for inland locations
+    // (no ocean grid cells) — treat that as a graceful null so terrestrial data
+    // still resolves and the location change completes.
+    const [marineResult, generalResult] = await Promise.allSettled([
+      globalRateLimiter.enqueue(() =>
+        deduplicatedFetch<MarineApiResponse>(`${API_ENDPOINTS.MARINE}?${marineParams.toString()}`, undefined, { ttl: 300000 })
+      ),
+      globalRateLimiter.enqueue(() =>
+        deduplicatedFetch<ForecastApiResponse>(`${API_ENDPOINTS.FORECAST}?${generalParams.toString()}`, undefined, { ttl: 300000 })
+      ),
+    ]);
+
+    // Terrestrial data is required — rethrow so the caller can handle it
+    if (generalResult.status === 'rejected') throw generalResult.reason;
+    const generalDataRaw = generalResult.value;
+
+    // Marine data is optional — inland locations legitimately return 400
+    const marineData: MarineApiResponse | null =
+      marineResult.status === 'fulfilled' ? marineResult.value : null;
+    if (marineResult.status === 'rejected') {
+      console.warn('[WeatherService] Marine API unavailable (inland location or no ocean data):', marineResult.reason);
+    }
 
     const current = generalDataRaw.current;
     const daily = generalDataRaw.daily;
     const hourly = generalDataRaw.hourly;
 
-    // Validate required data
-    if (!current || !daily || !hourly || !marineData.hourly) {
+    // Validate required terrestrial data
+    if (!current || !daily || !hourly) {
       throw new Error('Invalid API response: missing required data');
     }
 
@@ -182,12 +197,12 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
     const tides = generateTideData(lat, lng);
 
     const mergedHourly = {
-      ...marineData.hourly, // Waves, Sea Temp, Currents, Sea Level
+      ...(marineData?.hourly ?? {}), // Waves, Sea Temp, Currents, Sea Level (null for inland)
       pressure_msl: hourly.pressure_msl || [],
       visibility: hourly.visibility || [],
       wind_speed_10m: hourly.wind_speed_10m || [],
       wind_direction_10m: hourly.wind_direction_10m || [],
-      wind_gusts_10m: hourly.wind_gusts_10m || new Array(marineData.hourly.time.length).fill(0),
+      wind_gusts_10m: hourly.wind_gusts_10m || new Array(hourly.time?.length ?? 0).fill(0),
       relative_humidity_2m: hourly.relative_humidity_2m || [],
       uv_index: hourly.uv_index || [],
       weather_code: hourly.weather_code || [],
@@ -197,11 +212,11 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
 
     // Construct the daily object with merged data from marine and forecast APIs
     const mergedDaily = {
-      time: marineData.daily?.time || [],
-      wave_height_max: marineData.daily?.wave_height_max || [],
-      wave_period_max: marineData.daily?.wave_period_max || [],
-      swell_wave_height_max: marineData.daily?.swell_wave_height_max || [],
-      swell_wave_direction_dominant: marineData.daily?.swell_wave_direction_dominant || [],
+      time: marineData?.daily?.time || [],
+      wave_height_max: marineData?.daily?.wave_height_max || [],
+      wave_period_max: marineData?.daily?.wave_period_max || [],
+      swell_wave_height_max: marineData?.daily?.swell_wave_height_max || [],
+      swell_wave_direction_dominant: marineData?.daily?.swell_wave_direction_dominant || [],
       // These come from the forecast API daily data
       wind_speed_10m_max: daily.wind_speed_10m_max || [],
       wind_direction_10m_dominant: daily.wind_direction_10m_dominant || [],
@@ -210,9 +225,9 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
     };
 
     return {
-      latitude: marineData.latitude,
-      longitude: marineData.longitude,
-      hourly_units: marineData.hourly_units || {
+      latitude: marineData?.latitude ?? lat,
+      longitude: marineData?.longitude ?? lng,
+      hourly_units: marineData?.hourly_units ?? {
         wave_height: 'm',
         wind_speed_10m: 'm/s',
         swell_wave_height: 'm'
@@ -226,18 +241,18 @@ export const fetchMarineWeather = async (lat: number, lng: number): Promise<Mari
         windSpeed: current.wind_speed_10m || 0,
         windDirection: current.wind_direction_10m || 0,
         windGusts: current.wind_gusts_10m || ((current.wind_speed_10m || 0) * 1.3),
-        seaTemperature: marineData.current?.sea_surface_temperature || 0,
-        waveHeight: marineData.current?.wave_height || 0,
-        wavePeriod: marineData.current?.wave_period || 0,
-        swellHeight: marineData.current?.swell_wave_height || 0,
-        swellDirection: marineData.current?.swell_wave_direction || 0,
-        swellPeriod: marineData.current?.swell_wave_period || 0,
+        seaTemperature: marineData?.current?.sea_surface_temperature ?? 0,
+        waveHeight: marineData?.current?.wave_height ?? 0,
+        wavePeriod: marineData?.current?.wave_period ?? 0,
+        swellHeight: marineData?.current?.swell_wave_height ?? 0,
+        swellDirection: marineData?.current?.swell_wave_direction ?? 0,
+        swellPeriod: marineData?.current?.swell_wave_period ?? 0,
         pressure: current.surface_pressure || 0,
         visibility: current.visibility || 0,
         seaLevel: tides.currentHeight,
         uvIndex: (() => {
            // Use the same local time calculation as above
-           const idx = hourly.time?.findIndex((t: string) => t.startsWith(nowLocalISO)) || -1;
+           const idx = hourly.time?.findIndex((t: string) => t.startsWith(nowLocalISO)) ?? -1;
            return idx !== -1 ? (hourly.uv_index?.[idx] || 0) : 0;
         })()
       }
