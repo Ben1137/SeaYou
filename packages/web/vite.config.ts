@@ -35,6 +35,12 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/places/, ''),
         secure: true,
       },
+      '/api/noaa': {
+        target: 'https://gis.charttools.noaa.gov/arcgis/rest/services',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/noaa/, ''),
+        secure: true,
+      },
     },
   },
   plugins: [

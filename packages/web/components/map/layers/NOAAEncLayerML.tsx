@@ -12,10 +12,13 @@
 import { useEffect } from 'react';
 import { useMap } from '../useMap';
 
-const SOURCE_ID = 'noaa-enc-source-v3';
-const LAYER_ID = 'noaa-enc-layer-v3';
+const SOURCE_ID = 'noaa-enc-source-v4';
+const LAYER_ID = 'noaa-enc-layer-v4';
+// Route through /api/noaa/ proxy to bypass CORS — NOAA's ArcGIS server returns
+// no Access-Control-Allow-Origin header, so direct browser fetches are blocked.
+// Vercel rewrites /api/noaa/* → gis.charttools.noaa.gov/arcgis/rest/services/*
 const NOAA_TILE_URL =
-  'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/export' +
+  '/api/noaa/MCS/ENCOnline/MapServer/export' +
   '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image';
 
 export interface NOAAEncLayerMLProps {

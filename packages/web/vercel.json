@@ -5,6 +5,10 @@
       "destination": "https://maps.googleapis.com/maps/api/place/:path*"
     },
     {
+      "source": "/api/noaa/:path*",
+      "destination": "https://gis.charttools.noaa.gov/arcgis/rest/services/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
