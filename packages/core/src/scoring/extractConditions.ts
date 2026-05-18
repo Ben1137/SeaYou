@@ -23,16 +23,18 @@ export function extractHourlyConditions(
   hourIndex: number
 ): HourlyConditions {
   const h = data.hourly;
+  // Marine arrays (wave, swell, sea temp) may be absent when the location is
+  // inland and the Marine API returned null — guard every access with ?. ?? 0
   return {
-    time: h.time[hourIndex] || '',
-    waveHeight: h.wave_height[hourIndex] || 0,
-    wavePeriod: h.wave_period[hourIndex] || 0,
-    swellHeight: h.swell_wave_height[hourIndex] || 0,
-    swellPeriod: h.swell_wave_period[hourIndex] || 0,
-    swellDirection: h.swell_wave_direction[hourIndex] || 0,
-    windSpeed: h.wind_speed_10m[hourIndex] || 0,
-    windGusts: h.wind_gusts_10m[hourIndex] || 0,
-    windDirection: h.wind_direction_10m[hourIndex] || 0,
+    time: h.time?.[hourIndex] ?? '',
+    waveHeight: h.wave_height?.[hourIndex] ?? 0,
+    wavePeriod: h.wave_period?.[hourIndex] ?? 0,
+    swellHeight: h.swell_wave_height?.[hourIndex] ?? 0,
+    swellPeriod: h.swell_wave_period?.[hourIndex] ?? 0,
+    swellDirection: h.swell_wave_direction?.[hourIndex] ?? 0,
+    windSpeed: h.wind_speed_10m?.[hourIndex] ?? 0,
+    windGusts: h.wind_gusts_10m?.[hourIndex] ?? 0,
+    windDirection: h.wind_direction_10m?.[hourIndex] ?? 0,
     windWaveHeight: h.wind_wave_height?.[hourIndex],
     currentSpeed: h.ocean_current_velocity?.[hourIndex],
     currentDirection: h.ocean_current_direction?.[hourIndex],
@@ -53,7 +55,7 @@ export function extractCurrentConditions(data: MarineWeatherData): HourlyConditi
   const currentHour = String(now.getHours()).padStart(2, '0');
   const nowLocalISO = `${currentYear}-${currentMonth}-${currentDay}T${currentHour}`;
 
-  let idx = data.hourly.time.findIndex(t => t.startsWith(nowLocalISO));
+  let idx = (data.hourly.time ?? []).findIndex(t => t.startsWith(nowLocalISO));
   if (idx === -1) idx = 0;
 
   return extractHourlyConditions(data, idx);
