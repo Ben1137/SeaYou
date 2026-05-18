@@ -12,8 +12,8 @@
 import { useEffect } from 'react';
 import { useMap } from '../useMap';
 
-const SOURCE_ID = 'noaa-enc-source';
-const LAYER_ID = 'noaa-enc-layer';
+const SOURCE_ID = 'noaa-enc-source-v2';
+const LAYER_ID = 'noaa-enc-layer-v2';
 const NOAA_TILE_URL =
   'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/export' +
   '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image';
