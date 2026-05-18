@@ -244,7 +244,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   }, [scoringConditions]);
 
   const bestWindows = useMemo(() => {
-    if (!weatherData) return null;
+    if (!weatherData?.hourly?.time?.length) return null;
     return {
       [ActivityPersona.SAILOR]: findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex }),
       [ActivityPersona.WAVE_SURFER]: findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex }),

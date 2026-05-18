@@ -7,6 +7,7 @@ export function findBestWindow(
   persona: ActivityPersona,
   options?: { minHours?: number; maxHours?: number; startHourIndex?: number }
 ): BestWindow | null {
+  if (!data?.hourly?.time?.length) return null;
   const minH = options?.minHours ?? 2;
   const maxH = options?.maxHours ?? 6;
   const startIdx = options?.startHourIndex ?? 0;
