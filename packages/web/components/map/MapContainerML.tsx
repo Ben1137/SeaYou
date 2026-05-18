@@ -412,7 +412,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
   /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
   const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc') => {
-    if (isFreeUser) {
+    // NOAA ENC is US public data — free for all users
+    if (isFreeUser && key !== 'noaaEnc') {
       setShowPaywall(true);
       return;
     }
@@ -1297,7 +1298,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.noaaEnc ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
               title="Official NOAA Electronic Navigational Charts — US waters only"
             >
-              <Compass size={12} /> <span className="flex-1">NOAA ENC (US)</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+              <Compass size={12} /> <span className="flex-1">NOAA ENC (US)</span>
             </button>
           </div>
           {(loadingGrid || sharedMarineData.loading || sharedForecastData.loading) && (
