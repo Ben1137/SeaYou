@@ -310,7 +310,9 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
     );
   }
   if (website) {
-    const validWebsite = website.startsWith('http') ? website : `https://${website}`;
+    const validWebsite = website.startsWith('http') ? website
+      : website.startsWith('//') ? `https:${website}`
+      : `https://${website}`;
     buttons.push(
       `<a href="${escapeHtml(validWebsite)}" target="_blank" rel="noopener" class="seayou-marina-website-btn">\uD83C\uDF10 Visit Website</a>`,
     );
