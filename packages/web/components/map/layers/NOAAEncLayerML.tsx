@@ -12,8 +12,8 @@
 import { useEffect } from 'react';
 import { useMap } from '../useMap';
 
-const SOURCE_ID = 'noaa-enc-source-v4';
-const LAYER_ID = 'noaa-enc-layer-v4';
+const SOURCE_ID = 'noaa-enc-source-v5';
+const LAYER_ID = 'noaa-enc-layer-v5';
 // Route through /api/noaa/ proxy to bypass CORS — NOAA's ArcGIS server returns
 // no Access-Control-Allow-Origin header, so direct browser fetches are blocked.
 // Vercel rewrites /api/noaa/* → gis.charttools.noaa.gov/arcgis/rest/services/*
@@ -42,6 +42,9 @@ export const NOAAEncLayerML: React.FC<NOAAEncLayerMLProps> = ({
           type: 'raster',
           tiles: [NOAA_TILE_URL],
           tileSize: 256,
+          bounds: [-180, 10, -45, 75],
+          minzoom: 5,
+          maxzoom: 18,
           attribution:
             '<a href="https://nauticalcharts.noaa.gov/" target="_blank" rel="noopener">NOAA ENC</a>',
         });
