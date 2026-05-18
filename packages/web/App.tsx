@@ -178,10 +178,15 @@ const AppContent: React.FC = () => {
   // let the local default `hasCompletedTour: false` win). Signed-out
   // users gate on local flag only — cloud isn't available to them.
   const isSignedIn = !!authUser;
-  // Accept 'error' too — if the cloud fetch fails we fall back to local
-  // prefs which are already guarded by tourLocallyCompleted (localStorage).
-  // Without this, a transient network error at login permanently blocks the
-  // tour from ever firing for new users in that session.
+  // Signed-in users MUST get a 'synced' cloud read before any tour-gate
+  // decision is made.  Earlier we accepted 'error' as a fallback, which
+  // caused returning paying users on a flaky connection to be force-fed
+  // the tour every login (local default hasCompletedTour=false beat the
+  // cloud value that never got merged in on the error path).
+  //
+  // On true cloud failure, AlertContext now flips hasCompletedTour=true
+  // defensively after an 8 s timeout — see setCloudSyncStatus('error')
+  // handler — so the gate stays closed even when cloud never resolves.
   const prefsLoaded = isSignedIn
     ? alertConfig.cloudSyncStatus === 'synced' || alertConfig.cloudSyncStatus === 'error'
     : true;

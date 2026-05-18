@@ -234,15 +234,39 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setCloudSyncStatus('syncing');
     setCloudSyncError(null);
 
+    // Fail-safe timeout: if the cloud fetch hangs forever (cold start, dead
+    // socket), force the gate closed so we don't strand the UI in 'syncing'.
+    // Defensively flip hasCompletedTour=true so the InteractiveTour stays
+    // suppressed for this session — much better to skip the tour for a new
+    // user on a permanently broken connection than to force-feed it to a
+    // returning paying user every login.
+    const fetchTimeoutId = window.setTimeout(() => {
+      if (cancelled) return;
+      console.warn('[AlertContext] Cloud fetch timed out after 8s — closing tour gate defensively');
+      setCloudSyncStatus('error');
+      setCloudSyncError('timeout');
+      hasHydratedFromCloud.current = true;
+      setPreferences((prev) =>
+        prev.hasCompletedTour ? prev : { ...prev, hasCompletedTour: true }
+      );
+    }, 8000);
+
     (async () => {
       const result = await fetchPreferences(user.id);
       if (cancelled) return;
+      window.clearTimeout(fetchTimeoutId);
 
       if (result.error) {
         console.warn('[AlertContext] Cloud fetch failed:', result.error);
         setCloudSyncStatus('error');
         setCloudSyncError(result.error);
         hasHydratedFromCloud.current = true;
+        // Defensive close: cloud failure must not unblock the tour for users
+        // whose cloud row already says hasCompletedTour=true.  See timeout
+        // comment above for rationale.
+        setPreferences((prev) =>
+          prev.hasCompletedTour ? prev : { ...prev, hasCompletedTour: true }
+        );
         return;
       }
 
@@ -282,6 +306,7 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
     return () => {
       cancelled = true;
+      window.clearTimeout(fetchTimeoutId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, authConfigured]);
