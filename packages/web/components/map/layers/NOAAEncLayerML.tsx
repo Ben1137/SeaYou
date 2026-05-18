@@ -12,14 +12,18 @@
 import { useEffect } from 'react';
 import { useMap } from '../useMap';
 
-const SOURCE_ID = 'noaa-enc-source-v5';
-const LAYER_ID = 'noaa-enc-layer-v5';
+const SOURCE_ID = 'noaa-enc-source-v6';
+const LAYER_ID = 'noaa-enc-layer-v6';
 // Route through /api/noaa/ proxy to bypass CORS — NOAA's ArcGIS server returns
 // no Access-Control-Allow-Origin header, so direct browser fetches are blocked.
 // Vercel rewrites /api/noaa/* → gis.charttools.noaa.gov/arcgis/rest/services/*
+//
+// cb=v2 busts the Vercel Edge CDN cache: a prior deploy accidentally cached
+// 1×1 transparent PNGs at the old URL.  A new query parameter is a new cache
+// key, so Edge must re-fetch real ENC tiles from NOAA on every cache miss.
 const NOAA_TILE_URL =
   '/api/noaa/MCS/ENCOnline/MapServer/export' +
-  '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image';
+  '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image&cb=v2';
 
 export interface NOAAEncLayerMLProps {
   enabled: boolean;

@@ -178,8 +178,12 @@ const AppContent: React.FC = () => {
   // let the local default `hasCompletedTour: false` win). Signed-out
   // users gate on local flag only — cloud isn't available to them.
   const isSignedIn = !!authUser;
+  // Accept 'error' too — if the cloud fetch fails we fall back to local
+  // prefs which are already guarded by tourLocallyCompleted (localStorage).
+  // Without this, a transient network error at login permanently blocks the
+  // tour from ever firing for new users in that session.
   const prefsLoaded = isSignedIn
-    ? alertConfig.cloudSyncStatus === 'synced'
+    ? alertConfig.cloudSyncStatus === 'synced' || alertConfig.cloudSyncStatus === 'error'
     : true;
   const showAppTour =
     !tourLocallyCompleted &&
