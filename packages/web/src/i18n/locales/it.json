@@ -571,5 +571,16 @@
       "diver": "Subacqueo",
       "diverDesc": "Visibilità, correnti e temperatura dell'acqua"
     }
+  },
+  "routeForecast": {
+    "overallScore": "Condizioni di rotta",
+    "segmentScore": "Segmento {{index}} — Punteggio {{score}}",
+    "betterDeparture": "Condizioni migliori alle {{time}} (punteggio {{newScore}} vs {{oldScore}} ora)",
+    "applyDeparture": "Usa questo orario di partenza",
+    "advisory": {
+      "headwind": "Vento contrario previsto sulla maggior parte della rotta",
+      "storm": "Condizioni di tempesta rilevate — riconsiderare la partenza",
+      "improving": "Le condizioni migliorano significativamente tra {{hours}}h"
+    }
   }
 }

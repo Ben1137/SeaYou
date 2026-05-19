@@ -594,5 +594,16 @@
       "diver": "צולל",
       "diverDesc": "נראות, זרמים וטמפרטורת הים"
     }
+  },
+  "routeForecast": {
+    "overallScore": "תנאי מסלול",
+    "segmentScore": "קטע {{index}} — ציון {{score}}",
+    "betterDeparture": "תנאים טובים יותר ב-{{time}} (ציון {{newScore}} לעומת {{oldScore}} כעת)",
+    "applyDeparture": "השתמש בזמן יציאה זה",
+    "advisory": {
+      "headwind": "רוח נגד צפויה ברוב המסלול",
+      "storm": "תנאי סערה זוהו — שקול מחדש את מועד היציאה",
+      "improving": "התנאים משתפרים משמעותית בעוד {{hours}} שעות"
+    }
   }
 }

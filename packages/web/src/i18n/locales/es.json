@@ -553,5 +553,16 @@
       "diver": "Buceador",
       "diverDesc": "Visibilidad, corrientes y temperatura del agua"
     }
+  },
+  "routeForecast": {
+    "overallScore": "Condiciones de ruta",
+    "segmentScore": "Segmento {{index}} — Puntuación {{score}}",
+    "betterDeparture": "Mejores condiciones a las {{time}} (puntuación {{newScore}} vs {{oldScore}} ahora)",
+    "applyDeparture": "Usar esta hora de salida",
+    "advisory": {
+      "headwind": "Se espera viento de proa en la mayor parte de la ruta",
+      "storm": "Condiciones de tormenta detectadas — reconsidere la salida",
+      "improving": "Las condiciones mejoran significativamente en {{hours}}h"
+    }
   }
 }

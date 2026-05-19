@@ -620,5 +620,16 @@
       "diver": "Diver",
       "diverDesc": "Visibility, currents & sea temp"
     }
+  },
+  "routeForecast": {
+    "overallScore": "Route conditions",
+    "segmentScore": "Segment {{index}} — Score {{score}}",
+    "betterDeparture": "Better conditions at {{time}} (score {{newScore}} vs {{oldScore}} now)",
+    "applyDeparture": "Use this departure time",
+    "advisory": {
+      "headwind": "Headwind expected on most of the route",
+      "storm": "Storm conditions detected — reconsider departure",
+      "improving": "Conditions improve significantly in {{hours}}h"
+    }
   }
 }

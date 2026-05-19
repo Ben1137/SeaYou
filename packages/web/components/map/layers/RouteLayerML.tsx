@@ -23,7 +23,8 @@
  */
 
 import { useEffect, useRef } from 'react';
-import type { GeoJSONSource } from 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
+import type { GeoJSONSource, MapMouseEvent, MapGeoJSONFeature } from 'maplibre-gl';
 import { useMap } from '../useMap';
 import { useRoute } from '../../../src/contexts/RouteContext';
 
@@ -234,23 +235,26 @@ export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
     );
 
     // Phase 2: emit one LineString feature *per segment* so each can
-    // carry its own `severity` property (read by the paint expression).
-    // Falls back to a single LineString with severity=undefined when
-    // no analysis is available yet (e.g. while the fetch is in-flight).
+    // carry its own `severity` and `score` properties.
+    // Falls back to a single LineString when no analysis is available.
     const segmentFeatures: GeoJSON.Feature[] =
       coords.length >= 2
-        ? coords.slice(0, -1).map((_, i) => ({
-            type: 'Feature',
-            geometry: {
-              type: 'LineString',
-              coordinates: [coords[i], coords[i + 1]],
-            },
-            properties: {
-              segmentIndex: i,
-              severity:
-                safety?.segments?.[i]?.severity ?? null,
-            },
-          }))
+        ? coords.slice(0, -1).map((_, i) => {
+            const seg = safety?.segments?.[i];
+            return {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [coords[i], coords[i + 1]],
+              },
+              properties: {
+                segmentIndex: i,
+                severity: seg?.severity ?? null,
+                score: seg?.score ?? null,
+                etaHours: seg?.weather?.etaHours ?? null,
+              },
+            };
+          })
         : [];
 
     lineSource?.setData({
@@ -306,6 +310,76 @@ export function RouteLayerML({ visible = true }: RouteLayerMLProps) {
       }
     }
   }, [map, visible]);
+
+  // Segment click → popup showing score + ETA.
+  useEffect(() => {
+    if (!map) return;
+
+    const popupRef = { current: null as maplibregl.Popup | null };
+
+    const handleClick = (e: MapMouseEvent & { features?: MapGeoJSONFeature[] }) => {
+      const features = e.features;
+      if (!features || features.length === 0) return;
+      const props = features[0].properties as {
+        segmentIndex: number | null;
+        severity: string | null;
+        score: number | null;
+        etaHours: number | null;
+      };
+
+      const idx = props.segmentIndex;
+      const score = props.score;
+      const severity = props.severity ?? 'unknown';
+      const eta = props.etaHours;
+
+      if (idx === null) return;
+
+      const severityColor =
+        severity === 'danger'
+          ? '#ef4444'
+          : severity === 'caution'
+            ? '#f59e0b'
+            : '#22c55e';
+
+      const etaLabel =
+        eta !== null
+          ? `ETA +${eta < 1 ? Math.round(eta * 60) + ' min' : eta.toFixed(1) + 'h'}`
+          : '';
+
+      const scoreLabel =
+        score !== null
+          ? `<span style="font-weight:700;color:${severityColor}">${Math.round(score)}/100</span>`
+          : `<span style="color:${severityColor}">${severity}</span>`;
+
+      const html = `
+        <div style="font-family:sans-serif;font-size:12px;line-height:1.5;min-width:130px">
+          <div style="font-weight:600;margin-bottom:4px;color:#cbd5e1">Segment ${idx + 1}</div>
+          <div>Score: ${scoreLabel}</div>
+          ${etaLabel ? `<div style="color:#94a3b8;margin-top:2px">${etaLabel}</div>` : ''}
+        </div>
+      `;
+
+      popupRef.current?.remove();
+      popupRef.current = new maplibregl.Popup({ closeButton: true, maxWidth: '200px' })
+        .setLngLat(e.lngLat)
+        .setHTML(html)
+        .addTo(map);
+    };
+
+    const handleMouseEnter = () => { map.getCanvas().style.cursor = 'pointer'; };
+    const handleMouseLeave = () => { map.getCanvas().style.cursor = ''; };
+
+    map.on('click', ROUTE_LINE_LAYER_ID, handleClick);
+    map.on('mouseenter', ROUTE_LINE_LAYER_ID, handleMouseEnter);
+    map.on('mouseleave', ROUTE_LINE_LAYER_ID, handleMouseLeave);
+
+    return () => {
+      popupRef.current?.remove();
+      map.off('click', ROUTE_LINE_LAYER_ID, handleClick);
+      map.off('mouseenter', ROUTE_LINE_LAYER_ID, handleMouseEnter);
+      map.off('mouseleave', ROUTE_LINE_LAYER_ID, handleMouseLeave);
+    };
+  }, [map]);
 
   return null;
 }

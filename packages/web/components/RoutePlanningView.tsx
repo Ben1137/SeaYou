@@ -42,6 +42,7 @@ import {
   buildOptimizedRoute,
   RouteAnalysis,
 } from '@seame/core';
+import { useTranslation } from 'react-i18next';
 import { fetchCoastlineData } from './map/layers/CoastlineLayerML';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { VesselSettingsModal, VesselSettings, VESSEL_POLAR_DEFAULTS } from './VesselSettingsModal';
@@ -61,6 +62,7 @@ interface RoutePlanningViewProps {
 }
 
 export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMap }) => {
+  const { t } = useTranslation();
   // Route lives in shared context so the map layers + form stay in sync.
   const { route, setRoute, removeWaypoint, safety, setSafety } = useRoute();
   const { persona } = useAlertConfig();
@@ -867,6 +869,44 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
               {optimizeStatus && (
                 <p className="mt-2 text-xs text-yellow-200/90">{optimizeStatus}</p>
               )}
+
+              {departureWindows && departureWindows.length > 1 && (() => {
+                const best = departureWindows[0];
+                const worst = departureWindows[departureWindows.length - 1];
+                const hoursUntil = Math.round(
+                  (best.departureTime.getTime() - Date.now()) / 3600000,
+                );
+                // Convert safetyScore (penalty, lower=better) to a 0-100 display score.
+                const toDisplayScore = (s: number) => Math.max(0, Math.min(100, Math.round(100 - s * 10)));
+                const bestDisplay = toDisplayScore(best.safetyScore);
+                const worstDisplay = toDisplayScore(worst.safetyScore);
+                // Show banner only when best window is meaningfully better and in the future.
+                if (best.safetyScore >= worst.safetyScore || hoursUntil <= 0) return null;
+                if (worstDisplay - bestDisplay < 15) return null;
+                return (
+                  <div className="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                    <div className="flex items-start gap-2">
+                      <span className="text-emerald-400 text-lg leading-none mt-0.5">↑</span>
+                      <div>
+                        <p className="text-sm font-semibold text-emerald-300">
+                          {t('routeForecast.betterDeparture', {
+                            time: best.departureTime.toLocaleString(undefined, {
+                              weekday: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }),
+                            newScore: bestDisplay,
+                            oldScore: worstDisplay,
+                          })}
+                        </p>
+                        <p className="text-xs text-white/50 mt-0.5">
+                          {t('routeForecast.advisory.improving', { hours: hoursUntil })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {departureWindows && departureWindows.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-white/10">
