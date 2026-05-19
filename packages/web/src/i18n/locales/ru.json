@@ -40,7 +40,12 @@
     "waveThreshold": "Порог волн",
     "windThreshold": "Порог ветра",
     "swellThreshold": "Порог зыби",
-    "tsunamiSimulation": "Симуляция оповещения о цунами"
+    "tsunamiSimulation": "Симуляция оповещения о цунами",
+    "weatherModel": {
+      "label": "Модель прогноза",
+      "auto": "Авто (лучшее для местоположения)",
+      "description": "Разрешение {{resolution}} · горизонт {{horizon}} дней"
+    }
   },
   "alerts": {
     "stormWarning": "ПРЕДУПРЕЖДЕНИЕ О ШТОРМЕ",

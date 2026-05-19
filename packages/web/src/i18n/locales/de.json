@@ -40,7 +40,12 @@
     "waveThreshold": "Wellenschwelle",
     "windThreshold": "Windschwelle",
     "swellThreshold": "Dünungsschwelle",
-    "tsunamiSimulation": "Tsunami-Alarm-Simulation"
+    "tsunamiSimulation": "Tsunami-Alarm-Simulation",
+    "weatherModel": {
+      "label": "Vorhersagemodell",
+      "auto": "Automatisch (bestes für Standort)",
+      "description": "{{resolution}} Auflösung · {{horizon}}-Tage-Horizont"
+    }
   },
   "alerts": {
     "stormWarning": "STURMWARNUNG",

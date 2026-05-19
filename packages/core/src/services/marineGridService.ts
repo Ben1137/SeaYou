@@ -337,7 +337,8 @@ function getWaveHeightColor(height: number): string {
  */
 export async function fetchMarineGridData(
   bounds: BoundingBox,
-  resolution: GridResolution = { latPoints: 5, lngPoints: 5 }
+  resolution: GridResolution = { latPoints: 5, lngPoints: 5 },
+  userModel?: string
 ): Promise<MarineGridData> {
   try {
     // URL length budget: each "lat,lng" pair consumes ~14 chars in the query string.
@@ -379,9 +380,9 @@ export async function fetchMarineGridData(
     const centerLat = (bounds.north + bounds.south) / 2;
     const centerLng = (bounds.east + bounds.west) / 2;
 
-    // Get optimal models for this region based on geolocation
-    let marineModel = getModelForLocation(centerLat, centerLng, true);
-    const weatherModel = getModelForLocation(centerLat, centerLng, false);
+    // Get optimal models for this region based on geolocation (userModel overrides when set)
+    let marineModel = userModel ?? getModelForLocation(centerLat, centerLng, true);
+    const weatherModel = userModel ?? getModelForLocation(centerLat, centerLng, false);
 
     // Check if coordinate count exceeds model limit - auto-fallback to best_match
     const maxCoords = MAX_COORDINATES_BY_MODEL[marineModel] || MAX_COORDINATES_BY_MODEL['default'];
@@ -699,9 +700,10 @@ export function generateWaveGridCells(
  */
 export async function fetchVelocityField(
   bounds: BoundingBox,
-  resolution: GridResolution = { latPoints: 5, lngPoints: 5 }
+  resolution: GridResolution = { latPoints: 5, lngPoints: 5 },
+  userModel?: string
 ): Promise<{ wind: VelocityField; current: VelocityField }> {
-  const gridData = await fetchMarineGridData(bounds, resolution);
+  const gridData = await fetchMarineGridData(bounds, resolution, userModel);
 
   return {
     wind: convertToVelocityFormat(gridData, 'wind'),
@@ -722,8 +724,9 @@ export async function fetchVelocityField(
 export async function fetchWaveHeatmap(
   bounds: BoundingBox,
   resolution: GridResolution = { latPoints: 5, lngPoints: 5 },
-  waveType: 'wave' | 'swell' = 'wave'
+  waveType: 'wave' | 'swell' = 'wave',
+  userModel?: string
 ): Promise<WaveGrid> {
-  const gridData = await fetchMarineGridData(bounds, resolution);
+  const gridData = await fetchMarineGridData(bounds, resolution, userModel);
   return generateWaveGridCells(gridData, waveType);
 }

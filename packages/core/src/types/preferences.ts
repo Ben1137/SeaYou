@@ -95,6 +95,12 @@ export interface UserPreferences {
 
   /** "Home" longitude — see `home_lat`. */
   home_lon: number | null;
+
+  /**
+   * User's preferred Open-Meteo weather model.
+   * undefined = auto (geo-based best match via getModelForLocation).
+   */
+  selectedModel?: string;
 }
 
 // ─── Defaults ───

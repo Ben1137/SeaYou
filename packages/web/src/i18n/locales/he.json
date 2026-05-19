@@ -40,7 +40,12 @@
     "waveThreshold": "סף גלים",
     "windThreshold": "סף רוח",
     "swellThreshold": "סף סוול",
-    "tsunamiSimulation": "סימולציית התראת צונאמי"
+    "tsunamiSimulation": "סימולציית התראת צונאמי",
+    "weatherModel": {
+      "label": "מודל תחזית",
+      "auto": "אוטומטי (מיטב לפי מיקום)",
+      "description": "רזולוציה {{resolution}} · אופק {{horizon}} ימים"
+    }
   },
   "alerts": {
     "stormWarning": "אזהרת סערה",

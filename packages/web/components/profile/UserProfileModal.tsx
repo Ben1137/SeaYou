@@ -21,6 +21,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useAlertConfig } from '../../src/contexts/AlertContext';
+import { useUserPreferences } from '../../src/hooks/useUserPreferences';
+import { ModelPicker } from './ModelPicker';
 import { startCheckout } from '../../src/services/billing';
 import {
   ActivityPersona,
@@ -191,6 +193,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     favoriteLocations,
     cloudSyncStatus,
   } = useAlertConfig();
+  const { preferences, setPreference } = useUserPreferences();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -405,6 +408,14 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* Model picker */}
+              <div className="mt-3">
+                <ModelPicker
+                  selectedModel={preferences.selectedModel}
+                  onChange={(m) => setPreference('selectedModel', m)}
+                />
               </div>
             </div>
 

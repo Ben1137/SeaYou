@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS } from '@seame/core';
+import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
@@ -71,6 +72,7 @@ const getWeatherConditionKey = (code: number): string => {
 const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick }) => {
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, persona } = useAlertConfig();
+  const { preferences } = useUserPreferences();
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
@@ -414,6 +416,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </h1>
           <p className="text-white/60 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-white">{locationName}</span>
+            {preferences?.selectedModel && (
+              <span className="text-xs text-cyan-400/70 bg-cyan-400/10 border border-cyan-400/20 rounded px-2 py-0.5 font-mono">
+                {WEATHER_MODELS[preferences.selectedModel]?.name ?? preferences.selectedModel}
+              </span>
+            )}
             <span className="text-white/30">•</span>
             {weatherData.latitude.toFixed(4)}°N, {weatherData.longitude.toFixed(4)}°E
             <span className="text-white/30">•</span>
