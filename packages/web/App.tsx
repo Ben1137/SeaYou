@@ -107,10 +107,24 @@ const ProfileButton: React.FC<ProfileButtonProps> = ({ onOpenAuthModal, onOpenPr
   );
 };
 
-// Synchronous localStorage cache key for tour completion.
-// Written on tour finish/skip so the next page load can short-circuit the
-// ~500ms Supabase hydration window that would otherwise flash the tour again.
-const TOUR_LOCAL_CACHE_KEY = 'tourCompleted';
+// Single source of truth: read tour completion directly from the persisted
+// userPreferences blob in localStorage. The previous design wrote a separate
+// `tourCompleted` boolean key in parallel with the prefs blob — the two
+// inevitably drifted (e.g. defensive flips wrote to prefs only, leaving the
+// legacy key stale), causing the tour to re-fire on every login.
+const PREFS_STORAGE_KEY = 'seayou_user_preferences';
+
+function readTourCompletedSync(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = window.localStorage.getItem(PREFS_STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as { hasCompletedTour?: unknown };
+    return parsed?.hasCompletedTour === true;
+  } catch {
+    return false;
+  }
+}
 
 const AppContent: React.FC = () => {
   const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
@@ -128,23 +142,11 @@ const AppContent: React.FC = () => {
     void reconcileLocalRoutesToCloud();
   }, [authUser]);
 
-  // Synchronous localStorage read — immediately blocks tour during the first
-  // render cycle, before Supabase responds with cloud preferences.
-  const tourLocallyCompleted =
-    typeof window !== 'undefined' &&
-    window.localStorage.getItem(TOUR_LOCAL_CACHE_KEY) === 'true';
-
-  // Mirror cloud → local whenever Supabase confirms completion on another
-  // device, so next refresh can short-circuit immediately.
-  useEffect(() => {
-    if (alertConfig.hasCompletedTour === true && !tourLocallyCompleted) {
-      try {
-        window.localStorage.setItem(TOUR_LOCAL_CACHE_KEY, 'true');
-      } catch {
-        // Ignore quota / private-mode errors.
-      }
-    }
-  }, [alertConfig.hasCompletedTour, tourLocallyCompleted]);
+  // Synchronous read from the persisted userPreferences blob — immediately
+  // blocks the tour during the first render cycle, before Supabase responds
+  // with cloud preferences.  Single source of truth: no separate boolean
+  // key to drift out of sync with the prefs blob.
+  const tourLocallyCompleted = readTourCompletedSync();
 
   const [view, setView] = useState<ViewState>(ViewState.DASHBOARD);
   const [locations, setLocations] = useState<Location[]>([DEFAULT_LOC]);
@@ -1043,13 +1045,11 @@ const AppContent: React.FC = () => {
         {showAppTour && <InteractiveTour
           run={showAppTour}
           onFinish={() => {
-            // Write local cache FIRST so the next page load is instantly guarded
-            // even if the Supabase round-trip is still in flight.
-            try {
-              window.localStorage.setItem(TOUR_LOCAL_CACHE_KEY, 'true');
-            } catch {
-              // Ignore quota / private-mode errors — cloud persistence still fires.
-            }
+            // setHasCompletedTour synchronously writes the full userPreferences
+            // blob to localStorage via persistPreferences().  The next page
+            // load's readTourCompletedSync() will pick that up and short-circuit
+            // before Supabase hydration finishes.  No separate boolean key
+            // needed (legacy `tourCompleted` write dropped — see commit log).
             alertConfig.setHasCompletedTour(true);
 
             // UX-ideal moment to ask for push permission: the user has

@@ -12,21 +12,22 @@
 import { useEffect } from 'react';
 import { useMap } from '../useMap';
 
-const SOURCE_ID = 'noaa-enc-source-v7';
-const LAYER_ID = 'noaa-enc-layer-v7';
-// Route through /api/noaa/ proxy to bypass CORS — NOAA's ArcGIS server returns
-// no Access-Control-Allow-Origin header, so direct browser fetches are blocked.
-// Vercel rewrites /api/noaa/* → gis.charttools.noaa.gov/arcgis/rest/services/*
+const SOURCE_ID = 'noaa-enc-source-v8';
+const LAYER_ID = 'noaa-enc-layer-v8';
+// Route through /api/noaa/ proxy (Vercel edge function) to bypass CORS —
+// NOAA's ArcGIS server returns no Access-Control-Allow-Origin header.
 //
-// IMPORTANT: real ENC chart imagery is rendered by the MaritimeChartService
-// extension, NOT by the parent MapServer. The parent /MapServer/export endpoint
-// returns near-empty (~900 B) PNGs because no ENC layers are mounted at that
-// level. The extension's /exts/MaritimeChartService/MapServer/export endpoint
-// is the one that renders S-57/S-63 chart data — confirmed against
-// gis.charttools.noaa.gov directly (~10–35 kB PNGs in US waters).
+// Endpoint: the parent /MCS/ENCOnline/MapServer/export returns near-empty
+// (~900 B) PNGs because no ENC layers are mounted there. The real chart
+// imagery is rendered by the MaritimeChartService extension below.
+//
+// cb=v3 evicts the Vercel Edge CDN entries cached during the routing-bug
+// window when /api/noaa/* was returning index.html instead of running the
+// edge function (see vercel.json — the SPA catch-all rewrite previously
+// shadowed /api/noaa/*). Drop this param in a follow-up PR once verified.
 const NOAA_TILE_URL =
   '/api/noaa/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer/export' +
-  '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image';
+  '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image&cb=v3';
 
 export interface NOAAEncLayerMLProps {
   enabled: boolean;
