@@ -40,7 +40,22 @@
     "waveThreshold": "Seuil de vague",
     "windThreshold": "Seuil de vent",
     "swellThreshold": "Seuil de houle",
-    "tsunamiSimulation": "Simulation d'alerte tsunami"
+    "tsunamiSimulation": "Simulation d'alerte tsunami",
+    "weatherModel": {
+      "label": "Modèle de prévision",
+      "auto": "Automatique (meilleur pour la position)",
+      "description": "Résolution {{resolution}} · horizon {{horizon}} jours"
+    },
+    "theme": {
+      "label": "Thème",
+      "auto": "Automatique (jour/nuit)",
+      "light": "Océan Profond (clair)",
+      "dark": "Veille de Nuit (sombre)",
+      "brightDeck": "Pont Lumineux (mode soleil)",
+      "brightDeckHint": "Contraste élevé, sans flou. Idéal en plein soleil.",
+      "brightDeckOn": "Activer le mode soleil (contraste élevé)",
+      "brightDeckOff": "Quitter le mode soleil"
+    }
   },
   "alerts": {
     "stormWarning": "ALERTE TEMPÊTE",

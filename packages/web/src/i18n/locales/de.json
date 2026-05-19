@@ -40,7 +40,22 @@
     "waveThreshold": "Wellenschwelle",
     "windThreshold": "Windschwelle",
     "swellThreshold": "Dünungsschwelle",
-    "tsunamiSimulation": "Tsunami-Alarm-Simulation"
+    "tsunamiSimulation": "Tsunami-Alarm-Simulation",
+    "weatherModel": {
+      "label": "Vorhersagemodell",
+      "auto": "Automatisch (bestes für Standort)",
+      "description": "{{resolution}} Auflösung · {{horizon}}-Tage-Horizont"
+    },
+    "theme": {
+      "label": "Design",
+      "auto": "Automatisch (Tag/Nacht)",
+      "light": "Tiefer Ozean (hell)",
+      "dark": "Nachtwache (dunkel)",
+      "brightDeck": "Helles Deck (Sonnenmodus)",
+      "brightDeckHint": "Hoher Kontrast, kein Weichzeichner. Ideal bei direktem Sonnenlicht.",
+      "brightDeckOn": "Sonnenmodus aktivieren (hoher Kontrast)",
+      "brightDeckOff": "Sonnenmodus beenden"
+    }
   },
   "alerts": {
     "stormWarning": "STURMWARNUNG",

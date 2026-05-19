@@ -29,11 +29,11 @@ function getModelForLocation(lat: number, lng: number, isMarine: boolean = false
   return _getModelForLocation(lat, lng, isMarine, WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION, WEATHER_CONSTANTS.MODEL);
 }
 
-export const fetchMarineWeather = async (lat: number, lng: number): Promise<MarineWeatherData> => {
+export const fetchMarineWeather = async (lat: number, lng: number, userModel?: string): Promise<MarineWeatherData> => {
   try {
-    // Get optimal models for this location based on geolocation
-    const marineModel = getModelForLocation(lat, lng, true);
-    const weatherModel = getModelForLocation(lat, lng, false);
+    // Get optimal models for this location based on geolocation (userModel overrides when set)
+    const marineModel = userModel ?? getModelForLocation(lat, lng, true);
+    const weatherModel = userModel ?? getModelForLocation(lat, lng, false);
 
     // Log model selection for debugging (can be removed in production)
     if (WEATHER_CONSTANTS.PREFER_HIGH_RESOLUTION) {
@@ -365,11 +365,11 @@ export const fetchPointForecast = async (lat: number, lng: number): Promise<Poin
   }
 };
 
-export const fetchHourlyPointForecast = async (lat: number, lng: number): Promise<DetailedPointForecast | null> => {
+export const fetchHourlyPointForecast = async (lat: number, lng: number, userModel?: string): Promise<DetailedPointForecast | null> => {
   try {
-    // Get optimal models for this location
-    const marineModel = getModelForLocation(lat, lng, true);
-    const weatherModel = getModelForLocation(lat, lng, false);
+    // Get optimal models for this location (userModel overrides when set)
+    const marineModel = userModel ?? getModelForLocation(lat, lng, true);
+    const weatherModel = userModel ?? getModelForLocation(lat, lng, false);
 
     // We combine calls here to get best of both worlds: Accurate Wind + Accurate Waves
     // Best Practice: Use cell_selection to optimize for each data type + geolocation-based model
@@ -444,7 +444,7 @@ export const fetchHourlyPointForecast = async (lat: number, lng: number): Promis
 };
 
 
-export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: number}[]): Promise<PointForecast[]> => {
+export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: number}[], userModel?: string): Promise<PointForecast[]> => {
   if (coordinates.length === 0) return [];
 
   // Limit coordinates to avoid HTTP 400/414 errors from Open-Meteo API
@@ -464,8 +464,8 @@ export const fetchBulkPointForecast = async (coordinates: {lat: number, lng: num
   // For bulk requests, use the model based on the center of the bounding box
   const centerLat = limitedCoords.reduce((sum, c) => sum + c.lat, 0) / limitedCoords.length;
   const centerLng = limitedCoords.reduce((sum, c) => sum + c.lng, 0) / limitedCoords.length;
-  const marineModel = getModelForLocation(centerLat, centerLng, true);
-  const weatherModel = getModelForLocation(centerLat, centerLng, false);
+  const marineModel = userModel ?? getModelForLocation(centerLat, centerLng, true);
+  const weatherModel = userModel ?? getModelForLocation(centerLat, centerLng, false);
 
   try {
     // Helper function to fetch with fallback to best_match on 400 errors

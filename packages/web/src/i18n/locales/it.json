@@ -40,7 +40,22 @@
     "waveThreshold": "Soglia onde",
     "windThreshold": "Soglia vento",
     "swellThreshold": "Soglia onda lunga",
-    "tsunamiSimulation": "Simulazione avviso tsunami"
+    "tsunamiSimulation": "Simulazione avviso tsunami",
+    "weatherModel": {
+      "label": "Modello previsioni",
+      "auto": "Automatico (migliore per posizione)",
+      "description": "Risoluzione {{resolution}} · orizzonte {{horizon}} giorni"
+    },
+    "theme": {
+      "label": "Tema",
+      "auto": "Automatico (giorno/notte)",
+      "light": "Oceano Profondo (chiaro)",
+      "dark": "Guardia Notturna (scuro)",
+      "brightDeck": "Ponte Luminoso (modalità sole)",
+      "brightDeckHint": "Alto contrasto, senza sfocatura. Ideale alla luce solare diretta.",
+      "brightDeckOn": "Attiva modalità sole (alto contrasto)",
+      "brightDeckOff": "Esci dalla modalità sole"
+    }
   },
   "alerts": {
     "stormWarning": "AVVISO DI TEMPESTA",

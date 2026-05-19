@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS } from '@seame/core';
+import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
 } from 'recharts';
@@ -16,6 +17,7 @@ import { ErrorState } from './ErrorState';
 import { useTranslation } from 'react-i18next';
 import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
+import { useTheme } from '../src/hooks/useTheme';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
@@ -71,6 +73,9 @@ const getWeatherConditionKey = (code: number): string => {
 const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick }) => {
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, persona } = useAlertConfig();
+  const { preferences } = useUserPreferences();
+  const { theme, setTheme } = useTheme();
+  const isBrightDeck = theme === 'bright-deck';
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
@@ -414,16 +419,35 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </h1>
           <p className="text-white/60 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-white">{locationName}</span>
+            {preferences?.selectedModel && (
+              <span className="text-xs text-cyan-400/70 bg-cyan-400/10 border border-cyan-400/20 rounded px-2 py-0.5 font-mono">
+                {WEATHER_MODELS[preferences.selectedModel]?.name ?? preferences.selectedModel}
+              </span>
+            )}
             <span className="text-white/30">•</span>
             {weatherData.latitude.toFixed(4)}°N, {weatherData.longitude.toFixed(4)}°E
             <span className="text-white/30">•</span>
             {format(new Date(), 'EEE, MMM d')}
           </p>
         </div>
-        <button onClick={() => setShowSettings(!showSettings)} className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10 shrink-0">
-          <Settings size={16} />
-          <span className="text-xs font-bold hidden sm:inline">{t('dashboard.alertConfig')}</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setTheme(isBrightDeck ? 'system' : 'bright-deck')}
+            className={`p-1.5 rounded-lg transition-colors ${
+              isBrightDeck
+                ? 'bg-amber-400 text-black'
+                : 'bg-white/10 text-white/60 hover:text-white hover:bg-white/20'
+            }`}
+            title={isBrightDeck ? t('settings.theme.brightDeckOff') : t('settings.theme.brightDeckOn')}
+            aria-label={isBrightDeck ? t('settings.theme.brightDeckOff') : t('settings.theme.brightDeckOn')}
+          >
+            <Sun size={16} />
+          </button>
+          <button onClick={() => setShowSettings(!showSettings)} className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10">
+            <Settings size={16} />
+            <span className="text-xs font-bold hidden sm:inline">{t('dashboard.alertConfig')}</span>
+          </button>
+        </div>
       </div>
 
       {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}
