@@ -1,0 +1,8 @@
+# SeaYou CODEOWNERS
+#
+# Reviewers automatically requested when these paths change.
+# Branch protection (force-push deny, delete deny) for archive/* must be
+# configured separately in GitHub Settings → Branches.
+
+# Protect memorial branches and legacy documentation from accidental writes
+/LEGACY.md @Ben1137
