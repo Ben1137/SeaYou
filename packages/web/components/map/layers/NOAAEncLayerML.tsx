@@ -12,22 +12,25 @@
 import { useEffect } from 'react';
 import { useMap } from '../useMap';
 
-const SOURCE_ID = 'noaa-enc-source-v8';
-const LAYER_ID = 'noaa-enc-layer-v8';
-// Route through /api/noaa/ proxy (Vercel edge function) to bypass CORS —
-// NOAA's ArcGIS server returns no Access-Control-Allow-Origin header.
+const SOURCE_ID = 'noaa-enc-source-v9';
+const LAYER_ID = 'noaa-enc-layer-v9';
+// Single-file Vercel edge function at /api/noaa (api/noaa.ts) hardcodes
+// the upstream MaritimeChartService export URL and forwards every query
+// string param to it.  This replaces the previous /api/noaa/[...path].ts
+// catch-all which Vercel's edge router was 404-ing on multi-segment paths
+// on this Vite-preset + Turbo monorepo deployment.
 //
-// Endpoint: the parent /MCS/ENCOnline/MapServer/export returns near-empty
-// (~900 B) PNGs because no ENC layers are mounted there. The real chart
-// imagery is rendered by the MaritimeChartService extension below.
+// NOAA's ArcGIS server returns no Access-Control-Allow-Origin header, so
+// the server-side proxy is still required to bypass CORS.  The actual
+// chart imagery is rendered by NOAA's MaritimeChartService extension
+// (the parent /MapServer/export returns near-empty ~900 B PNGs because
+// no ENC layers are mounted at that level).
 //
-// cb=v3 evicts the Vercel Edge CDN entries cached during the routing-bug
-// window when /api/noaa/* was returning index.html instead of running the
-// edge function (see vercel.json — the SPA catch-all rewrite previously
-// shadowed /api/noaa/*). Drop this param in a follow-up PR once verified.
+// cb=v4 evicts any stale Vercel Edge CDN entries from the previous broken
+// routing windows.  Drop in a follow-up PR once verified.
 const NOAA_TILE_URL =
-  '/api/noaa/MCS/ENCOnline/MapServer/exts/MaritimeChartService/MapServer/export' +
-  '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image&cb=v3';
+  '/api/noaa' +
+  '?bbox={bbox-epsg-3857}&bboxSR=3857&size=256,256&imageSR=3857&format=png32&transparent=true&f=image&cb=v4';
 
 export interface NOAAEncLayerMLProps {
   enabled: boolean;
