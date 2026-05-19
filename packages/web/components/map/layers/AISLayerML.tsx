@@ -1,5 +1,5 @@
 /**
- * AISLayerML — Phase 5.
+ * AISLayerML — Phase 5 (hardened Task 6).
  *
  * Renders nearby AIS vessels as oriented triangles on the map. The
  * triangle rotation tracks each vessel's COG, and the fill color darkens
@@ -7,11 +7,13 @@
  * boats. The layer automatically follows the viewport bbox so the
  * aisstream subscription re-scopes as the user pans.
  *
- * This layer is silently inert when `VITE_AISSTREAM_API_KEY` is missing —
- * `aisService.connect()` becomes a no-op.
+ * Security: API key is held server-side in the Supabase Edge Function relay.
+ * The direct WebSocket path (VITE_AISSTREAM_API_KEY) remains available for
+ * local development when no authenticated session exists.
  */
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { GeoJSONSource } from 'maplibre-gl';
+import { useTranslation } from 'react-i18next';
 import { aisService, type AISTarget } from '../../../src/services/aisService';
 import { useMap } from '../useMap';
 
@@ -40,8 +42,18 @@ function toGeoJSON(targets: AISTarget[]) {
 export const AISLayerML: React.FC<{ visible?: boolean }> = ({
   visible = true,
 }) => {
+  const { t } = useTranslation();
   const map = useMap();
   const bboxTimer = useRef<number | null>(null);
+
+  const [showDisclaimer, setShowDisclaimer] = useState(
+    () => localStorage.getItem('ais_disclaimer_dismissed') !== 'true',
+  );
+
+  const dismissDisclaimer = () => {
+    localStorage.setItem('ais_disclaimer_dismissed', 'true');
+    setShowDisclaimer(false);
+  };
 
   useEffect(() => {
     if (!map) return;
@@ -136,5 +148,30 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     );
   }, [map, visible]);
 
-  return null;
+  if (!showDisclaimer || !visible) return null;
+
+  return (
+    <div className="absolute bottom-20 left-2 right-2 z-50 bg-slate-900/95 border border-amber-500/40 rounded-xl p-3 shadow-xl">
+      <div className="flex items-start gap-2">
+        <span className="text-amber-400 text-base mt-0.5" aria-hidden="true">
+          &#9888;
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-white/80 leading-snug">
+            {t(
+              'ais.disclaimer',
+              'AIS positions are crowd-sourced and may be delayed, missing, or inaccurate. SeaYou is not a collision-avoidance system. Always keep a proper visual lookout.',
+            )}
+          </p>
+        </div>
+        <button
+          onClick={dismissDisclaimer}
+          className="text-white/50 hover:text-white shrink-0 text-lg leading-none"
+          aria-label={t('ais.disclaimer_dismiss', 'Got it')}
+        >
+          &times;
+        </button>
+      </div>
+    </div>
+  );
 };

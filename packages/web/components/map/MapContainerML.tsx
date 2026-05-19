@@ -479,6 +479,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     noaaEnc: false, // Phase 7 — NOAA ENC Online raster (US waters)
   });
 
+  // AIS vessel traffic toggle (default on — can be disabled by user)
+  const [aisVisible, setAisVisible] = useState(true);
+
   // Detail view state
   const [selectedPointDetail, setSelectedPointDetail] = useState<DetailedPointForecast | null>(null);
   const [isDetailSidebarOpen, setIsDetailSidebarOpen] = useState(false);
@@ -1300,6 +1303,13 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             >
               <Compass size={12} /> <span className="flex-1">NOAA ENC (US)</span>
             </button>
+            <button
+              onClick={() => { setAisVisible((v) => !v); setIsLayersPanelExpanded(false); }}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${aisVisible ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              title="Live AIS vessel traffic — crowd-sourced, may be delayed"
+            >
+              <Navigation size={12} /> <span className="flex-1">{t('ais.toggle') || 'Vessel Traffic (AIS)'}</span>
+            </button>
           </div>
           {(loadingGrid || sharedMarineData.loading || sharedForecastData.loading) && (
             <div className="pb-2 px-2 text-[10px] text-center text-blue-300 animate-pulse">{t('map.updatingForecast')}</div>
@@ -1586,7 +1596,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       {/* Phase 5 — Live navigation map overlays */}
       <TrackHistoryLayerML visible={true} />
       <MOBLayerML />
-      <AISLayerML visible={true} />
+      <AISLayerML visible={aisVisible} />
       <RouteStatsOverlay cpaWarning={cpaWarning} />
       {/* Sea Trial — Waze camera. Pans + rotates with the vessel
           when navigation/simulation is running. */}

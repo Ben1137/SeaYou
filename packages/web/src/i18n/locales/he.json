@@ -594,5 +594,21 @@
       "diver": "צולל",
       "diverDesc": "נראות, זרמים וטמפרטורת הים"
     }
+  },
+  "ais": {
+    "disclaimer": "מיקומי AIS הם מקור המונים ועשויים להיות מאוחרים, חסרים או לא מדויקים. SeaYou אינה מערכת למניעת התנגשויות. שמור תמיד על כוננות חזותית.",
+    "toggle": "תנועת כלי שיט (AIS)",
+    "disclaimer_dismiss": "הבנתי"
+  },
+  "routeForecast": {
+    "overallScore": "תנאי מסלול",
+    "segmentScore": "קטע {{index}} — ציון {{score}}",
+    "betterDeparture": "תנאים טובים יותר ב-{{time}} (ציון {{newScore}} לעומת {{oldScore}} כעת)",
+    "applyDeparture": "השתמש בזמן יציאה זה",
+    "advisory": {
+      "headwind": "רוח נגד צפויה ברוב המסלול",
+      "storm": "תנאי סערה זוהו — שקול מחדש את מועד היציאה",
+      "improving": "התנאים משתפרים משמעותית בעוד {{hours}} שעות"
+    }
   }
 }
