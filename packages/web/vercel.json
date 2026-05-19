@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/noaa/[...path].ts": {
-      "runtime": "edge"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/places/:path*",
