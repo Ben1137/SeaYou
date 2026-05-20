@@ -97,6 +97,12 @@ export default defineConfig(({ mode }) => {
         ]
       },
       workbox: {
+        // Force the new SW to activate immediately on first reload rather than
+        // waiting for all tabs to close. Prevents stale bundles (e.g. old
+        // MAX_BBOX_DEG=2.0) from persisting after a deploy.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB to accommodate WebGL shaders
         // Merge OneSignal Web SDK v16 worker logic into Vite's generated sw.js.
