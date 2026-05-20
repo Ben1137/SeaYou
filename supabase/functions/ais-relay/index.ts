@@ -9,11 +9,10 @@
  * GET ?bbox=lat1,lon1,lat2,lon2
  *   Authorization: Bearer <supabase-jwt>   (or ?authorization=<token>)
  *
- * Constraints:
- *   - Caller must be authenticated (JWT verified against Supabase Auth).
- *   - bbox must contain 4 finite numbers.
- *   - bbox area is capped at 2°×2° to limit upstream subscription cost.
- *   - AISSTREAM_API_KEY is read from Deno.env — never echoed in responses.
+ * Lifecycle fix: upstream WebSocket is opened SYNCHRONOUSLY before
+ * returning the Response, and EdgeRuntime.waitUntil() registers the
+ * stream lifetime so Deno Deploy keeps the isolate alive until the
+ * WS closes or the client disconnects.
  *
  * Required secrets (Supabase → Project → Edge Functions → Secrets):
  *   AISSTREAM_API_KEY   — aisstream.io API key (no VITE_ prefix)
@@ -25,8 +24,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 const AIS_WS_URL = 'wss://stream.aisstream.io/v0/stream';
 
 // CORS headers applied to every response so the browser can always read
-// error bodies (4xx/5xx). Without this, a legitimate 400 "bbox too large"
-// was masked as a CORS violation because the browser couldn't read the body.
+// error bodies (4xx/5xx).
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -34,13 +32,11 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // CORS preflight — browsers send OPTIONS before the real GET when the
-  // request includes credentials or non-simple headers.
+  // CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Only GET is supported — SSE is a long-lived GET response.
   if (req.method !== 'GET') {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
@@ -93,106 +89,144 @@ Deno.serve(async (req) => {
         lonSpan: Number(lonSpan.toFixed(4)),
         maxDegrees: 2,
       }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      },
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 
-  // Build the SSE ReadableStream backed by an upstream WebSocket.
+  // Open upstream WebSocket SYNCHRONOUSLY before returning the Response.
+  // If we open it inside ReadableStream.start(), Deno Deploy may tear
+  // down the isolate before the WS handshake completes — causing the
+  // client to see a 200 OK SSE that immediately closes with no data.
+  let ws: WebSocket;
+  try {
+    ws = new WebSocket(AIS_WS_URL);
+  } catch (err) {
+    console.log(`[ais-relay] failed to construct upstream WS: ${err}`);
+    return new Response(
+      JSON.stringify({ error: 'upstream_unavailable', message: String(err) }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  // Stream lifetime promise — resolved when upstream WS closes or client
+  // disconnects. Passed to EdgeRuntime.waitUntil() to keep the isolate alive.
+  let resolveStreamDone: () => void = () => {};
+  const streamDone = new Promise<void>((resolve) => {
+    resolveStreamDone = resolve;
+  });
+
+  let positionReportCount = 0;
+  let otherMessageCount = 0;
+  let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+
   const body = new ReadableStream({
-    async start(controller) {
+    start(controller) {
       const enc = new TextEncoder();
 
       const sendEvent = (data: unknown) => {
         try {
           controller.enqueue(enc.encode(`data: ${JSON.stringify(data)}\n\n`));
         } catch {
-          // Client already disconnected — ignore write errors.
+          // Client disconnected — ignore.
         }
       };
 
-      let ws: WebSocket | null = null;
+      const sendHeartbeat = () => {
+        try {
+          // SSE comment line — invisible to clients, keeps idle connections
+          // alive through Cloudflare/Supabase Gateway proxies.
+          controller.enqueue(enc.encode(`: keepalive ${Date.now()}\n\n`));
+        } catch {
+          // Client disconnected.
+        }
+      };
 
-      try {
-        ws = new WebSocket(AIS_WS_URL);
+      // Initial heartbeat so client onopen fires and intermediaries see traffic.
+      sendHeartbeat();
+      heartbeatTimer = setInterval(sendHeartbeat, 25_000);
 
-        let positionReportCount = 0;
-        let otherMessageCount = 0;
+      ws.onopen = () => {
+        console.log(`[ais-relay] upstream WS open — subscribing bbox [${lat1},${lon1}] to [${lat2},${lon2}]`);
+        ws.send(JSON.stringify({
+          APIKey: apiKey,
+          BoundingBoxes: [[[lat1, lon1], [lat2, lon2]]],
+          FilterMessageTypes: ['PositionReport'],
+        }));
+      };
 
-        ws.onopen = () => {
-          console.log(`[ais-relay] upstream WS open — subscribing bbox [${lat1},${lon1}] to [${lat2},${lon2}]`);
-          ws!.send(
-            JSON.stringify({
-              APIKey: apiKey,
-              BoundingBoxes: [[[lat1, lon1], [lat2, lon2]]],
-              FilterMessageTypes: ['PositionReport'],
-            }),
-          );
-        };
-
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data as string) as Record<string, unknown>;
-            if (msg.MessageType !== 'PositionReport') {
-              otherMessageCount++;
-              if (otherMessageCount <= 3) console.log(`[ais-relay] non-PositionReport: ${JSON.stringify(msg).slice(0, 150)}`);
-              return;
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data as string) as Record<string, unknown>;
+          if (msg.MessageType !== 'PositionReport') {
+            otherMessageCount++;
+            if (otherMessageCount <= 3) {
+              console.log(`[ais-relay] non-PositionReport: ${JSON.stringify(msg).slice(0, 200)}`);
             }
-            positionReportCount++;
-            if (positionReportCount === 1 || positionReportCount % 10 === 0) {
-              console.log(`[ais-relay] forwarded ${positionReportCount} PositionReports`);
-            }
-
-            const posReport = (msg.Message as Record<string, unknown> | undefined)
-              ?.PositionReport as Record<string, unknown> | undefined;
-            if (!posReport) return;
-
-            const meta = (msg.MetaData ?? msg.Metadata) as
-              | Record<string, unknown>
-              | undefined;
-
-            sendEvent({
-              mmsi: String(
-                (meta?.MMSI ?? meta?.mmsi ?? posReport.UserID) ?? '',
-              ),
-              lat: posReport.Latitude,
-              lon: posReport.Longitude,
-              cog: posReport.Cog ?? 0,
-              sog: posReport.Sog ?? 0,
-              heading: posReport.TrueHeading,
-              ts: meta?.time_utc,
-              name: typeof meta?.ShipName === 'string'
-                ? meta.ShipName.trim() || null
-                : null,
-            });
-          } catch {
-            // Skip malformed frames — do not crash the stream.
+            return;
           }
-        };
 
-        ws.onclose = (ev) => {
-          console.log(`[ais-relay] upstream WS closed: code=${ev.code} reason=${ev.reason ?? ''}`);
-          try { controller.close(); } catch { /* already closed */ }
-        };
+          const posReport = (msg.Message as Record<string, unknown> | undefined)
+            ?.PositionReport as Record<string, unknown> | undefined;
+          if (!posReport) return;
 
-        ws.onerror = (ev) => {
-          console.log(`[ais-relay] upstream WS error: ${JSON.stringify(ev)}`);
-          try { controller.close(); } catch { /* already closed */ }
-        };
+          const meta = (msg.MetaData ?? msg.Metadata) as Record<string, unknown> | undefined;
 
-        // When the client disconnects (browser tab close, component unmount),
-        // abort signal fires — close the upstream WebSocket immediately.
-        req.signal.addEventListener('abort', () => {
-          ws?.close();
-          try { controller.close(); } catch { /* already closed */ }
-        });
-      } catch (err) {
-        controller.error(err);
-      }
+          positionReportCount++;
+          if (positionReportCount === 1 || positionReportCount % 10 === 0) {
+            console.log(`[ais-relay] forwarded ${positionReportCount} PositionReports`);
+          }
+
+          sendEvent({
+            mmsi: String((meta?.MMSI ?? meta?.mmsi ?? posReport.UserID) ?? ''),
+            lat: posReport.Latitude,
+            lon: posReport.Longitude,
+            cog: posReport.Cog ?? 0,
+            sog: posReport.Sog ?? 0,
+            heading: posReport.TrueHeading,
+            ts: meta?.time_utc,
+            name: typeof meta?.ShipName === 'string' ? meta.ShipName.trim() || null : null,
+          });
+        } catch (e) {
+          console.log(`[ais-relay] parse error: ${e}`);
+        }
+      };
+
+      ws.onclose = (ev) => {
+        console.log(`[ais-relay] upstream WS closed: code=${ev.code} reason=${ev.reason ?? ''} (forwarded ${positionReportCount} reports)`);
+        clearInterval(heartbeatTimer);
+        try { controller.close(); } catch { /* already closed */ }
+        resolveStreamDone();
+      };
+
+      ws.onerror = (ev) => {
+        console.log(`[ais-relay] upstream WS error: ${JSON.stringify({
+          type: (ev as Event).type,
+          msg: (ev as ErrorEvent).message,
+        })}`);
+        clearInterval(heartbeatTimer);
+        try { controller.close(); } catch { /* already closed */ }
+        resolveStreamDone();
+      };
+
+      // Client disconnect — close upstream and resolve stream lifetime.
+      req.signal.addEventListener('abort', () => {
+        console.log(`[ais-relay] client disconnected (forwarded ${positionReportCount} reports)`);
+        clearInterval(heartbeatTimer);
+        try { ws.close(); } catch { /* noop */ }
+        try { controller.close(); } catch { /* already closed */ }
+        resolveStreamDone();
+      });
     },
   });
+
+  // Tell Deno Deploy to keep this isolate alive until the stream is done.
+  // Without this, the runtime may GC the isolate after returning the Response,
+  // tearing down our WS callbacks before they fire.
+  // deno-lint-ignore no-explicit-any
+  const edgeRuntime = (globalThis as any).EdgeRuntime;
+  if (edgeRuntime && typeof edgeRuntime.waitUntil === 'function') {
+    edgeRuntime.waitUntil(streamDone);
+  }
 
   return new Response(body, {
     headers: {
@@ -200,6 +234,7 @@ Deno.serve(async (req) => {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Defeat nginx-style proxy buffering
     },
   });
 });
