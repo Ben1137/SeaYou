@@ -624,7 +624,9 @@
     "disclaimer": "AIS-Positionen werden aus der Crowd bezogen und können verzögert, fehlend oder ungenau sein. SeaYou ist kein Kollisionsvermeidungssystem. Behalten Sie stets einen ordentlichen Ausguck bei.",
     "toggle": "Schiffsverkehr (AIS)",
     "disclaimer_dismiss": "Verstanden",
-    "zoomInPrompt": "Zoom in to see live vessel positions"
+    "zoomInPrompt": "Zoom in to see live vessel positions",
+    "upstreamUnavailableTitle": "Vessel traffic temporarily unavailable",
+    "upstreamUnavailableHint": "Live AIS feed is offline. We'll automatically retry every 15 minutes."
   },
   "routeForecast": {
     "overallScore": "Routenbedingungen",

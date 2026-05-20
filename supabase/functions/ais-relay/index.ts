@@ -199,10 +199,21 @@ Deno.serve(async (req) => {
       };
 
       ws.onerror = (ev) => {
+        const errMsg = (ev as ErrorEvent).message ?? 'unknown';
         console.log(`[ais-relay] upstream WS error: ${JSON.stringify({
           type: (ev as Event).type,
-          msg: (ev as ErrorEvent).message,
+          msg: errMsg,
         })}`);
+        // Send a typed SSE event so the client can distinguish "upstream broken"
+        // (cert expired, host unreachable) from a transient drop worth retrying.
+        try {
+          controller.enqueue(new TextEncoder().encode(
+            `event: upstream_error\ndata: ${JSON.stringify({
+              message: errMsg,
+              retryable: false,
+            })}\n\n`,
+          ));
+        } catch { /* client already disconnected */ }
         clearInterval(heartbeatTimer);
         try { controller.close(); } catch { /* already closed */ }
         resolveStreamDone();

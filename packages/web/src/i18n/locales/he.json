@@ -648,7 +648,9 @@
     "disclaimer": "מיקומי AIS הם מקור המונים ועשויים להיות מאוחרים, חסרים או לא מדויקים. SeaYou אינה מערכת למניעת התנגשויות. שמור תמיד על כוננות חזותית.",
     "toggle": "תנועת כלי שיט (AIS)",
     "disclaimer_dismiss": "הבנתי",
-    "zoomInPrompt": "התקרב כדי לראות מיקומי כלי שיט חיים"
+    "zoomInPrompt": "התקרב כדי לראות מיקומי כלי שיט חיים",
+    "upstreamUnavailableTitle": "תנועת כלי השיט אינה זמינה כעת",
+    "upstreamUnavailableHint": "שידור AIS חי אינו פעיל. ננסה שוב אוטומטית כל 15 דקות."
   },
   "routeForecast": {
     "overallScore": "תנאי מסלול",

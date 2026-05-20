@@ -50,6 +50,7 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     () => localStorage.getItem('ais_disclaimer_dismissed') !== 'true',
   );
   const [isZoomedOut, setIsZoomedOut] = useState(false);
+  const [upstreamStatus, setUpstreamStatus] = useState<{ available: boolean; message?: string }>({ available: true });
 
   const dismissDisclaimer = () => {
     localStorage.setItem('ais_disclaimer_dismissed', 'true');
@@ -128,11 +129,13 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     map.on('moveend', scheduleBBox);
     aisService.on('targets', refresh);
     aisService.on('zoomedOut', setIsZoomedOut);
+    aisService.on('upstreamStatus', setUpstreamStatus);
 
     return () => {
       map.off('styledata', ensureLayer);
       aisService.off('targets', refresh);
       aisService.off('zoomedOut', setIsZoomedOut);
+      aisService.off('upstreamStatus', setUpstreamStatus);
       if (bboxTimer.current) window.clearTimeout(bboxTimer.current);
       try {
         map.off('moveend', scheduleBBox);
@@ -183,6 +186,12 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
       {visible && isZoomedOut && !showDisclaimer && (
         <div className="absolute top-16 left-4 right-4 z-400 bg-amber-100 border border-amber-400 text-amber-900 px-3 py-2 rounded-lg text-sm pointer-events-none shadow rtl:left-auto rtl:right-4">
           {t('ais.zoomInPrompt', 'Zoom in to see live vessel positions')}
+        </div>
+      )}
+      {visible && !upstreamStatus.available && (
+        <div className="absolute top-16 left-4 right-4 z-401 bg-red-100 border border-red-400 text-red-900 px-3 py-2 rounded-lg text-sm pointer-events-none shadow rtl:left-auto rtl:right-4">
+          <div className="font-semibold">{t('ais.upstreamUnavailableTitle', 'Vessel traffic temporarily unavailable')}</div>
+          <div className="text-xs mt-0.5">{t('ais.upstreamUnavailableHint', 'Live AIS feed is offline. We\'ll automatically retry every 15 minutes.')}</div>
         </div>
       )}
     </>
