@@ -1,9 +1,15 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  // Normalise: must start AND end with /
+  const rawBase = env.VITE_PWA_BASE || '/'
+  const base = rawBase.endsWith('/') ? rawBase : `${rawBase}/`
+
+  return {
   server: {
     fs: {
       // Allow serving files from the workspace root (for monorepo packages)
@@ -69,21 +75,21 @@ export default defineConfig({
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: base,
+        start_url: base,
         icons: [
           {
-            src: '/pwa-192x192.png',
+            src: `${base}pwa-192x192.png`,
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/pwa-512x512.png',
+            src: `${base}pwa-512x512.png`,
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: '/pwa-512x512.png',
+            src: `${base}pwa-512x512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
@@ -163,7 +169,7 @@ export default defineConfig({
       }
     })
   ],
-  base: '/', // Vercel serves from root
+  base, // set by VITE_PWA_BASE: '/' for Vercel, '/SeaYou1.0/' for GitHub Pages
   build: {
     outDir: 'dist',
     sourcemap: true,
@@ -191,4 +197,5 @@ export default defineConfig({
   esbuild: {
     target: 'es2022',
   },
+  }
 })

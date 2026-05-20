@@ -133,6 +133,21 @@ No API keys are required for the default Open-Meteo integration. The app makes c
 
 To modify the default location, update the coordinates in `App.tsx` or passed to the `Dashboard` component.
 
+## 🚀 Deployment
+
+SeaYou deploys to two targets, each requiring a different `VITE_PWA_BASE` value so the PWA manifest `scope`, `start_url`, and icon paths resolve correctly.
+
+| Target | URL | `VITE_PWA_BASE` | How it's set |
+|---|---|---|---|
+| **Vercel** (primary) | `sea-you1-0-app.vercel.app/` | `/` | Vercel dashboard → Environment Variables |
+| **GitHub Pages** | `ben1137.github.io/SeaYou1.0/` | `/SeaYou1.0/` | `.github/workflows/deploy.yml` (automatic) |
+
+**Vercel setup (one-time):** In the Vercel dashboard → Settings → Environment Variables, add `VITE_PWA_BASE=` `/` for Production, Preview, and Development.
+
+**GitHub Pages:** `.github/workflows/deploy.yml` sets `VITE_PWA_BASE=/SeaYou1.0/` automatically on every push to `main`.
+
+See [.env.example](.env.example) for all configurable environment variables.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please:
