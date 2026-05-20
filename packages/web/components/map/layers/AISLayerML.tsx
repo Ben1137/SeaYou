@@ -49,6 +49,7 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
   const [showDisclaimer, setShowDisclaimer] = useState(
     () => localStorage.getItem('ais_disclaimer_dismissed') !== 'true',
   );
+  const [isZoomedOut, setIsZoomedOut] = useState(false);
 
   const dismissDisclaimer = () => {
     localStorage.setItem('ais_disclaimer_dismissed', 'true');
@@ -123,10 +124,12 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     pushBBox();
     map.on('moveend', scheduleBBox);
     aisService.on('targets', refresh);
+    aisService.on('zoomedOut', setIsZoomedOut);
 
     return () => {
       map.off('styledata', ensureLayer);
       aisService.off('targets', refresh);
+      aisService.off('zoomedOut', setIsZoomedOut);
       if (bboxTimer.current) window.clearTimeout(bboxTimer.current);
       try {
         map.off('moveend', scheduleBBox);
@@ -148,30 +151,37 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
     );
   }, [map, visible]);
 
-  if (!showDisclaimer || !visible) return null;
-
   return (
-    <div className="absolute bottom-20 left-2 right-2 z-50 bg-slate-900/95 border border-amber-500/40 rounded-xl p-3 shadow-xl">
-      <div className="flex items-start gap-2">
-        <span className="text-amber-400 text-base mt-0.5" aria-hidden="true">
-          &#9888;
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs text-white/80 leading-snug">
-            {t(
-              'ais.disclaimer',
-              'AIS positions are crowd-sourced and may be delayed, missing, or inaccurate. SeaYou is not a collision-avoidance system. Always keep a proper visual lookout.',
-            )}
-          </p>
+    <>
+      {showDisclaimer && visible && (
+        <div className="absolute bottom-20 left-2 right-2 z-50 bg-slate-900/95 border border-amber-500/40 rounded-xl p-3 shadow-xl">
+          <div className="flex items-start gap-2">
+            <span className="text-amber-400 text-base mt-0.5" aria-hidden="true">
+              &#9888;
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-white/80 leading-snug">
+                {t(
+                  'ais.disclaimer',
+                  'AIS positions are crowd-sourced and may be delayed, missing, or inaccurate. SeaYou is not a collision-avoidance system. Always keep a proper visual lookout.',
+                )}
+              </p>
+            </div>
+            <button
+              onClick={dismissDisclaimer}
+              className="text-white/50 hover:text-white shrink-0 text-lg leading-none"
+              aria-label={t('ais.disclaimer_dismiss', 'Got it')}
+            >
+              &times;
+            </button>
+          </div>
         </div>
-        <button
-          onClick={dismissDisclaimer}
-          className="text-white/50 hover:text-white shrink-0 text-lg leading-none"
-          aria-label={t('ais.disclaimer_dismiss', 'Got it')}
-        >
-          &times;
-        </button>
-      </div>
-    </div>
+      )}
+      {visible && isZoomedOut && !showDisclaimer && (
+        <div className="absolute top-16 left-4 right-4 z-400 bg-amber-100 border border-amber-400 text-amber-900 px-3 py-2 rounded-lg text-sm pointer-events-none shadow rtl:left-auto rtl:right-4">
+          {t('ais.zoomInPrompt', 'Zoom in to see live vessel positions')}
+        </div>
+      )}
+    </>
   );
 };

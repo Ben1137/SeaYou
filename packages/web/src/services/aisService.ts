@@ -52,6 +52,8 @@ const CPA_HORIZON_MIN = 12;
 const TARGET_TTL_MS = 10 * 60 * 1000;
 
 class AISService {
+  private static readonly MAX_BBOX_DEG = 2.0;
+
   private ws: WebSocket | null = null;
   private es: EventSource | null = null;
   private apiKey: string | null = null;
@@ -129,6 +131,17 @@ class AISService {
    */
   setBBox(bbox: [[number, number], [number, number]]) {
     this.bbox = bbox;
+
+    // Guard: skip connection if viewport is too large for the relay cap.
+    const [[lat1, lon1], [lat2, lon2]] = bbox;
+    const latSpan = Math.abs(lat1 - lat2);
+    const lonSpan = Math.abs(lon1 - lon2);
+    if (latSpan > AISService.MAX_BBOX_DEG || lonSpan > AISService.MAX_BBOX_DEG) {
+      this.emit('zoomedOut', true);
+      return;
+    }
+    this.emit('zoomedOut', false);
+
     if (this.connected && this.ws && this.ws.readyState === WebSocket.OPEN) {
       // Direct WS path: update the active subscription in-place.
       this.sendSubscription();

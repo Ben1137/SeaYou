@@ -624,7 +624,8 @@
   "ais": {
     "disclaimer": "Позиции AIS собираются сообществом и могут быть задержаны, отсутствовать или быть неточными. SeaYou не является системой предотвращения столкновений. Всегда ведите надлежащее визуальное наблюдение.",
     "toggle": "Судовой трафик (AIS)",
-    "disclaimer_dismiss": "Понятно"
+    "disclaimer_dismiss": "Понятно",
+    "zoomInPrompt": "Zoom in to see live vessel positions"
   },
   "routeForecast": {
     "overallScore": "Условия маршрута",

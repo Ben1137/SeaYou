@@ -647,7 +647,8 @@
   "ais": {
     "disclaimer": "מיקומי AIS הם מקור המונים ועשויים להיות מאוחרים, חסרים או לא מדויקים. SeaYou אינה מערכת למניעת התנגשויות. שמור תמיד על כוננות חזותית.",
     "toggle": "תנועת כלי שיט (AIS)",
-    "disclaimer_dismiss": "הבנתי"
+    "disclaimer_dismiss": "הבנתי",
+    "zoomInPrompt": "התקרב כדי לראות מיקומי כלי שיט חיים"
   },
   "routeForecast": {
     "overallScore": "תנאי מסלול",

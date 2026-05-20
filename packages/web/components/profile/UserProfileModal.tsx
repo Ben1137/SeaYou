@@ -17,11 +17,14 @@ import {
   Star,
   AlertTriangle,
   Check,
+  Palette,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useAlertConfig } from '../../src/contexts/AlertContext';
 import { useUserPreferences } from '../../src/hooks/useUserPreferences';
+import { useTheme } from '../../src/hooks/useTheme';
+import type { Theme } from '../../src/contexts/ThemeContext';
 import { ModelPicker } from './ModelPicker';
 import { startCheckout } from '../../src/services/billing';
 import {
@@ -55,6 +58,13 @@ const LANGUAGES = [
   { code: 'ru', label: 'Русский',  flag: '🇷🇺' },
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   { code: 'es', label: 'Español',  flag: '🇪🇸' },
+];
+
+const THEME_OPTIONS: { value: Theme; labelKey: string }[] = [
+  { value: 'system',      labelKey: 'settings.theme.auto' },
+  { value: 'dark',        labelKey: 'settings.theme.dark' },
+  { value: 'light',       labelKey: 'settings.theme.light' },
+  { value: 'bright-deck', labelKey: 'settings.theme.brightDeck' },
 ];
 
 // ─── Favorite Ticker — live scoring per location ───
@@ -194,6 +204,7 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     cloudSyncStatus,
   } = useAlertConfig();
   const { preferences, setPreference } = useUserPreferences();
+  const { theme: activeTheme, setTheme } = useTheme();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -408,6 +419,38 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* Theme selector */}
+              <div className="mt-3">
+                <div className="flex items-center gap-2 px-1 mb-2">
+                  <Palette size={14} className="text-white/30" />
+                  <span className="text-xs text-white/30 font-medium">{t('settings.theme.label', 'Theme')}</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {THEME_OPTIONS.map(opt => {
+                    const isSelected = activeTheme === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        onClick={() => setTheme(opt.value)}
+                        className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                          isSelected
+                            ? 'bg-blue-500/15 text-blue-400 font-semibold'
+                            : 'text-white/50 hover:bg-white/5'
+                        }`}
+                      >
+                        <span className="truncate">{t(opt.labelKey, opt.value)}</span>
+                        {isSelected && <Check size={12} className="text-blue-400 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-white/25 mt-2 px-1 leading-relaxed">
+                  {activeTheme === 'bright-deck'
+                    ? t('settings.theme.brightDeckHint', 'High-contrast, no blur. Best in direct sunlight.')
+                    : t('settings.theme.hint', 'Auto switches between light and dark based on sunrise/sunset.')}
+                </p>
               </div>
 
               {/* Model picker */}

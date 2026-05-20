@@ -148,6 +148,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
       offlineNavigation.off('navigationUpdate', onNavUpdate);
       offlineNavigation.off('alert', onAlert);
       offlineNavigation.off('destinationReached', onDestinationReached);
+      setThemeNavigating(false); // release theme override on unmount
     };
   }, []);
 
