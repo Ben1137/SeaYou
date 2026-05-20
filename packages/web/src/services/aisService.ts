@@ -52,7 +52,10 @@ const CPA_HORIZON_MIN = 12;
 const TARGET_TTL_MS = 10 * 60 * 1000;
 
 class AISService {
-  private static readonly MAX_BBOX_DEG = 2.0;
+  // Keep this strictly LESS than the Edge Function's 2.0° cap so we
+  // never send a request the server will immediately reject. Floating-point
+  // rounding and bbox-edge inclusivity differences make 2.0 vs 2.0 a coin flip.
+  private static readonly MAX_BBOX_DEG = 1.95;
 
   private ws: WebSocket | null = null;
   private es: EventSource | null = null;
@@ -319,7 +322,9 @@ class AISService {
   private scheduleReconnect() {
     if (!this.bbox) return;
     if (this.reconnectTimer) return;
-    const delay = Math.min(30000, 1000 * 2 ** this.reconnectAttempts);
+    // Floor at 2s so AISStream has time to fully release the previous
+    // upstream WS before we knock again (their free tier caps at 1).
+    const delay = Math.min(30000, Math.max(2000, 1000 * 2 ** this.reconnectAttempts));
     this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

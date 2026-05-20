@@ -24,15 +24,30 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const AIS_WS_URL = 'wss://stream.aisstream.io/v0/stream';
 
+// CORS headers applied to every response so the browser can always read
+// error bodies (4xx/5xx). Without this, a legitimate 400 "bbox too large"
+// was masked as a CORS violation because the browser couldn't read the body.
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+};
+
 Deno.serve(async (req) => {
+  // CORS preflight — browsers send OPTIONS before the real GET when the
+  // request includes credentials or non-simple headers.
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   // Only GET is supported — SSE is a long-lived GET response.
   if (req.method !== 'GET') {
-    return new Response('Method not allowed', { status: 405 });
+    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
   const apiKey = Deno.env.get('AISSTREAM_API_KEY');
   if (!apiKey) {
-    return new Response('AIS not configured', { status: 503 });
+    return new Response('AIS not configured', { status: 503, headers: corsHeaders });
   }
 
   // Resolve JWT — prefer Authorization header, fall back to query param
@@ -43,7 +58,7 @@ Deno.serve(async (req) => {
   const effectiveAuth = headerAuth || (queryToken ? `Bearer ${queryToken}` : '');
 
   if (!effectiveAuth) {
-    return new Response('Unauthorized', { status: 401 });
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders });
   }
 
   const supabase = createClient(
@@ -54,18 +69,35 @@ Deno.serve(async (req) => {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) {
-    return new Response('Unauthorized', { status: 401 });
+    return new Response('Unauthorized', { status: 401, headers: corsHeaders });
   }
 
   // Validate bbox: exactly 4 finite numbers, area ≤ 2°×2°.
   const rawBbox = url.searchParams.get('bbox') ?? '';
   const parts = rawBbox.split(',').map(Number);
   if (parts.length !== 4 || parts.some((n) => !isFinite(n))) {
-    return new Response('Invalid bbox — expected lat1,lon1,lat2,lon2', { status: 400 });
+    return new Response(
+      'Invalid bbox — expected lat1,lon1,lat2,lon2',
+      { status: 400, headers: corsHeaders },
+    );
   }
   const [lat1, lon1, lat2, lon2] = parts;
-  if (Math.abs(lat1 - lat2) > 2 || Math.abs(lon1 - lon2) > 2) {
-    return new Response('Bbox too large — max 2° x 2°', { status: 400 });
+  const latSpan = Math.abs(lat1 - lat2);
+  const lonSpan = Math.abs(lon1 - lon2);
+  if (latSpan > 2 || lonSpan > 2) {
+    return new Response(
+      JSON.stringify({
+        error: 'bbox_too_large',
+        message: 'Viewport too large for the AIS relay — max 2° × 2°.',
+        latSpan: Number(latSpan.toFixed(4)),
+        lonSpan: Number(lonSpan.toFixed(4)),
+        maxDegrees: 2,
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      },
+    );
   }
 
   // Build the SSE ReadableStream backed by an upstream WebSocket.
@@ -150,10 +182,10 @@ Deno.serve(async (req) => {
 
   return new Response(body, {
     headers: {
+      ...corsHeaders,
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
     },
   });
 });

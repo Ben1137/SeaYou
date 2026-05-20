@@ -117,7 +117,10 @@ export const AISLayerML: React.FC<{ visible?: boolean }> = ({
 
     const scheduleBBox = () => {
       if (bboxTimer.current) window.clearTimeout(bboxTimer.current);
-      bboxTimer.current = window.setTimeout(pushBBox, 750);
+      // 1500ms: long enough that a continuous pan-zoom gesture doesn't
+      // spam new EventSource connections (AISStream free tier caps at 1
+      // concurrent upstream WS, so spam-reconnecting can lock us out).
+      bboxTimer.current = window.setTimeout(pushBBox, 1500);
     };
 
     // Initial sync + live updates.
