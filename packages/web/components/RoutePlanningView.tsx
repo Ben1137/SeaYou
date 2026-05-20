@@ -48,6 +48,7 @@ import { VesselSettingsModal, VesselSettings, VESSEL_POLAR_DEFAULTS } from './Ve
 import { HazardAlert } from './HazardAlert';
 import { LegalDisclaimerBanner } from './LegalDisclaimerBanner';
 import { useRoute } from '../src/contexts/RouteContext';
+import { useTheme } from '../src/hooks/useTheme';
 import { PortSearchBar } from './route/PortSearchBar';
 import { toast } from './ui/Toast';
 import { confirmDialog, promptDialog } from './ui/Dialog';
@@ -64,6 +65,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   // Route lives in shared context so the map layers + form stay in sync.
   const { route, setRoute, removeWaypoint, safety, setSafety } = useRoute();
   const { persona } = useAlertConfig();
+  const { setIsNavigating: setThemeNavigating } = useTheme();
   const [isNavigating, setIsNavigating] = useState(false);
   const [navigationState, setNavigationState] = useState<NavigationState | null>(null);
   const [alerts, setAlerts] = useState<NavigationAlert[]>([]);
@@ -378,6 +380,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
     try {
       await offlineNavigation.startNavigation(route);
       setIsNavigating(true);
+      setThemeNavigating(true);
     } catch (error) {
       toast.error('Failed to start navigation: ' + (error as Error).message);
     }
@@ -396,6 +399,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
         vesselSettings.cruiseSpeed ?? 5,
       );
       setIsNavigating(true);
+      setThemeNavigating(true);
       toast.info('Simulation running', {
         title: 'Sea Trial',
       });
@@ -407,6 +411,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
   const handleStopNavigation = () => {
     offlineNavigation.stopNavigation();
     setIsNavigating(false);
+    setThemeNavigating(false);
     setNavigationState(null);
   };
 

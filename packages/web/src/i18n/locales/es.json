@@ -45,6 +45,16 @@
       "label": "Modelo de pronóstico",
       "auto": "Automático (mejor para ubicación)",
       "description": "Resolución {{resolution}} · horizonte de {{horizon}} días"
+    },
+    "theme": {
+      "label": "Tema",
+      "auto": "Automático (día/noche)",
+      "light": "Océano Profundo (claro)",
+      "dark": "Guardia Nocturna (oscuro)",
+      "brightDeck": "Cubierta Brillante (modo solar)",
+      "brightDeckHint": "Alto contraste, sin desenfoque. Ideal bajo la luz solar directa.",
+      "brightDeckOn": "Activar modo solar (alto contraste)",
+      "brightDeckOff": "Salir del modo solar"
     }
   },
   "alerts": {

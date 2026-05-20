@@ -17,6 +17,7 @@ import { ErrorState } from './ErrorState';
 import { useTranslation } from 'react-i18next';
 import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
+import { useTheme } from '../src/hooks/useTheme';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
@@ -73,6 +74,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, persona } = useAlertConfig();
   const { preferences } = useUserPreferences();
+  const { theme, setTheme } = useTheme();
+  const isBrightDeck = theme === 'bright-deck';
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
@@ -427,10 +430,24 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             {format(new Date(), 'EEE, MMM d')}
           </p>
         </div>
-        <button onClick={() => setShowSettings(!showSettings)} className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10 shrink-0">
-          <Settings size={16} />
-          <span className="text-xs font-bold hidden sm:inline">{t('dashboard.alertConfig')}</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setTheme(isBrightDeck ? 'system' : 'bright-deck')}
+            className={`p-1.5 rounded-lg transition-colors ${
+              isBrightDeck
+                ? 'bg-amber-400 text-black'
+                : 'bg-white/10 text-white/60 hover:text-white hover:bg-white/20'
+            }`}
+            title={isBrightDeck ? t('settings.theme.brightDeckOff') : t('settings.theme.brightDeckOn')}
+            aria-label={isBrightDeck ? t('settings.theme.brightDeckOff') : t('settings.theme.brightDeckOn')}
+          >
+            <Sun size={16} />
+          </button>
+          <button onClick={() => setShowSettings(!showSettings)} className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10">
+            <Settings size={16} />
+            <span className="text-xs font-bold hidden sm:inline">{t('dashboard.alertConfig')}</span>
+          </button>
+        </div>
       </div>
 
       {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}

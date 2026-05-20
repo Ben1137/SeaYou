@@ -45,6 +45,16 @@
       "label": "Forecast model",
       "auto": "Auto (best for location)",
       "description": "{{resolution}} resolution · {{horizon}}-day horizon"
+    },
+    "theme": {
+      "label": "Theme",
+      "auto": "Auto (day/night)",
+      "light": "Deep Ocean (light)",
+      "dark": "Night Watch (dark)",
+      "brightDeck": "Bright Deck (sun mode)",
+      "brightDeckHint": "High contrast, no blur. Ideal in direct sunlight.",
+      "brightDeckOn": "Enable sun mode (high contrast)",
+      "brightDeckOff": "Exit sun mode"
     }
   },
   "alerts": {

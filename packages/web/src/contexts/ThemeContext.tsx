@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState, ReactNode } from 'react';
 
-export type Theme = 'light' | 'dark' | 'system';
-export type ResolvedTheme = 'light' | 'dark';
+export type Theme = 'light' | 'dark' | 'system' | 'bright-deck';
+export type ResolvedTheme = 'light' | 'dark' | 'bright-deck';
 
 interface ThemeContextType {
   theme: Theme;
@@ -9,6 +9,8 @@ interface ThemeContextType {
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   setAutoThemeData: (sunrise?: string, sunset?: string) => void;
+  isNavigating: boolean;
+  setIsNavigating: (v: boolean) => void;
 }
 
 /**
@@ -35,7 +37,7 @@ function getStoredTheme(): Theme | null {
   if (typeof window === 'undefined') return null;
   try {
     const stored = localStorage.getItem(THEME_STORAGE_KEY);
-    if (stored === 'light' || stored === 'dark' || stored === 'system') {
+    if (stored === 'light' || stored === 'dark' || stored === 'system' || stored === 'bright-deck') {
       return stored;
     }
   } catch (e) {
@@ -105,6 +107,9 @@ function resolveTheme(theme: Theme, sunrise?: string, sunset?: string): Resolved
   if (theme === 'system') {
     return getSystemTheme();
   }
+  if (theme === 'bright-deck') {
+    return 'bright-deck';
+  }
   return theme;
 }
 
@@ -119,6 +124,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
 }) => {
   const [sunriseTime, setSunriseTime] = useState<string | undefined>(undefined);
   const [sunsetTime, setSunsetTime] = useState<string | undefined>(undefined);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Initialize theme from localStorage or default, considering auto-theme
   const [theme, setThemeState] = useState<Theme>(() => {
@@ -146,22 +152,29 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
     const root = document.documentElement;
     let resolved: ResolvedTheme;
 
-    // Check if user has manually set a theme
-    if (isManualTheme()) {
+    // Navigation mode always forces bright-deck regardless of user preference
+    if (isNavigating) {
+      resolved = 'bright-deck';
+    } else if (isManualTheme()) {
+      // Check if user has manually set a theme
       resolved = resolveTheme(theme);
     } else {
       // Use auto theme based on time of day
       resolved = getAutoTheme(sunriseTime, sunsetTime);
     }
 
-    // Remove both classes first
-    root.classList.remove('light', 'dark');
+    root.classList.remove('light', 'dark', 'bright-deck');
 
-    // Add the resolved theme class
-    root.classList.add(resolved);
+    if (resolved === 'bright-deck') {
+      root.classList.add('bright-deck');
+    } else if (resolved === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.add('light');
+    }
 
     setResolvedTheme(resolved);
-  }, [theme, sunriseTime, sunsetTime]);
+  }, [theme, sunriseTime, sunsetTime, isNavigating]);
 
   // Auto-update theme every minute if using auto mode
   useEffect(() => {
@@ -173,7 +186,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       if (autoTheme !== resolvedTheme) {
         setResolvedTheme(autoTheme);
         const root = document.documentElement;
-        root.classList.remove('light', 'dark');
+        root.classList.remove('light', 'dark', 'bright-deck');
         root.classList.add(autoTheme);
       }
     }, 60000); // Check every minute
@@ -192,7 +205,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
       setResolvedTheme(newResolvedTheme);
 
       const root = document.documentElement;
-      root.classList.remove('light', 'dark');
+      root.classList.remove('light', 'dark', 'bright-deck');
       root.classList.add(newResolvedTheme);
     };
 
@@ -208,7 +221,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   };
 
   const toggleTheme = () => {
-    // Toggle between light and dark (ignoring system for simple toggle)
+    // Toggle between light and dark (bright-deck and system treated as light for this toggle)
     const newTheme: Theme = resolvedTheme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
   };
@@ -219,7 +232,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme, setAutoThemeData }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme, setAutoThemeData, isNavigating, setIsNavigating }}>
       {children}
     </ThemeContext.Provider>
   );
