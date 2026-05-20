@@ -283,6 +283,7 @@ class AISService {
         this.gcStale();
         if (!this.receivedFirstVessel) {
           this.receivedFirstVessel = true;
+          this.reconnectAttempts = 0; // Pipeline is healthy — reset backoff.
           // eslint-disable-next-line no-console
           console.info(`[ais] first vessel received: ${v.mmsi} at [${v.lat.toFixed(4)},${v.lon.toFixed(4)}]`);
         }
@@ -294,11 +295,22 @@ class AISService {
     };
 
     this.es.onerror = (ev) => {
-      // eslint-disable-next-line no-console
-      console.warn('[ais] SSE error — scheduling reconnect', ev);
-      this.es?.close();
-      this.es = null;
+      // Close immediately to suppress browser's native EventSource auto-reconnect.
+      // Without this, the browser retries every ~3s in parallel with our managed
+      // scheduleReconnect, doubling traffic and confusing the debug log.
+      if (this.es) {
+        this.es.close();
+        this.es = null;
+      }
+      const wasConnected = this.connected;
       this.connected = false;
+      if (wasConnected) {
+        // eslint-disable-next-line no-console
+        console.warn('[ais] SSE error after successful connect — scheduling reconnect', ev);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn('[ais] SSE connect failed — scheduling retry');
+      }
       this.scheduleReconnect();
     };
   }
@@ -332,13 +344,35 @@ class AISService {
   private scheduleReconnect() {
     if (!this.bbox) return;
     if (this.reconnectTimer) return;
-    // Floor at 2s so AISStream has time to fully release the previous
-    // upstream WS before we knock again (their free tier caps at 1).
-    const delay = Math.min(30000, Math.max(2000, 1000 * 2 ** this.reconnectAttempts));
+
+    // Hard cap: after 5 consecutive failures, sleep for 5 minutes before
+    // trying again. Prevents runaway console spam when upstream is broken.
+    const MAX_ATTEMPTS_BEFORE_COOLDOWN = 5;
+    const COOLDOWN_MS = 5 * 60 * 1000;
+
+    let delay: number;
+    if (this.reconnectAttempts >= MAX_ATTEMPTS_BEFORE_COOLDOWN) {
+      delay = COOLDOWN_MS;
+      if (this.reconnectAttempts === MAX_ATTEMPTS_BEFORE_COOLDOWN) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[ais] ${MAX_ATTEMPTS_BEFORE_COOLDOWN} consecutive reconnect failures — backing off for 5 minutes`,
+        );
+      }
+    } else {
+      // Floor at 2s so AISStream has time to fully release the previous
+      // upstream WS before we knock again (their free tier caps at 1).
+      delay = Math.min(30000, Math.max(2000, 1000 * 2 ** this.reconnectAttempts));
+    }
+
     this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      // Prefer relay path on reconnect (re-checks session automatically).
+      // After cooldown, reset counter so we get a fresh exponential ramp
+      // instead of being stuck at MAX_ATTEMPTS forever.
+      if (this.reconnectAttempts > MAX_ATTEMPTS_BEFORE_COOLDOWN) {
+        this.reconnectAttempts = 0;
+      }
       void this.connectViaRelay();
     }, delay);
   }
