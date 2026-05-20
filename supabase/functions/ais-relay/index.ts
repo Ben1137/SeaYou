@@ -118,7 +118,11 @@ Deno.serve(async (req) => {
       try {
         ws = new WebSocket(AIS_WS_URL);
 
+        let positionReportCount = 0;
+        let otherMessageCount = 0;
+
         ws.onopen = () => {
+          console.log(`[ais-relay] upstream WS open — subscribing bbox [${lat1},${lon1}] to [${lat2},${lon2}]`);
           ws!.send(
             JSON.stringify({
               APIKey: apiKey,
@@ -131,7 +135,15 @@ Deno.serve(async (req) => {
         ws.onmessage = (ev) => {
           try {
             const msg = JSON.parse(ev.data as string) as Record<string, unknown>;
-            if (msg.MessageType !== 'PositionReport') return;
+            if (msg.MessageType !== 'PositionReport') {
+              otherMessageCount++;
+              if (otherMessageCount <= 3) console.log(`[ais-relay] non-PositionReport: ${JSON.stringify(msg).slice(0, 150)}`);
+              return;
+            }
+            positionReportCount++;
+            if (positionReportCount === 1 || positionReportCount % 10 === 0) {
+              console.log(`[ais-relay] forwarded ${positionReportCount} PositionReports`);
+            }
 
             const posReport = (msg.Message as Record<string, unknown> | undefined)
               ?.PositionReport as Record<string, unknown> | undefined;
@@ -160,11 +172,13 @@ Deno.serve(async (req) => {
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (ev) => {
+          console.log(`[ais-relay] upstream WS closed: code=${ev.code} reason=${ev.reason ?? ''}`);
           try { controller.close(); } catch { /* already closed */ }
         };
 
-        ws.onerror = () => {
+        ws.onerror = (ev) => {
+          console.log(`[ais-relay] upstream WS error: ${JSON.stringify(ev)}`);
           try { controller.close(); } catch { /* already closed */ }
         };
 

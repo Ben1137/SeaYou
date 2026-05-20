@@ -63,6 +63,7 @@ class AISService {
   private bbox: [[number, number], [number, number]] | null = null;
   private targets = new Map<string, AISTarget>();
   private reconnectAttempts = 0;
+  private receivedFirstVessel = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private cpaTimer: ReturnType<typeof setInterval> | null = null;
   private lastCpaAlertAt = new Map<string, number>();
@@ -252,6 +253,8 @@ class AISService {
     this.es.onopen = () => {
       this.reconnectAttempts = 0;
       this.connected = true;
+      // eslint-disable-next-line no-console
+      console.info('[ais] SSE connected via relay');
       if (!this.cpaTimer) {
         this.cpaTimer = setInterval(() => this.runCpaSweep(), 5000);
       }
@@ -278,6 +281,11 @@ class AISService {
           shipType: existing?.shipType,
         });
         this.gcStale();
+        if (!this.receivedFirstVessel) {
+          this.receivedFirstVessel = true;
+          // eslint-disable-next-line no-console
+          console.info(`[ais] first vessel received: ${v.mmsi} at [${v.lat.toFixed(4)},${v.lon.toFixed(4)}]`);
+        }
         this.emit('targets', this.getTargets());
         this.evaluateCPA();
       } catch {
@@ -285,7 +293,9 @@ class AISService {
       }
     };
 
-    this.es.onerror = () => {
+    this.es.onerror = (ev) => {
+      // eslint-disable-next-line no-console
+      console.warn('[ais] SSE error — scheduling reconnect', ev);
       this.es?.close();
       this.es = null;
       this.connected = false;
