@@ -602,5 +602,21 @@
       "diver": "Buceador",
       "diverDesc": "Visibilidad, corrientes y temperatura del agua"
     }
+  },
+  "ais": {
+    "disclaimer": "Las posiciones AIS son de fuente colectiva y pueden estar retrasadas, ausentes o ser inexactas. SeaYou no es un sistema anticolisión. Mantenga siempre una guardia visual adecuada.",
+    "toggle": "Tráfico marítimo (AIS)",
+    "disclaimer_dismiss": "Entendido"
+  },
+  "routeForecast": {
+    "overallScore": "Condiciones de ruta",
+    "segmentScore": "Segmento {{index}} — Puntuación {{score}}",
+    "betterDeparture": "Mejores condiciones a las {{time}} (puntuación {{newScore}} vs {{oldScore}} ahora)",
+    "applyDeparture": "Usar esta hora de salida",
+    "advisory": {
+      "headwind": "Se espera viento de proa en la mayor parte de la ruta",
+      "storm": "Condiciones de tormenta detectadas — reconsidere la salida",
+      "improving": "Las condiciones mejoran significativamente en {{hours}}h"
+    }
   }
 }

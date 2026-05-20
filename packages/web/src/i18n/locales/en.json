@@ -600,5 +600,21 @@
       "diver": "Diver",
       "diverDesc": "Visibility, currents & sea temp"
     }
+  },
+  "ais": {
+    "disclaimer": "AIS positions are crowd-sourced and may be delayed, missing, or inaccurate. SeaYou is not a collision-avoidance system. Always keep a proper visual lookout.",
+    "toggle": "Vessel Traffic (AIS)",
+    "disclaimer_dismiss": "Got it"
+  },
+  "routeForecast": {
+    "overallScore": "Route conditions",
+    "segmentScore": "Segment {{index}} — Score {{score}}",
+    "betterDeparture": "Better conditions at {{time}} (score {{newScore}} vs {{oldScore}} now)",
+    "applyDeparture": "Use this departure time",
+    "advisory": {
+      "headwind": "Headwind expected on most of the route",
+      "storm": "Storm conditions detected — reconsider departure",
+      "improving": "Conditions improve significantly in {{hours}}h"
+    }
   }
 }

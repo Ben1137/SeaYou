@@ -15,3 +15,8 @@ verify_jwt = false
 [functions.daily-surf-report]
 # Triggered by pg_cron with the service-role key — JWT gate stays on.
 verify_jwt = true
+
+[functions.ais-relay]
+# Caller must be an authenticated user. JWT verification enforced here
+# and validated again inside the function via supabase.auth.getUser().
+verify_jwt = true

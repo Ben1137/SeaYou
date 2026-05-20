@@ -53,6 +53,7 @@ const TARGET_TTL_MS = 10 * 60 * 1000;
 
 class AISService {
   private ws: WebSocket | null = null;
+  private es: EventSource | null = null;
   private apiKey: string | null = null;
   private bbox: [[number, number], [number, number]] | null = null;
   private targets = new Map<string, AISTarget>();
@@ -60,7 +61,7 @@ class AISService {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private cpaTimer: ReturnType<typeof setInterval> | null = null;
   private lastCpaAlertAt = new Map<string, number>();
-  private listeners = new Map<string, Set<Listener<any>>>();
+  private listeners = new Map<string, Set<Listener<unknown>>>();
   private connected = false;
   private lastOwnNav: NavigationState | null = null;
 
@@ -82,20 +83,30 @@ class AISService {
       key && typeof key === 'string' && key.length > 0 ? key : null;
   }
 
+  /**
+   * Returns true when AIS tracking is available — either via the secure
+   * Edge Function relay (preferred, requires VITE_SUPABASE_URL) or the
+   * direct WebSocket path (dev mode, requires VITE_AISSTREAM_API_KEY).
+   */
   isAvailable(): boolean {
-    return this.apiKey !== null;
+    const supabaseUrl: string =
+      (typeof import.meta !== 'undefined' &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (import.meta as any).env?.VITE_SUPABASE_URL) ||
+      '';
+    return this.apiKey !== null || supabaseUrl.length > 0;
   }
 
-  on<T = any>(event: string, fn: Listener<T>) {
+  on<T = unknown>(event: string, fn: Listener<T>) {
     if (!this.listeners.has(event)) this.listeners.set(event, new Set());
-    this.listeners.get(event)!.add(fn);
+    this.listeners.get(event)!.add(fn as Listener<unknown>);
   }
 
-  off<T = any>(event: string, fn: Listener<T>) {
-    this.listeners.get(event)?.delete(fn);
+  off<T = unknown>(event: string, fn: Listener<T>) {
+    this.listeners.get(event)?.delete(fn as Listener<unknown>);
   }
 
-  private emit<T = any>(event: string, payload: T) {
+  private emit<T = unknown>(event: string, payload: T) {
     this.listeners.get(event)?.forEach((fn) => {
       try {
         fn(payload);
@@ -119,9 +130,14 @@ class AISService {
   setBBox(bbox: [[number, number], [number, number]]) {
     this.bbox = bbox;
     if (this.connected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      // Direct WS path: update the active subscription in-place.
       this.sendSubscription();
+    } else if (this.connected && this.es) {
+      // SSE relay path: bbox is encoded in the URL — reconnect to update it.
+      void this.connectViaRelay();
     } else {
-      this.connect();
+      // Not connected — start fresh via relay (falls back to direct WS).
+      void this.connectViaRelay();
     }
   }
 
@@ -150,7 +166,7 @@ class AISService {
 
     this.ws.onmessage = (ev) => {
       try {
-        const msg = JSON.parse(ev.data as string);
+        const msg = JSON.parse(ev.data as string) as Record<string, unknown>;
         this.handleMessage(msg);
       } catch {
         // ignore malformed frames
@@ -168,6 +184,99 @@ class AISService {
     };
   }
 
+  /**
+   * Connect via the Supabase Edge Function relay when the user is
+   * authenticated and VITE_SUPABASE_URL is configured. The relay holds the
+   * aisstream API key server-side so it never appears in the client bundle.
+   *
+   * Falls back to the direct WebSocket path when:
+   *   - No active Supabase session (unauthenticated / offline dev).
+   *   - VITE_SUPABASE_URL is not set.
+   *   - VITE_AISSTREAM_API_KEY is present (direct dev mode override).
+   */
+  async connectViaRelay(): Promise<void> {
+    if (!this.bbox) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabaseUrl: string =
+      (typeof import.meta !== 'undefined' &&
+        (import.meta as any).env?.VITE_SUPABASE_URL) ||
+      '';
+    if (!supabaseUrl) {
+      // No relay configured — fall back to direct WebSocket.
+      this.connect();
+      return;
+    }
+
+    let token: string | null = null;
+    try {
+      const { getSupabaseClient } = await import('@seame/core');
+      const supabase = getSupabaseClient();
+      const { data } = await supabase.auth.getSession();
+      token = data.session?.access_token ?? null;
+    } catch {
+      // Core package unavailable or no session — fall back to direct.
+    }
+
+    if (!token) {
+      this.connect();
+      return;
+    }
+
+    // Close any existing connections before opening a new one.
+    this._closeTransport();
+
+    const [[lat1, lon1], [lat2, lon2]] = this.bbox;
+    const bboxParam = `${lat1},${lon1},${lat2},${lon2}`;
+    // Pass token as query param — EventSource does not support custom headers.
+    const sseUrl = `${supabaseUrl}/functions/v1/ais-relay?bbox=${encodeURIComponent(bboxParam)}&authorization=${encodeURIComponent(token)}`;
+
+    this.es = new EventSource(sseUrl);
+
+    this.es.onopen = () => {
+      this.reconnectAttempts = 0;
+      this.connected = true;
+      if (!this.cpaTimer) {
+        this.cpaTimer = setInterval(() => this.runCpaSweep(), 5000);
+      }
+    };
+
+    this.es.onmessage = (ev) => {
+      try {
+        const v = JSON.parse(ev.data as string) as AISTarget & {
+          ts?: string;
+        };
+        if (!v.mmsi || typeof v.lat !== 'number' || typeof v.lon !== 'number') {
+          return;
+        }
+        const existing = this.targets.get(v.mmsi);
+        this.targets.set(v.mmsi, {
+          mmsi: v.mmsi,
+          name: v.name ?? existing?.name,
+          lat: v.lat,
+          lon: v.lon,
+          cog: v.cog ?? existing?.cog ?? 0,
+          sog: v.sog ?? existing?.sog ?? 0,
+          heading: v.heading ?? existing?.heading,
+          updatedAt: Date.now(),
+          shipType: existing?.shipType,
+        });
+        this.gcStale();
+        this.emit('targets', this.getTargets());
+        this.evaluateCPA();
+      } catch {
+        // ignore malformed frames
+      }
+    };
+
+    this.es.onerror = () => {
+      this.es?.close();
+      this.es = null;
+      this.connected = false;
+      this.scheduleReconnect();
+    };
+  }
+
   disconnect() {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
@@ -177,27 +286,41 @@ class AISService {
       clearInterval(this.cpaTimer);
       this.cpaTimer = null;
     }
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {
-        /* noop */
-      }
-      this.ws = null;
-    }
+    this._closeTransport();
     this.connected = false;
     this.targets.clear();
   }
 
+  /** Close whichever transport is open without clearing reconnect state. */
+  private _closeTransport() {
+    if (this.es) {
+      try { this.es.close(); } catch { /* noop */ }
+      this.es = null;
+    }
+    if (this.ws) {
+      try { this.ws.close(); } catch { /* noop */ }
+      this.ws = null;
+    }
+  }
+
   private scheduleReconnect() {
-    if (!this.apiKey || !this.bbox) return;
+    if (!this.bbox) return;
     if (this.reconnectTimer) return;
     const delay = Math.min(30000, 1000 * 2 ** this.reconnectAttempts);
     this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
-      this.connect();
+      // Prefer relay path on reconnect (re-checks session automatically).
+      void this.connectViaRelay();
     }, delay);
+  }
+
+  /**
+   * Trigger a CPA evaluation immediately — called after each relay update
+   * so warnings fire in real time instead of waiting for the 5 s sweep.
+   */
+  private evaluateCPA() {
+    this.runCpaSweep();
   }
 
   private sendSubscription() {
@@ -214,15 +337,21 @@ class AISService {
     }
   }
 
-  private handleMessage(msg: any) {
-    const metadata = msg?.MetaData ?? msg?.Metadata;
+  private handleMessage(msg: Record<string, unknown>) {
+    const metadata = (msg?.MetaData ?? msg?.Metadata) as
+      | Record<string, unknown>
+      | undefined;
     const type = msg?.MessageType;
     if (!metadata || !type) return;
     const mmsi = String(metadata.MMSI ?? metadata.mmsi ?? '');
     if (!mmsi) return;
 
+    const message = msg.Message as Record<string, unknown> | undefined;
+
     if (type === 'PositionReport') {
-      const report = msg.Message?.PositionReport;
+      const report = message?.PositionReport as
+        | Record<string, unknown>
+        | undefined;
       if (!report) return;
       const lat = report.Latitude;
       const lon = report.Longitude;
@@ -230,19 +359,20 @@ class AISService {
       const existing = this.targets.get(mmsi);
       const next: AISTarget = {
         mmsi,
-        name: existing?.name ?? metadata.ShipName?.trim() ?? undefined,
+        name:
+          existing?.name ??
+          (typeof metadata.ShipName === 'string'
+            ? metadata.ShipName.trim()
+            : undefined),
         lat,
         lon,
         cog:
-          typeof report.Cog === 'number'
-            ? report.Cog
-            : existing?.cog ?? 0,
+          typeof report.Cog === 'number' ? report.Cog : existing?.cog ?? 0,
         sog:
-          typeof report.Sog === 'number'
-            ? report.Sog
-            : existing?.sog ?? 0,
+          typeof report.Sog === 'number' ? report.Sog : existing?.sog ?? 0,
         heading:
-          typeof report.TrueHeading === 'number' && report.TrueHeading !== 511
+          typeof report.TrueHeading === 'number' &&
+          report.TrueHeading !== 511
             ? report.TrueHeading
             : existing?.heading,
         updatedAt: Date.now(),
@@ -252,12 +382,16 @@ class AISService {
       this.gcStale();
       this.emit('targets', this.getTargets());
     } else if (type === 'ShipStaticData') {
-      const stat = msg.Message?.ShipStaticData;
+      const stat = message?.ShipStaticData as
+        | Record<string, unknown>
+        | undefined;
       if (!stat) return;
       const existing = this.targets.get(mmsi);
       if (!existing) return;
-      existing.name = (stat.Name ?? existing.name ?? '').trim() || existing.name;
-      existing.shipType = stat.Type ?? existing.shipType;
+      const statName = typeof stat.Name === 'string' ? stat.Name : '';
+      existing.name = statName.trim() || existing.name;
+      existing.shipType =
+        typeof stat.Type === 'number' ? stat.Type : existing.shipType;
     }
   }
 

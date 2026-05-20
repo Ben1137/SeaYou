@@ -30,6 +30,9 @@ import type { OnboardingPersona } from '../types/preferences';
 import { API_ENDPOINTS, WEATHER_CONSTANTS } from '../constants';
 import { deduplicatedFetch } from '../utils/requestDeduplication';
 import { globalRateLimiter } from './apiRateLimiter';
+import { scoreActivity } from '../scoring/scoreActivity';
+import { ActivityPersona } from '../types/scoring';
+import type { HourlyConditions } from '../types/scoring';
 
 // ─────────────────────────────────────────────────────────────────
 // Types
@@ -53,6 +56,9 @@ export interface SegmentWeatherSample {
 export interface SegmentSafety {
   segmentIndex: number;
   severity: SegmentSeverity;
+  /** Sailor-persona activity score 0–100 for this segment. Undefined when
+   *  weather data is unavailable for the segment. */
+  score?: number;
   weather: SegmentWeatherSample | null;
   reasons: string[];
   landIntersect: boolean;
@@ -617,9 +623,32 @@ export async function analyzeRouteSafety(
       });
     }
 
+    // Compute sailor-persona score (0–100) when weather data is available.
+    let segmentScore: number | undefined;
+    if (sample !== null) {
+      const conditions: HourlyConditions = {
+        time: sample.sampledAt,
+        windSpeed: sample.windSpeedKmh ?? 0,
+        windGusts: sample.windGustsKmh ?? 0,
+        windDirection: 0,
+        waveHeight: sample.waveHeightM ?? 0,
+        wavePeriod: 0,
+        swellHeight: sample.waveHeightM ?? 0,
+        swellPeriod: 0,
+        swellDirection: 0,
+        currentSpeed: sample.currentSpeedMs ?? 0,
+      };
+      try {
+        segmentScore = scoreActivity(ActivityPersona.SAILOR, conditions).overall;
+      } catch {
+        segmentScore = undefined;
+      }
+    }
+
     segments.push({
       segmentIndex: i,
       severity,
+      score: segmentScore,
       weather: sample,
       reasons,
       landIntersect,
