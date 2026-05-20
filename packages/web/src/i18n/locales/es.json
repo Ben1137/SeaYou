@@ -40,7 +40,12 @@
     "waveThreshold": "Umbral de olas",
     "windThreshold": "Umbral de viento",
     "swellThreshold": "Umbral de oleaje",
-    "tsunamiSimulation": "Simulación de alerta de tsunami"
+    "tsunamiSimulation": "Simulación de alerta de tsunami",
+    "weatherModel": {
+      "label": "Modelo de pronóstico",
+      "auto": "Automático (mejor para ubicación)",
+      "description": "Resolución {{resolution}} · horizonte de {{horizon}} días"
+    }
   },
   "alerts": {
     "stormWarning": "AVISO DE TORMENTA",

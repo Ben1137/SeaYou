@@ -40,7 +40,12 @@
     "waveThreshold": "Seuil de vague",
     "windThreshold": "Seuil de vent",
     "swellThreshold": "Seuil de houle",
-    "tsunamiSimulation": "Simulation d'alerte tsunami"
+    "tsunamiSimulation": "Simulation d'alerte tsunami",
+    "weatherModel": {
+      "label": "Modèle de prévision",
+      "auto": "Automatique (meilleur pour la position)",
+      "description": "Résolution {{resolution}} · horizon {{horizon}} jours"
+    }
   },
   "alerts": {
     "stormWarning": "ALERTE TEMPÊTE",
