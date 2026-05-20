@@ -887,10 +887,9 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 const worstDisplay = toDisplayScore(worst.safetyScore);
                 // Show banner only when best window is meaningfully better and in the future.
                 if (best.safetyScore >= worst.safetyScore || hoursUntil <= 0) return null;
-                const improvement = worstDisplay - bestDisplay;
-                if (improvement < 15) return null;
+                if (worstDisplay - bestDisplay < 15) return null;
                 return (
-                  <div className="mx-0 mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <div className="mb-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
                     <div className="flex items-start gap-2">
                       <span className="text-emerald-400 text-lg leading-none mt-0.5">↑</span>
                       <div>
