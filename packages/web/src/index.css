@@ -190,6 +190,96 @@
   -webkit-backdrop-filter: none !important;
 }
 
+/* Force-opaque dark-background panels */
+.bright-deck .bg-slate-950,
+.bright-deck .bg-slate-900,
+.bright-deck .bg-slate-800,
+.bright-deck .bg-slate-700 {
+  background-color: var(--app-bg-base) !important;
+  color: var(--text-primary) !important;
+}
+
+.bright-deck [class*="bg-slate-900\/"],
+.bright-deck [class*="bg-slate-800\/"],
+.bright-deck [class*="bg-slate-700\/"],
+.bright-deck [class*="bg-black\/"] {
+  background-color: var(--app-bg-elevated) !important;
+}
+
+.bright-deck [class*="bg-blue-900\/"],
+.bright-deck [class*="bg-green-900\/"],
+.bright-deck [class*="bg-red-900\/"],
+.bright-deck [class*="bg-orange-900\/"] {
+  background-color: var(--app-bg-elevated) !important;
+  border-color: var(--app-border-subtle) !important;
+}
+
+/* Force-readable text — raw Tailwind classes used in legacy components */
+.bright-deck .text-white {
+  color: var(--text-primary) !important;
+}
+
+.bright-deck [class~="text-white\/90"],
+.bright-deck [class~="text-white\/80"],
+.bright-deck [class~="text-white\/70"],
+.bright-deck [class~="text-white\/60"],
+.bright-deck [class~="text-white\/50"],
+.bright-deck [class~="text-white\/40"] {
+  color: var(--text-secondary) !important;
+}
+
+.bright-deck .text-slate-100,
+.bright-deck .text-slate-200,
+.bright-deck .text-slate-300 {
+  color: var(--text-secondary) !important;
+}
+
+.bright-deck .text-slate-400,
+.bright-deck .text-slate-500 {
+  color: var(--text-muted) !important;
+}
+
+.bright-deck .text-cyan-300,
+.bright-deck .text-cyan-400,
+.bright-deck .text-blue-300,
+.bright-deck .text-blue-400 {
+  color: var(--text-accent) !important;
+}
+
+.bright-deck .text-yellow-300,
+.bright-deck .text-yellow-400 {
+  color: #b45309 !important;
+}
+
+.bright-deck .text-green-300,
+.bright-deck .text-green-400 {
+  color: #166534 !important;
+}
+
+.bright-deck .text-orange-300,
+.bright-deck .text-orange-400 {
+  color: #9a3412 !important;
+}
+
+.bright-deck .text-red-300,
+.bright-deck .text-red-400 {
+  color: #991b1b !important;
+}
+
+.bright-deck [class*="border-slate-7"],
+.bright-deck [class*="border-slate-8"],
+.bright-deck [class*="border-slate-9"] {
+  border-color: var(--app-border-subtle) !important;
+}
+
+.bright-deck .bg-slate-900\/95 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: var(--text-primary) !important;
+}
+
+/* color-scheme so native form controls render light */
+:root.bright-deck { color-scheme: light; }
+
 /* Small transition for smooth theme swaps */
 html {
   transition: background-color .2s ease, color .2s ease;

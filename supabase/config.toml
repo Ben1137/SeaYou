@@ -17,6 +17,8 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.ais-relay]
-# Caller must be an authenticated user. JWT verification enforced here
-# and validated again inside the function via supabase.auth.getUser().
-verify_jwt = true
+# JWT verification is handled INSIDE the function, not at the gateway.
+# We must disable gateway-level JWT check because EventSource (SSE) cannot
+# set custom HTTP headers — the JWT is passed as ?authorization= query param.
+# The Deno function calls supabase.auth.getUser() to validate the token.
+verify_jwt = false

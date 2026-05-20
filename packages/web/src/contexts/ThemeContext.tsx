@@ -221,9 +221,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   };
 
   const toggleTheme = () => {
-    // Toggle between light and dark (bright-deck and system treated as light for this toggle)
-    const newTheme: Theme = resolvedTheme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
+    const order: ResolvedTheme[] = ['light', 'dark', 'bright-deck'];
+    const currentIdx = order.indexOf(resolvedTheme);
+    const next = order[(currentIdx + 1) % order.length] as Theme;
+    setTheme(next);
   };
 
   const setAutoThemeData = (sunrise?: string, sunset?: string) => {

@@ -624,7 +624,8 @@
   "ais": {
     "disclaimer": "Le posizioni AIS sono raccolte dalla comunità e possono essere ritardate, mancanti o imprecise. SeaYou non è un sistema anticollisione. Mantenere sempre un'adeguata guardia visiva.",
     "toggle": "Traffico navale (AIS)",
-    "disclaimer_dismiss": "Capito"
+    "disclaimer_dismiss": "Capito",
+    "zoomInPrompt": "Zoom in to see live vessel positions"
   },
   "routeForecast": {
     "overallScore": "Condizioni di rotta",
