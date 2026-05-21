@@ -104,7 +104,8 @@
     "period": "תקופה",
     "feelsLike": "מרגיש כמו",
     "currentUV": "UV נוכחי",
-    "height": "גובה"
+    "height": "גובה",
+    "seaTemp": "טמפרטורת ים"
   },
   "activity": {
     "report": "דוח פעילות",
@@ -427,7 +428,9 @@
     "diveSuitability": "התאמה לצלילה",
     "chopLevel": "רמת סערה",
     "gustDelta": "הפרש משבי רוח",
-    "currentHeatmap": "מהירות זרם"
+    "currentHeatmap": "מהירות זרם",
+    "model": "מודל",
+    "compareModels": "השווה"
   },
   "units": {
     "meters": "מ׳",
@@ -699,5 +702,14 @@
     "primaryActivity": "פעילות עיקרית",
     "secondaryActivities": "הזהר אותי גם על",
     "sweetSpotNotify": "הודע כשהתנאים מושלמים"
+  },
+  "comparison": {
+    "title": "השוואת מודלים",
+    "pickHint": "בחר 2–3 מודלים להשוואה",
+    "compare": "השווה במיקום הנוכחי",
+    "loading": "מוריד…",
+    "metric": "מדד",
+    "highSpread": "המודלים אינם מסכימים — רמת הוודאות של התחזית נמוכה.",
+    "fetchError": "לא ניתן לטעון נתוני מודל. נסה שוב."
   }
 }

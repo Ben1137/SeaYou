@@ -104,7 +104,8 @@
     "period": "Período",
     "feelsLike": "Sensación térmica",
     "currentUV": "UV actual",
-    "height": "Altura"
+    "height": "Altura",
+    "seaTemp": "Temp. del mar"
   },
   "activity": {
     "report": "Informe de actividad",
@@ -389,7 +390,9 @@
     "diveSuitability": "Aptitud para buceo",
     "chopLevel": "Nivel de marejada",
     "gustDelta": "Delta de ráfagas",
-    "currentHeatmap": "Velocidad de corriente"
+    "currentHeatmap": "Velocidad de corriente",
+    "model": "Modelo",
+    "compareModels": "Comparar"
   },
   "units": {
     "meters": "m",
@@ -658,5 +661,14 @@
     "primaryActivity": "Actividad principal",
     "secondaryActivities": "También alertarme por",
     "sweetSpotNotify": "Notificar cuando las condiciones sean perfectas"
+  },
+  "comparison": {
+    "title": "Comparación de modelos",
+    "pickHint": "Selecciona 2–3 modelos para comparar",
+    "compare": "Comparar en la ubicación actual",
+    "loading": "Cargando…",
+    "metric": "Métrica",
+    "highSpread": "Los modelos discrepan significativamente — la confianza en el pronóstico es baja.",
+    "fetchError": "No se pudieron obtener datos del modelo. Inténtalo de nuevo."
   }
 }

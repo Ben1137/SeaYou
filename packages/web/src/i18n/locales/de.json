@@ -104,7 +104,8 @@
     "period": "Periode",
     "feelsLike": "Gefühlt",
     "currentUV": "Aktueller UV",
-    "height": "Höhe"
+    "height": "Höhe",
+    "seaTemp": "Meerestemp."
   },
   "activity": {
     "report": "Aktivitätsbericht",
@@ -406,7 +407,9 @@
     "diveSuitability": "Taucheignung",
     "chopLevel": "Wellenkabbel",
     "gustDelta": "Böendifferenz",
-    "currentHeatmap": "Strömungsgeschwindigkeit"
+    "currentHeatmap": "Strömungsgeschwindigkeit",
+    "model": "Modell",
+    "compareModels": "Vergleichen"
   },
   "units": {
     "meters": "m",
@@ -675,5 +678,14 @@
     "primaryActivity": "Hauptaktivität",
     "secondaryActivities": "Auch benachrichtigen für",
     "sweetSpotNotify": "Benachrichtigen wenn Bedingungen perfekt sind"
+  },
+  "comparison": {
+    "title": "Modellvergleich",
+    "pickHint": "2–3 Modelle zum Vergleich auswählen",
+    "compare": "An aktuellem Standort vergleichen",
+    "loading": "Lade…",
+    "metric": "Messgröße",
+    "highSpread": "Modelle sind uneinig — Vorhersagegenauigkeit gering.",
+    "fetchError": "Modelldaten konnten nicht geladen werden. Erneut versuchen."
   }
 }

@@ -104,7 +104,8 @@
     "period": "Period",
     "feelsLike": "Feels Like",
     "currentUV": "Current UV",
-    "height": "Height"
+    "height": "Height",
+    "seaTemp": "Sea temp"
   },
   "activity": {
     "report": "Activity Report",
@@ -441,7 +442,9 @@
     "diveSuitability": "Dive Suitability",
     "chopLevel": "Chop Level",
     "gustDelta": "Gust Delta",
-    "currentHeatmap": "Current Speed"
+    "currentHeatmap": "Current Speed",
+    "model": "Model",
+    "compareModels": "Compare"
   },
   "units": {
     "meters": "m",
@@ -656,5 +659,14 @@
     "primaryActivity": "Primary activity",
     "secondaryActivities": "Also alert me for",
     "sweetSpotNotify": "Notify when conditions are perfect"
+  },
+  "comparison": {
+    "title": "Model Comparison",
+    "pickHint": "Pick 2–3 models to compare",
+    "compare": "Compare at current location",
+    "loading": "Fetching…",
+    "metric": "Metric",
+    "highSpread": "Models disagree significantly — forecast confidence is low.",
+    "fetchError": "Could not fetch model data. Try again."
   }
 }
