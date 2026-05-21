@@ -109,12 +109,22 @@ export const ActivityTimeline: React.FC<ActivityTimelineProps> = ({
           return (
             <div
               key={i}
+              role="button"
+              tabIndex={0}
+              aria-label={`${h.time}: ${h.score} — ${h.label}`}
+              aria-pressed={isSelected}
               className={`flex-1 ${bg} transition-all cursor-pointer ${isSelected ? 'ring-1 ring-white/80 scale-y-150 brightness-125' : ''}`}
               title={`${h.time}: ${h.score} (${h.label})`}
               onClick={(e) => handleBlockTap(i, e)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleBlockTap(i, e as unknown as React.MouseEvent);
+                }
+              }}
               onTouchEnd={(e) => {
                 e.preventDefault();
-                handleBlockTap(i, e);
+                handleBlockTap(i, e as unknown as React.MouseEvent);
               }}
             />
           );

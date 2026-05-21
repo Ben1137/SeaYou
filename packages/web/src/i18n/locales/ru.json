@@ -52,7 +52,10 @@
       "light": "Глубокий Океан (светлая)",
       "dark": "Ночная Вахта (тёмная)",
       "brightDeck": "Яркая Палуба (солнечный режим)",
-      "brightDeckHint": "Высокий контраст, без размытия. Идеально при прямом солнечном свете.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Включить солнечный режим (высокий контраст)",
       "brightDeckOff": "Выйти из солнечного режима"
     }
@@ -101,7 +104,8 @@
     "period": "Период",
     "feelsLike": "Ощущается",
     "currentUV": "Текущий УФ",
-    "height": "Высота"
+    "height": "Высота",
+    "seaTemp": "Темп. моря"
   },
   "activity": {
     "report": "Отчет об активности",
@@ -404,7 +408,9 @@
     "diveSuitability": "Пригодность для дайвинга",
     "chopLevel": "Уровень волнения",
     "gustDelta": "Разница порывов ветра",
-    "currentHeatmap": "Скорость течения"
+    "currentHeatmap": "Скорость течения",
+    "model": "Модель",
+    "compareModels": "Сравнить"
   },
   "units": {
     "meters": "м",
@@ -639,5 +645,48 @@
       "storm": "Обнаружены штормовые условия — пересмотрите отправление",
       "improving": "Условия значительно улучшатся через {{hours}}ч"
     }
+  },
+  "personaCategory": {
+    "surfer": "Сёрфер",
+    "wind_rider": "Кайт и ветер",
+    "mariner": "Моряк",
+    "beach": "Пляж",
+    "diver": "Дайвер"
+  },
+  "activities": {
+    "wave_surf": "Сёрфинг на волнах",
+    "body_boarding": "Бодиборд",
+    "sup": "SUP-сёрфинг",
+    "long_board": "Лонгборд",
+    "kite_surf": "Кайтсёрфинг",
+    "wind_surf": "Виндсёрфинг",
+    "wing_foil": "Вингфойл",
+    "sailing": "Парусный спорт",
+    "motor_boat": "Моторная лодка",
+    "fishing": "Рыбалка",
+    "swim": "Плавание",
+    "sunbathe": "Загар",
+    "snorkel": "Снорклинг",
+    "scuba_dive": "Дайвинг с аквалангом",
+    "free_dive": "Фридайвинг",
+    "spearfish": "Подводная охота"
+  },
+  "alertConfig": {
+    "tooSmall": "Слишком мало",
+    "sweetMin": "Мин идеальной зоны",
+    "sweetMax": "Макс идеальной зоны",
+    "tooBig": "Опасно выше",
+    "primaryActivity": "Основная активность",
+    "secondaryActivities": "Также уведомить о",
+    "sweetSpotNotify": "Уведомить когда условия идеальны"
+  },
+  "comparison": {
+    "title": "Сравнение моделей",
+    "pickHint": "Выберите 2–3 модели для сравнения",
+    "compare": "Сравнить в текущем местоположении",
+    "loading": "Загрузка…",
+    "metric": "Показатель",
+    "highSpread": "Модели сильно расходятся — доверие к прогнозу низкое.",
+    "fetchError": "Не удалось получить данные. Повторите."
   }
 }

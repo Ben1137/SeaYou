@@ -52,7 +52,10 @@
       "light": "Océan Profond (clair)",
       "dark": "Veille de Nuit (sombre)",
       "brightDeck": "Pont Lumineux (mode soleil)",
-      "brightDeckHint": "Contraste élevé, sans flou. Idéal en plein soleil.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Activer le mode soleil (contraste élevé)",
       "brightDeckOff": "Quitter le mode soleil"
     }
@@ -101,7 +104,8 @@
     "period": "Période",
     "feelsLike": "Ressenti",
     "currentUV": "UV actuel",
-    "height": "Hauteur"
+    "height": "Hauteur",
+    "seaTemp": "Temp. mer"
   },
   "activity": {
     "report": "Rapport d'activité",
@@ -386,7 +390,9 @@
     "diveSuitability": "Aptitude à la plongée",
     "chopLevel": "Niveau de clapot",
     "gustDelta": "Delta de rafales",
-    "currentHeatmap": "Vitesse du courant"
+    "currentHeatmap": "Vitesse du courant",
+    "model": "Modèle",
+    "compareModels": "Comparer"
   },
   "units": {
     "meters": "m",
@@ -621,5 +627,48 @@
       "storm": "Conditions de tempête détectées — reconsidérez le départ",
       "improving": "Les conditions s'améliorent significativement dans {{hours}}h"
     }
+  },
+  "personaCategory": {
+    "surfer": "Surfeur",
+    "wind_rider": "Kite & Vent",
+    "mariner": "Marin",
+    "beach": "Plage",
+    "diver": "Plongeur"
+  },
+  "activities": {
+    "wave_surf": "Surf de vague",
+    "body_boarding": "Bodyboard",
+    "sup": "Stand-Up Paddle",
+    "long_board": "Longboard",
+    "kite_surf": "Kitesurf",
+    "wind_surf": "Windsurf",
+    "wing_foil": "Wing Foil",
+    "sailing": "Voile",
+    "motor_boat": "Bateau à moteur",
+    "fishing": "Pêche",
+    "swim": "Natation",
+    "sunbathe": "Bronzage",
+    "snorkel": "Snorkeling",
+    "scuba_dive": "Plongée bouteille",
+    "free_dive": "Apnée",
+    "spearfish": "Chasse sous-marine"
+  },
+  "alertConfig": {
+    "tooSmall": "Trop petit",
+    "sweetMin": "Min zone idéale",
+    "sweetMax": "Max zone idéale",
+    "tooBig": "Danger au-dessus",
+    "primaryActivity": "Activité principale",
+    "secondaryActivities": "M'alerter aussi pour",
+    "sweetSpotNotify": "Notifier quand les conditions sont parfaites"
+  },
+  "comparison": {
+    "title": "Comparaison de modèles",
+    "pickHint": "Sélectionnez 2–3 modèles à comparer",
+    "compare": "Comparer à la position actuelle",
+    "loading": "Chargement…",
+    "metric": "Métrique",
+    "highSpread": "Les modèles sont très divergents — confiance météo faible.",
+    "fetchError": "Impossible de récupérer les données. Réessayez."
   }
 }

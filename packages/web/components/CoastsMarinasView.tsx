@@ -589,6 +589,7 @@ const MarinaDetailsModal: React.FC<{
             </div>
             <button
               onClick={onClose}
+              aria-label="Close marina details"
               className="p-2 hover:bg-white/10 rounded-full text-white/40 hover:text-white"
             >
               <X className="w-6 h-6" />

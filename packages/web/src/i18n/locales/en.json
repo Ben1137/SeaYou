@@ -52,7 +52,10 @@
       "light": "Deep Ocean (light)",
       "dark": "Night Watch (dark)",
       "brightDeck": "Bright Deck (sun mode)",
-      "brightDeckHint": "High contrast, no blur. Ideal in direct sunlight.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Enable sun mode (high contrast)",
       "brightDeckOff": "Exit sun mode"
     }
@@ -101,7 +104,8 @@
     "period": "Period",
     "feelsLike": "Feels Like",
     "currentUV": "Current UV",
-    "height": "Height"
+    "height": "Height",
+    "seaTemp": "Sea temp"
   },
   "activity": {
     "report": "Activity Report",
@@ -438,7 +442,9 @@
     "diveSuitability": "Dive Suitability",
     "chopLevel": "Chop Level",
     "gustDelta": "Gust Delta",
-    "currentHeatmap": "Current Speed"
+    "currentHeatmap": "Current Speed",
+    "model": "Model",
+    "compareModels": "Compare"
   },
   "units": {
     "meters": "m",
@@ -619,5 +625,48 @@
       "storm": "Storm conditions detected — reconsider departure",
       "improving": "Conditions improve significantly in {{hours}}h"
     }
+  },
+  "personaCategory": {
+    "surfer": "Surfer",
+    "wind_rider": "Kite & Wind",
+    "mariner": "Mariner",
+    "beach": "Beach",
+    "diver": "Diver"
+  },
+  "activities": {
+    "wave_surf": "Wave Surfing",
+    "body_boarding": "Body Boarding",
+    "sup": "Stand-Up Paddle",
+    "long_board": "Long Board",
+    "kite_surf": "Kite Surfing",
+    "wind_surf": "Wind Surfing",
+    "wing_foil": "Wing Foil",
+    "sailing": "Sailing",
+    "motor_boat": "Motor Boat",
+    "fishing": "Fishing",
+    "swim": "Swimming",
+    "sunbathe": "Sunbathing",
+    "snorkel": "Snorkeling",
+    "scuba_dive": "Scuba Diving",
+    "free_dive": "Free Diving",
+    "spearfish": "Spearfishing"
+  },
+  "alertConfig": {
+    "tooSmall": "Too small",
+    "sweetMin": "Sweet spot min",
+    "sweetMax": "Sweet spot max",
+    "tooBig": "Danger above",
+    "primaryActivity": "Primary activity",
+    "secondaryActivities": "Also alert me for",
+    "sweetSpotNotify": "Notify when conditions are perfect"
+  },
+  "comparison": {
+    "title": "Model Comparison",
+    "pickHint": "Pick 2–3 models to compare",
+    "compare": "Compare at current location",
+    "loading": "Fetching…",
+    "metric": "Metric",
+    "highSpread": "Models disagree significantly — forecast confidence is low.",
+    "fetchError": "Could not fetch model data. Try again."
   }
 }

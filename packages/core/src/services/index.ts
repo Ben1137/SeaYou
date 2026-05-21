@@ -20,3 +20,5 @@ export * from './distanceMatrixService';
 export * from './SupabaseService';
 export * from './AuthService';
 export * from './PreferencesSyncService';
+export * from './sweetSpotAlertService';
+export * from './modelComparisonService';

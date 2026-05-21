@@ -17,7 +17,6 @@ import {
   Star,
   AlertTriangle,
   Check,
-  Palette,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -32,8 +31,9 @@ import {
   scoreActivity,
   extractCurrentConditions,
   fetchMarineWeather,
+  ACTIVITIES_BY_CATEGORY,
 } from '@seame/core';
-import type { OnboardingPersona, SavedLocation, MarineWeatherData } from '@seame/core';
+import type { OnboardingPersona, SavedLocation, MarineWeatherData, PersonaCategory } from '@seame/core';
 
 // ─── Constants ───
 
@@ -50,6 +50,14 @@ const PERSONA_OPTIONS: {
   { id: 'diver',     icon: <Activity size={20} />,  labelKey: 'profile.persona.diver',     descKey: 'profile.persona.diverDesc',     scoringPersona: ActivityPersona.DIVER },
 ];
 
+const PERSONA_CATEGORY_ICONS: Record<PersonaCategory, string> = {
+  surfer: '🏄',
+  wind_rider: '🪁',
+  mariner: '⛵',
+  beach: '🏖️',
+  diver: '🤿',
+};
+
 const LANGUAGES = [
   { code: 'en', label: 'English',  flag: '🇬🇧' },
   { code: 'he', label: 'עברית',    flag: '🇮🇱' },
@@ -58,13 +66,6 @@ const LANGUAGES = [
   { code: 'ru', label: 'Русский',  flag: '🇷🇺' },
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   { code: 'es', label: 'Español',  flag: '🇪🇸' },
-];
-
-const THEME_OPTIONS: { value: Theme; labelKey: string }[] = [
-  { value: 'system',      labelKey: 'settings.theme.auto' },
-  { value: 'dark',        labelKey: 'settings.theme.dark' },
-  { value: 'light',       labelKey: 'settings.theme.light' },
-  { value: 'bright-deck', labelKey: 'settings.theme.brightDeck' },
 ];
 
 // ─── Favorite Ticker — live scoring per location ───
@@ -377,6 +378,40 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 })}
               </div>
 
+              {/* Persona category grid */}
+              <div className="mb-5">
+                <p className="text-xs text-white/30 font-medium mb-2 px-0.5">
+                  {t('profile.personalization', 'Personalization')}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(ACTIVITIES_BY_CATEGORY) as PersonaCategory[]).map((cat) => {
+                    const isSelected = preferences.personaSelection?.category === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() =>
+                          setPreference('personaSelection', {
+                            category: cat,
+                            primaryActivity: ACTIVITIES_BY_CATEGORY[cat][0],
+                            secondaryActivities: [],
+                          })
+                        }
+                        className={`p-3 rounded-xl border text-left transition-colors ${
+                          isSelected
+                            ? 'border-blue-400/30 bg-blue-500/15 ring-1 ring-blue-400/20'
+                            : 'border-white/5 bg-white/[0.03] hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <span className="text-2xl">{PERSONA_CATEGORY_ICONS[cat]}</span>
+                        <div className={`text-sm font-medium mt-1 ${isSelected ? 'text-white' : 'text-white/60'}`}>
+                          {t(`personaCategory.${cat}`, cat)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Language selector */}
               <div className="relative">
                 <button
@@ -421,36 +456,41 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 </AnimatePresence>
               </div>
 
-              {/* Theme selector */}
-              <div className="mt-3">
-                <div className="flex items-center gap-2 px-1 mb-2">
-                  <Palette size={14} className="text-white/30" />
-                  <span className="text-xs text-white/30 font-medium">{t('settings.theme.label', 'Theme')}</span>
+              {/* Theme — vertical list */}
+              <div className="bg-card border border-app rounded-xl overflow-hidden mt-4">
+                <div className="px-4 py-3 border-b border-app bg-elevated">
+                  <span className="text-sm font-bold text-primary">
+                    {t('settings.theme.label', 'Theme')}
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {THEME_OPTIONS.map(opt => {
+                <div className="divide-y divide-app/50">
+                  {[
+                    { value: 'system' as Theme, icon: '🌅', labelKey: 'settings.theme.auto', hintKey: 'settings.theme.autoHint' },
+                    { value: 'light' as Theme,  icon: '🌊', labelKey: 'settings.theme.light', hintKey: 'settings.theme.lightHint' },
+                    { value: 'dark' as Theme,   icon: '🌙', labelKey: 'settings.theme.dark', hintKey: 'settings.theme.darkHint' },
+                    { value: 'bright-deck' as Theme, icon: '☀️', labelKey: 'settings.theme.brightDeck', hintKey: 'settings.theme.brightDeckHint' },
+                  ].map((opt) => {
                     const isSelected = activeTheme === opt.value;
                     return (
                       <button
                         key={opt.value}
                         onClick={() => setTheme(opt.value)}
-                        className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                          isSelected
-                            ? 'bg-blue-500/15 text-blue-400 font-semibold'
-                            : 'text-white/50 hover:bg-white/5'
+                        className={`w-full px-4 py-3 flex items-center gap-3 transition-colors text-left ${
+                          isSelected ? 'bg-selected' : 'hover:bg-elevated'
                         }`}
+                        role="option"
+                        aria-selected={isSelected}
                       >
-                        <span className="truncate">{t(opt.labelKey, opt.value)}</span>
-                        {isSelected && <Check size={12} className="text-blue-400 shrink-0" />}
+                        <span className="text-2xl shrink-0">{opt.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-primary text-sm">{t(opt.labelKey)}</div>
+                          <div className="text-xs text-muted">{t(opt.hintKey, '')}</div>
+                        </div>
+                        {isSelected && <Check size={18} className="text-accent shrink-0" />}
                       </button>
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-white/25 mt-2 px-1 leading-relaxed">
-                  {activeTheme === 'bright-deck'
-                    ? t('settings.theme.brightDeckHint', 'High-contrast, no blur. Best in direct sunlight.')
-                    : t('settings.theme.hint', 'Auto switches between light and dark based on sunrise/sunset.')}
-                </p>
               </div>
 
               {/* Model picker */}

@@ -52,7 +52,10 @@
       "light": "אוקיינוס עמוק (בהיר)",
       "dark": "שמירת לילה (כהה)",
       "brightDeck": "סיפון בהיר (מצב שמש)",
-      "brightDeckHint": "ניגודיות גבוהה, ללא טשטוש. אידיאלי באור שמש ישיר.",
+      "autoHint": "מתחלף עם זריחה ושקיעה במיקומך",
+      "lightHint": "פלטת כחול מדיסון — נעים לעיניים בפנים",
+      "darkHint": "פלטת סלייט — לקריאה באור עמום ובלילה",
+      "brightDeckHint": "לבן טהור, ללא שקיפות. מושלם באור שמש ישיר.",
       "brightDeckOn": "הפעל מצב שמש (ניגודיות גבוהה)",
       "brightDeckOff": "צא ממצב שמש"
     }
@@ -101,7 +104,8 @@
     "period": "תקופה",
     "feelsLike": "מרגיש כמו",
     "currentUV": "UV נוכחי",
-    "height": "גובה"
+    "height": "גובה",
+    "seaTemp": "טמפרטורת ים"
   },
   "activity": {
     "report": "דוח פעילות",
@@ -424,7 +428,9 @@
     "diveSuitability": "התאמה לצלילה",
     "chopLevel": "רמת סערה",
     "gustDelta": "הפרש משבי רוח",
-    "currentHeatmap": "מהירות זרם"
+    "currentHeatmap": "מהירות זרם",
+    "model": "מודל",
+    "compareModels": "השווה"
   },
   "units": {
     "meters": "מ׳",
@@ -662,5 +668,48 @@
       "storm": "תנאי סערה זוהו — שקול מחדש את מועד היציאה",
       "improving": "התנאים משתפרים משמעותית בעוד {{hours}} שעות"
     }
+  },
+  "personaCategory": {
+    "surfer": "גולש",
+    "wind_rider": "קייט וגלישת רוח",
+    "mariner": "ימאי",
+    "beach": "חוף",
+    "diver": "צולל"
+  },
+  "activities": {
+    "wave_surf": "גלישת גלים",
+    "body_boarding": "בודי בורד",
+    "sup": "SUP",
+    "long_board": "לונגבורד",
+    "kite_surf": "קייט סרף",
+    "wind_surf": "ווינד סרף",
+    "wing_foil": "ווינג פויל",
+    "sailing": "שייט",
+    "motor_boat": "סירת מנוע",
+    "fishing": "דיג",
+    "swim": "שחייה",
+    "sunbathe": "שיזוף",
+    "snorkel": "שנורקל",
+    "scuba_dive": "צלילה עם ציוד",
+    "free_dive": "צלילה חופשית",
+    "spearfish": "ציד דגים"
+  },
+  "alertConfig": {
+    "tooSmall": "קטן מדי",
+    "sweetMin": "מינימום אזור מתוק",
+    "sweetMax": "מקסימום אזור מתוק",
+    "tooBig": "סכנה מעל",
+    "primaryActivity": "פעילות עיקרית",
+    "secondaryActivities": "הזהר אותי גם על",
+    "sweetSpotNotify": "הודע כשהתנאים מושלמים"
+  },
+  "comparison": {
+    "title": "השוואת מודלים",
+    "pickHint": "בחר 2–3 מודלים להשוואה",
+    "compare": "השווה במיקום הנוכחי",
+    "loading": "מוריד…",
+    "metric": "מדד",
+    "highSpread": "המודלים אינם מסכימים — רמת הוודאות של התחזית נמוכה.",
+    "fetchError": "לא ניתן לטעון נתוני מודל. נסה שוב."
   }
 }

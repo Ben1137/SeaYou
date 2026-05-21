@@ -1,10 +1,17 @@
 import { useState, useCallback } from 'react';
-import { UserPreferences, DEFAULT_PREFERENCES, PREFERENCES_STORAGE_KEY } from '@seame/core';
+import { UserPreferences, DEFAULT_PREFERENCES, PREFERENCES_STORAGE_KEY, OLD_TO_NEW_PERSONA_MAP } from '@seame/core';
 
 function loadPrefs(): UserPreferences {
   try {
     const raw = localStorage.getItem(PREFERENCES_STORAGE_KEY);
-    if (raw) return { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) };
+    if (raw) {
+      const prefs: UserPreferences = { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) };
+      // Migrate old flat persona → new hierarchical PersonaSelection
+      if (prefs.persona && !prefs.personaSelection) {
+        prefs.personaSelection = OLD_TO_NEW_PERSONA_MAP[prefs.persona] ?? null;
+      }
+      return prefs;
+    }
   } catch {
     // ignore parse errors — fall through to default
   }

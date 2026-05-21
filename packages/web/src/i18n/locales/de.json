@@ -52,7 +52,10 @@
       "light": "Tiefer Ozean (hell)",
       "dark": "Nachtwache (dunkel)",
       "brightDeck": "Helles Deck (Sonnenmodus)",
-      "brightDeckHint": "Hoher Kontrast, kein Weichzeichner. Ideal bei direktem Sonnenlicht.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Sonnenmodus aktivieren (hoher Kontrast)",
       "brightDeckOff": "Sonnenmodus beenden"
     }
@@ -101,7 +104,8 @@
     "period": "Periode",
     "feelsLike": "Gefühlt",
     "currentUV": "Aktueller UV",
-    "height": "Höhe"
+    "height": "Höhe",
+    "seaTemp": "Meerestemp."
   },
   "activity": {
     "report": "Aktivitätsbericht",
@@ -403,7 +407,9 @@
     "diveSuitability": "Taucheignung",
     "chopLevel": "Wellenkabbel",
     "gustDelta": "Böendifferenz",
-    "currentHeatmap": "Strömungsgeschwindigkeit"
+    "currentHeatmap": "Strömungsgeschwindigkeit",
+    "model": "Modell",
+    "compareModels": "Vergleichen"
   },
   "units": {
     "meters": "m",
@@ -638,5 +644,48 @@
       "storm": "Sturmbedingungen erkannt — Abfahrt überdenken",
       "improving": "Bedingungen verbessern sich deutlich in {{hours}}h"
     }
+  },
+  "personaCategory": {
+    "surfer": "Surfer",
+    "wind_rider": "Kite & Wind",
+    "mariner": "Seemann",
+    "beach": "Strand",
+    "diver": "Taucher"
+  },
+  "activities": {
+    "wave_surf": "Wellenreiten",
+    "body_boarding": "Bodyboard",
+    "sup": "Stand-Up-Paddle",
+    "long_board": "Longboard",
+    "kite_surf": "Kitesurfen",
+    "wind_surf": "Windsurfen",
+    "wing_foil": "Wing Foil",
+    "sailing": "Segeln",
+    "motor_boat": "Motorboot",
+    "fishing": "Angeln",
+    "swim": "Schwimmen",
+    "sunbathe": "Sonnenbaden",
+    "snorkel": "Schnorcheln",
+    "scuba_dive": "Gerätetauchen",
+    "free_dive": "Freitauchen",
+    "spearfish": "Speerfischen"
+  },
+  "alertConfig": {
+    "tooSmall": "Zu klein",
+    "sweetMin": "Sweet-Spot min",
+    "sweetMax": "Sweet-Spot max",
+    "tooBig": "Gefahr ab",
+    "primaryActivity": "Hauptaktivität",
+    "secondaryActivities": "Auch benachrichtigen für",
+    "sweetSpotNotify": "Benachrichtigen wenn Bedingungen perfekt sind"
+  },
+  "comparison": {
+    "title": "Modellvergleich",
+    "pickHint": "2–3 Modelle zum Vergleich auswählen",
+    "compare": "An aktuellem Standort vergleichen",
+    "loading": "Lade…",
+    "metric": "Messgröße",
+    "highSpread": "Modelle sind uneinig — Vorhersagegenauigkeit gering.",
+    "fetchError": "Modelldaten konnten nicht geladen werden. Erneut versuchen."
   }
 }

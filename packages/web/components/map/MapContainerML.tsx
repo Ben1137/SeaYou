@@ -5,7 +5,7 @@ import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, fetchDepth, toTelHref, offlineNavigation } from '@seame/core';
 import { FollowModeController } from './FollowModeController';
 import type { MarinaDetails } from '@seame/core';
-import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock } from 'lucide-react';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock, BarChart2 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -75,6 +75,9 @@ import { useSharedForecastGridData } from '../../hooks/useSharedForecastGridData
 import { PremiumPaywallModal } from '../PremiumPaywallModal';
 import { useAlertConfig } from '../../src/contexts/AlertContext';
 import { startCheckout } from '../../src/services/billing';
+import { WEATHER_MODELS } from '@seame/core';
+import { useUserPreferences } from '../../src/hooks/useUserPreferences';
+import { ModelComparisonPanel } from './ModelComparisonPanel';
 
 // Types
 type MapLayer = 'NONE' | 'WIND' | 'WAVE' | 'SWELL' | 'CURRENTS' | 'WIND_WAVE' | 'SIGNIFICANT_WAVE';
@@ -350,8 +353,11 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   // setSubscriptionTier intentionally unused here — tier is flipped by
   // the stripe-webhook Edge Function, not locally in the paywall flow.
   const { subscriptionTier, persona } = useAlertConfig();
+  const { preferences, setPreference } = useUserPreferences();
+  const selectedModel = (preferences.selectedModel as string | undefined) ?? '';
   const isFreeUser = subscriptionTier !== 'premium';
   const [showPaywall, setShowPaywall] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   // Layer state
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
@@ -480,7 +486,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   });
 
   // AIS vessel traffic toggle (default on — can be disabled by user)
-  const [aisVisible, setAisVisible] = useState(true);
+  const [aisVisible, setAisVisible] = useState(false);
 
   // Detail view state
   const [selectedPointDetail, setSelectedPointDetail] = useState<DetailedPointForecast | null>(null);
@@ -1074,7 +1080,35 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       />
 
       {/* Layer Controls Panel */}
-      <div id="tour-map-layers" className="absolute top-4 right-4 z-[400] glass-panel shadow-xl text-xs w-36 lg:w-44 animate-in fade-in slide-in-from-right-4 overflow-hidden">
+      {/* Task 6 — Forecast model picker */}
+      <div className="absolute top-4 right-44 z-[400] lg:right-52 flex items-center gap-1">
+        <div className="bg-slate-900/95 border border-white/10 rounded-lg shadow-xl backdrop-blur-sm px-2 py-1.5 flex items-center gap-2">
+          <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider whitespace-nowrap hidden sm:inline">
+            {t('map.model', 'Model')}
+          </span>
+          <select
+            value={selectedModel}
+            onChange={(e) => setPreference('selectedModel', e.target.value || undefined)}
+            aria-label={t('map.model', 'Forecast model')}
+            className="bg-slate-800 text-white text-xs rounded-md px-2 py-0.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-cyan-400 max-w-[130px] cursor-pointer"
+          >
+            <option value="">{t('settings.weatherModel.auto', 'Auto')}</option>
+            {Object.entries(WEATHER_MODELS).map(([id, model]) => (
+              <option key={id} value={id}>{model.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setShowComparison((v) => !v)}
+            aria-label={t('map.compareModels', 'Compare models')}
+            title={t('map.compareModels', 'Compare models')}
+            className={`p-1 rounded transition-colors ${showComparison ? 'text-cyan-400' : 'text-white/40 hover:text-white/70'}`}
+          >
+            <BarChart2 size={14} />
+          </button>
+        </div>
+      </div>
+
+            <div id="tour-map-layers" className="absolute top-4 right-4 z-[400] glass-panel shadow-xl text-xs w-36 lg:w-44 animate-in fade-in slide-in-from-right-4 overflow-hidden">
         <button
           onClick={() => setIsLayersPanelExpanded(!isLayersPanelExpanded)}
           className="w-full flex items-center justify-between gap-2 p-2 border-b border-white/5 text-white/60 font-bold uppercase glass-inner hover:bg-white/10 transition-colors cursor-pointer"
@@ -1327,7 +1361,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                 {selectedPointDetail ? `${selectedPointDetail.lat.toFixed(4)}N, ${selectedPointDetail.lng.toFixed(4)}E` : t('map.loadingData')}
               </p>
             </div>
-            <button onClick={() => setIsDetailSidebarOpen(false)} className="p-1 hover:bg-white/10 rounded text-white/40 transition-colors"><X size={20}/></button>
+            <button onClick={() => setIsDetailSidebarOpen(false)} aria-label={t('common.close', 'Close')} className="p-1 hover:bg-white/10 rounded text-white/40 transition-colors"><X size={20}/></button>
           </div>
 
           {loadingDetail ? (
@@ -1771,6 +1805,15 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         risks={tsunamiRisks}
         visible={tsunamiRisks.length > 0}
       />
+
+      {/* Task 7 — Model comparison panel */}
+      {showComparison && (
+        <ModelComparisonPanel
+          lat={currentLocation.lat}
+          lng={currentLocation.lng}
+          onClose={() => setShowComparison(false)}
+        />
+      )}
 
       {/* Premium Paywall Modal — shown when free user taps a locked layer */}
       <PremiumPaywallModal

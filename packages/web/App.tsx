@@ -15,7 +15,7 @@ import { RouteProvider } from './src/contexts/RouteContext';
 import { ToastHost, toast } from './components/ui/Toast';
 import { DialogHost } from './components/ui/Dialog';
 import { TsunamiBanner } from './components/TsunamiBanner';
-import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, Moon, Sun, User, ChevronDown, Globe, LogOut, Heart, Clock, Star } from 'lucide-react';
+import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, User, ChevronDown, Globe, LogOut, Heart, Clock, Star } from 'lucide-react';
 import { searchLocations, reverseGeocode, SavedLocation } from '@seame/core';
 import { searchLocationsSmart, resolvePlace, type LocationSearchResult } from './src/services/locationSearchService';
 import { useAlertConfig } from './src/contexts/AlertContext';
@@ -127,7 +127,7 @@ function readTourCompletedSync(): boolean {
 }
 
 const AppContent: React.FC = () => {
-  const { resolvedTheme, toggleTheme, setAutoThemeData } = useTheme();
+  const { setAutoThemeData } = useTheme();
   const { t, i18n } = useTranslation();
   const alertConfig = useAlertConfig();
   const { loading: authLoading, user: authUser } = useAuth();
@@ -663,13 +663,6 @@ const AppContent: React.FC = () => {
 
           <div className="flex flex-col items-center gap-3 pb-6 px-2">
             <ProfileButton onOpenAuthModal={() => setIsAuthModalOpen(true)} onOpenProfile={() => setIsProfileOpen(true)} variant="desktop" />
-            <button
-              onClick={toggleTheme}
-              className="w-10 h-10 rounded-full glass-inner flex items-center justify-center hover:bg-white/20 transition-colors border border-white/10"
-              aria-label="Toggle theme"
-            >
-              {resolvedTheme === 'dark' ? <Sun size={16} className="text-white" /> : <Moon size={16} className="text-white" />}
-            </button>
           </div>
         </nav>
 
@@ -689,25 +682,9 @@ const AppContent: React.FC = () => {
               <h1 className="text-lg sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap truncate">SeaYou</h1>
             </div>
 
-            {/* Right: Language + Theme toggle */}
+            {/* Right: Language selector */}
             <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
               <LanguageSelector />
-
-              <button
-                onClick={toggleTheme}
-                className="lg:hidden relative flex items-center w-14 sm:w-[4.5rem] h-8 sm:h-9 glass-inner rounded-full p-1 border border-white/10 shadow-inner focus:outline-none shrink-0"
-                aria-label="Toggle theme"
-              >
-                <div className={`absolute w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-white shadow-md transition-transform duration-300 ${
-                  resolvedTheme === 'dark' ? 'left-1 translate-x-0' : 'left-1 translate-x-[1.45rem] sm:translate-x-[2.25rem]'
-                }`} />
-                <div className="flex-1 flex justify-center z-10">
-                  <Moon size={11} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-[#0d1b2a]' : 'text-white'}`} />
-                </div>
-                <div className="flex-1 flex justify-center z-10">
-                  <Sun size={11} className={`transition-colors duration-300 ${resolvedTheme === 'dark' ? 'text-white' : 'text-[#2c6a9b]'}`} />
-                </div>
-              </button>
             </div>
           </header>
 

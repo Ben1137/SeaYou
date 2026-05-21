@@ -200,7 +200,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (!isConfigured) return;
     setError(null);
     const { error: signOutError } = await authSignOut();
-    if (signOutError) setError(signOutError);
+    if (signOutError) {
+      setError(signOutError);
+    } else {
+      // Clear onboarding flag so a different user on the same browser starts fresh.
+      try { localStorage.removeItem('seayou_onboarding_complete'); } catch { /* noop */ }
+    }
   }, [isConfigured]);
 
   const clearError = useCallback(() => setError(null), []);
