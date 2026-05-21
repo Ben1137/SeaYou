@@ -625,7 +625,9 @@
     "disclaimer": "Позиции AIS собираются сообществом и могут быть задержаны, отсутствовать или быть неточными. SeaYou не является системой предотвращения столкновений. Всегда ведите надлежащее визуальное наблюдение.",
     "toggle": "Судовой трафик (AIS)",
     "disclaimer_dismiss": "Понятно",
-    "zoomInPrompt": "Zoom in to see live vessel positions"
+    "zoomInPrompt": "Zoom in to see live vessel positions",
+    "upstreamUnavailableTitle": "Vessel traffic temporarily unavailable",
+    "upstreamUnavailableHint": "Live AIS feed is offline. We'll automatically retry every 15 minutes."
   },
   "routeForecast": {
     "overallScore": "Условия маршрута",

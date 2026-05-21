@@ -64,6 +64,7 @@ class AISService {
   private targets = new Map<string, AISTarget>();
   private reconnectAttempts = 0;
   private receivedFirstVessel = false;
+  private upstreamAvailable = true;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private cpaTimer: ReturnType<typeof setInterval> | null = null;
   private lastCpaAlertAt = new Map<string, number>();
@@ -126,6 +127,10 @@ class AISService {
 
   getTargets(): AISTarget[] {
     return Array.from(this.targets.values());
+  }
+
+  getUpstreamAvailable(): boolean {
+    return this.upstreamAvailable;
   }
 
   /**
@@ -294,22 +299,47 @@ class AISService {
       }
     };
 
+    // Server signals an unrecoverable upstream failure (e.g. AISStream cert
+    // expired or host unreachable). Stop reconnecting immediately and surface
+    // the status to the UI via 'upstreamStatus' event.
+    this.es.addEventListener('upstream_error', (ev) => {
+      try {
+        const data = JSON.parse((ev as MessageEvent).data) as { message: string };
+        // eslint-disable-next-line no-console
+        console.warn(`[ais] upstream unavailable: ${data.message}`);
+        this.upstreamAvailable = false;
+        this.emit('upstreamStatus', { available: false, message: data.message });
+        if (this.es) { this.es.close(); this.es = null; }
+        // Cancel any pending reconnect and schedule a single slow retry in 15 min
+        // so we auto-recover when AISStream fixes their side.
+        if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+        this.reconnectTimer = setTimeout(() => {
+          this.reconnectTimer = null;
+          this.upstreamAvailable = true;
+          this.emit('upstreamStatus', { available: true });
+          void this.connectViaRelay();
+        }, 15 * 60 * 1000);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[ais] failed to parse upstream_error event', err);
+      }
+    });
+
     this.es.onerror = (ev) => {
       // Close immediately to suppress browser's native EventSource auto-reconnect.
-      // Without this, the browser retries every ~3s in parallel with our managed
-      // scheduleReconnect, doubling traffic and confusing the debug log.
-      if (this.es) {
-        this.es.close();
-        this.es = null;
-      }
+      if (this.es) { this.es.close(); this.es = null; }
       const wasConnected = this.connected;
       this.connected = false;
-      if (wasConnected) {
-        // eslint-disable-next-line no-console
-        console.warn('[ais] SSE error after successful connect — scheduling reconnect', ev);
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn('[ais] SSE connect failed — scheduling retry');
+      // Only log on the FIRST failure of a chain (reconnectAttempts === 0),
+      // not on every retry — prevents console spam during backoff cycles.
+      if (this.reconnectAttempts === 0) {
+        if (wasConnected) {
+          // eslint-disable-next-line no-console
+          console.warn('[ais] SSE error after successful connect — scheduling reconnect', ev);
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn('[ais] SSE connect failed — scheduling retry');
+        }
       }
       this.scheduleReconnect();
     };
