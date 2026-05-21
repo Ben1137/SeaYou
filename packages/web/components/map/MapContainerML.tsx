@@ -480,7 +480,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   });
 
   // AIS vessel traffic toggle (default on — can be disabled by user)
-  const [aisVisible, setAisVisible] = useState(true);
+  const [aisVisible, setAisVisible] = useState(false);
 
   // Detail view state
   const [selectedPointDetail, setSelectedPointDetail] = useState<DetailedPointForecast | null>(null);
