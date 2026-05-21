@@ -52,7 +52,10 @@
       "light": "Oceano Profondo (chiaro)",
       "dark": "Guardia Notturna (scuro)",
       "brightDeck": "Ponte Luminoso (modalità sole)",
-      "brightDeckHint": "Alto contrasto, senza sfocatura. Ideale alla luce solare diretta.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Attiva modalità sole (alto contrasto)",
       "brightDeckOff": "Esci dalla modalità sole"
     }

@@ -52,7 +52,10 @@
       "light": "Océan Profond (clair)",
       "dark": "Veille de Nuit (sombre)",
       "brightDeck": "Pont Lumineux (mode soleil)",
-      "brightDeckHint": "Contraste élevé, sans flou. Idéal en plein soleil.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Activer le mode soleil (contraste élevé)",
       "brightDeckOff": "Quitter le mode soleil"
     }

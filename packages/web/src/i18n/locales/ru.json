@@ -52,7 +52,10 @@
       "light": "Глубокий Океан (светлая)",
       "dark": "Ночная Вахта (тёмная)",
       "brightDeck": "Яркая Палуба (солнечный режим)",
-      "brightDeckHint": "Высокий контраст, без размытия. Идеально при прямом солнечном свете.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Включить солнечный режим (высокий контраст)",
       "brightDeckOff": "Выйти из солнечного режима"
     }

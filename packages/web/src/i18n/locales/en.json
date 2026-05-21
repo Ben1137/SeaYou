@@ -52,7 +52,10 @@
       "light": "Deep Ocean (light)",
       "dark": "Night Watch (dark)",
       "brightDeck": "Bright Deck (sun mode)",
-      "brightDeckHint": "High contrast, no blur. Ideal in direct sunlight.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Enable sun mode (high contrast)",
       "brightDeckOff": "Exit sun mode"
     }

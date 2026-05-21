@@ -52,7 +52,10 @@
       "light": "Océano Profundo (claro)",
       "dark": "Guardia Nocturna (oscuro)",
       "brightDeck": "Cubierta Brillante (modo solar)",
-      "brightDeckHint": "Alto contraste, sin desenfoque. Ideal bajo la luz solar directa.",
+      "autoHint": "Switches with sunrise & sunset at your location",
+      "lightHint": "Madison blue palette — easy on the eyes indoors",
+      "darkHint": "Slate palette — for low-light reading and after dark",
+      "brightDeckHint": "Pure white, no transparency. Best in direct sunlight.",
       "brightDeckOn": "Activar modo solar (alto contraste)",
       "brightDeckOff": "Salir del modo solar"
     }
