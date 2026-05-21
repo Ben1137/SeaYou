@@ -72,7 +72,7 @@ const getWeatherConditionKey = (code: number): string => {
 
 const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick }) => {
   const { t } = useTranslation();
-  const { thresholds, isDismissed, dismiss, persona } = useAlertConfig();
+  const { thresholds, isDismissed, dismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
   const { theme, setTheme } = useTheme();
   const isBrightDeck = theme === 'bright-deck';
@@ -467,6 +467,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
             ];
 
+            // selectedActivities (from AlertConfigModal) takes priority.
+            // Falls back to onboarding persona → card map, then all cards.
+            if (selectedActivities.length > 0) {
+              return ALL_CARDS.filter(c => selectedActivities.includes(c.persona));
+            }
+
             // Map onboarding persona → which ActivityPersona cards to show
             const PERSONA_CARD_MAP: Record<OnboardingPersona, ActivityPersona[]> = {
               mariner: [ActivityPersona.SAILOR],
@@ -475,10 +481,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               beachgoer: [ActivityPersona.BEACHGOER],
             };
 
-            // Same defensive treatment as FORECAST_TABS: an unrecognised
-            // persona (specific sport written by the new onboarding flow)
-            // must fall back to showing all cards rather than crashing
-            // `.includes(...)` on an undefined array.
             const allowed = persona ? (PERSONA_CARD_MAP[persona] ?? null) : null;
             const cards = Array.isArray(allowed) && allowed.length > 0
               ? ALL_CARDS.filter(c => allowed.includes(c.persona))

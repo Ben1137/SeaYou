@@ -22,8 +22,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useAlertConfig } from '../../src/contexts/AlertContext';
 import { useUserPreferences } from '../../src/hooks/useUserPreferences';
-import { useTheme } from '../../src/hooks/useTheme';
-import type { Theme } from '../../src/contexts/ThemeContext';
 import { ModelPicker } from './ModelPicker';
 import { startCheckout } from '../../src/services/billing';
 import {
@@ -205,7 +203,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
     cloudSyncStatus,
   } = useAlertConfig();
   const { preferences, setPreference } = useUserPreferences();
-  const { theme: activeTheme, setTheme } = useTheme();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -378,40 +375,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                 })}
               </div>
 
-              {/* Persona category grid */}
-              <div className="mb-5">
-                <p className="text-xs text-white/30 font-medium mb-2 px-0.5">
-                  {t('profile.personalization', 'Personalization')}
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(ACTIVITIES_BY_CATEGORY) as PersonaCategory[]).map((cat) => {
-                    const isSelected = preferences.personaSelection?.category === cat;
-                    return (
-                      <button
-                        key={cat}
-                        onClick={() =>
-                          setPreference('personaSelection', {
-                            category: cat,
-                            primaryActivity: ACTIVITIES_BY_CATEGORY[cat][0],
-                            secondaryActivities: [],
-                          })
-                        }
-                        className={`p-3 rounded-xl border text-left transition-colors ${
-                          isSelected
-                            ? 'border-blue-400/30 bg-blue-500/15 ring-1 ring-blue-400/20'
-                            : 'border-white/5 bg-white/[0.03] hover:bg-white/[0.06]'
-                        }`}
-                      >
-                        <span className="text-2xl">{PERSONA_CATEGORY_ICONS[cat]}</span>
-                        <div className={`text-sm font-medium mt-1 ${isSelected ? 'text-white' : 'text-white/60'}`}>
-                          {t(`personaCategory.${cat}`, cat)}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
               {/* Language selector */}
               <div className="relative">
                 <button
@@ -454,43 +417,6 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
-
-              {/* Theme — vertical list */}
-              <div className="bg-card border border-app rounded-xl overflow-hidden mt-4">
-                <div className="px-4 py-3 border-b border-app bg-elevated">
-                  <span className="text-sm font-bold text-primary">
-                    {t('settings.theme.label', 'Theme')}
-                  </span>
-                </div>
-                <div className="divide-y divide-app/50">
-                  {[
-                    { value: 'system' as Theme, icon: '🌅', labelKey: 'settings.theme.auto', hintKey: 'settings.theme.autoHint' },
-                    { value: 'light' as Theme,  icon: '🌊', labelKey: 'settings.theme.light', hintKey: 'settings.theme.lightHint' },
-                    { value: 'dark' as Theme,   icon: '🌙', labelKey: 'settings.theme.dark', hintKey: 'settings.theme.darkHint' },
-                    { value: 'bright-deck' as Theme, icon: '☀️', labelKey: 'settings.theme.brightDeck', hintKey: 'settings.theme.brightDeckHint' },
-                  ].map((opt) => {
-                    const isSelected = activeTheme === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        onClick={() => setTheme(opt.value)}
-                        className={`w-full px-4 py-3 flex items-center gap-3 transition-colors text-left ${
-                          isSelected ? 'bg-selected' : 'hover:bg-elevated'
-                        }`}
-                        role="option"
-                        aria-selected={isSelected}
-                      >
-                        <span className="text-2xl shrink-0">{opt.icon}</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-primary text-sm">{t(opt.labelKey)}</div>
-                          <div className="text-xs text-muted">{t(opt.hintKey, '')}</div>
-                        </div>
-                        {isSelected && <Check size={18} className="text-accent shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
               </div>
 
               {/* Model picker */}

@@ -92,6 +92,9 @@ export interface UserPreferences {
   /** Primary activity persona for scoring, hype alerts, and push targeting */
   primaryPersona: ActivityPersona;
 
+  /** Up to 2 activity personas selected in Alert Config — drives Dashboard card visibility */
+  selectedActivities?: ActivityPersona[];
+
   /** Onboarding persona — null until the user completes first-time onboarding */
   persona: OnboardingPersona | null;
 

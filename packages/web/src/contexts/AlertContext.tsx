@@ -36,6 +36,10 @@ interface AlertContextType {
   primaryPersona: ActivityPersona;
   setPrimaryPersona: (persona: ActivityPersona) => void;
 
+  /** Up to 2 activity personas chosen in Alert Config — drives Dashboard card filter */
+  selectedActivities: ActivityPersona[];
+  setSelectedActivities: (activities: ActivityPersona[]) => void;
+
   /** Onboarding persona (simplified — set during first-time flow) */
   persona: OnboardingPersona | null;
   setPersona: (persona: OnboardingPersona) => void;
@@ -47,6 +51,8 @@ interface AlertContextType {
   /** Threshold setters */
   setWaveThreshold: (value: number) => void;
   setWindThreshold: (value: number) => void;
+  setWaveRange: (range: import('@seame/core').ThresholdRange) => void;
+  setWindRange: (range: import('@seame/core').ThresholdRange) => void;
   setMinScore: (value: number) => void;
   setNotifyHours: (value: number) => void;
   toggleHighWaves: () => void;
@@ -394,6 +400,10 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     });
   }, [update, scheduleSyncToOneSignal]);
 
+  const setSelectedActivities = useCallback((activities: ActivityPersona[]) => {
+    update((p) => ({ ...p, selectedActivities: activities.slice(0, 2) }));
+  }, [update]);
+
   // ─── Onboarding persona ───
 
   const setPersona = useCallback((persona: OnboardingPersona) => {
@@ -414,6 +424,14 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setWindThreshold = useCallback((value: number) => {
     update((p) => ({ ...p, alerts: { ...p.alerts, windSpeedThreshold: value } }));
+  }, [update]);
+
+  const setWaveRange = useCallback((range: import('@seame/core').ThresholdRange) => {
+    update((p) => ({ ...p, waveHeightRange: range, alerts: { ...p.alerts, waveHeightThreshold: range.high } }));
+  }, [update]);
+
+  const setWindRange = useCallback((range: import('@seame/core').ThresholdRange) => {
+    update((p) => ({ ...p, windSpeedRange: range, alerts: { ...p.alerts, windSpeedThreshold: range.high } }));
   }, [update]);
 
   const setMinScore = useCallback((value: number) => {
@@ -549,12 +567,16 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     thresholds,
     primaryPersona: preferences.primaryPersona,
     setPrimaryPersona,
+    selectedActivities: preferences.selectedActivities ?? [],
+    setSelectedActivities,
     persona: preferences.persona ?? null,
     setPersona,
     subscriptionTier: preferences.subscriptionTier ?? 'free',
     setSubscriptionTier,
     setWaveThreshold,
     setWindThreshold,
+    setWaveRange,
+    setWindRange,
     setMinScore,
     setNotifyHours,
     toggleHighWaves,

@@ -1,7 +1,8 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { X, Bell, Waves, Wind, BellRing, Anchor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ActivityPersona } from '@seame/core';
+import { ActivityPersona, DEFAULT_WAVE_RANGE, DEFAULT_WIND_RANGE } from '@seame/core';
+import { RangeThresholdControl } from './dashboard/RangeThresholdControl';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import {
   requestPushPermission,
@@ -45,14 +46,19 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
     thresholds,
     primaryPersona,
     setPrimaryPersona,
+    selectedActivities,
+    setSelectedActivities,
     setWaveThreshold,
     setWindThreshold,
+    setWaveRange,
+    setWindRange,
     toggleHighWaves,
     toggleStrongWinds,
     toggleTsunamiAlerts,
     setPushRegistration,
     recentSearches,
     favoriteLocations,
+    preferences: alertPrefs,
   } = useAlertConfig();
 
   // Re-sync the button state when the modal re-opens: the user may have
@@ -207,108 +213,106 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
         {/* Alert controls */}
         <div className="px-6 pt-5 pb-2 flex flex-col gap-4">
 
-          {/* ═══ Persona Selector ═══ */}
+          {/* ═══ Activity Selector — pick up to 2 ═══ */}
           <div className="glass-inner rounded-xl p-4 border border-blue-500/20">
-            <div className="flex items-center gap-2 mb-3">
-              <Anchor size={16} className="text-blue-400" />
-              <span className="text-sm font-bold text-white">{t('profile.primaryActivity', 'Primary Activity')}</span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Anchor size={16} className="text-blue-400" />
+                <span className="text-sm font-bold text-white">{t('profile.primaryActivity', 'My Activities')}</span>
+              </div>
+              <span className="text-[10px] text-white/40">{selectedActivities.length}/2</span>
             </div>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {PERSONA_OPTIONS.map((opt) => {
-                const isActive = primaryPersona === opt.persona;
+                const isActive = selectedActivities.includes(opt.persona);
+                const isDisabled = !isActive && selectedActivities.length >= 2;
                 return (
                   <button
                     key={opt.persona}
-                    onClick={() => setPrimaryPersona(opt.persona)}
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (isActive) {
+                        setSelectedActivities(selectedActivities.filter((p) => p !== opt.persona));
+                        // If removing primary, set to first remaining or first option
+                        if (primaryPersona === opt.persona) {
+                          const remaining = selectedActivities.filter((p) => p !== opt.persona);
+                          if (remaining.length > 0) setPrimaryPersona(remaining[0]);
+                        }
+                      } else {
+                        const next = [...selectedActivities, opt.persona].slice(0, 2);
+                        setSelectedActivities(next);
+                        // Auto-set primary if none selected yet
+                        if (selectedActivities.length === 0) setPrimaryPersona(opt.persona);
+                      }
+                    }}
                     className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all ${
                       isActive
-                        ? `${opt.color} border-white/30 scale-105`
+                        ? `${opt.color} border-white/30`
+                        : isDisabled
+                        ? 'bg-white/5 border-white/5 opacity-25 cursor-not-allowed'
                         : 'bg-white/5 border-white/5 opacity-50 hover:opacity-80'
                     }`}
                   >
                     <span className="text-lg">{opt.emoji}</span>
-                    <span className="text-[9px] font-bold text-white leading-tight">{opt.label}</span>
+                    <span className="text-[9px] font-bold text-white leading-tight text-center">{opt.label}</span>
+                    {isActive && primaryPersona === opt.persona && (
+                      <span className="text-[8px] text-white/60 leading-tight">primary</span>
+                    )}
                   </button>
                 );
               })}
             </div>
-            <p className="text-[10px] text-white/40 mt-2 text-center">
-              {t('profile.personaHint', 'Hype alerts and scoring are tuned to your primary activity')}
-            </p>
+            {selectedActivities.length > 1 && (
+              <p className="text-[10px] text-white/40 mt-2 text-center">
+                {t('alertConfig.tapToPrimary', 'Tap an active card to set it as primary')}
+              </p>
+            )}
           </div>
 
-          {/* ═══ Wave threshold card ═══ */}
-          <div className={`glass-inner rounded-xl p-4 border transition-colors ${thresholds.highWavesEnabled ? 'border-orange-500/30' : 'border-white/5 opacity-60'}`}>
-            <div className="flex items-center justify-between mb-3">
+          {/* ═══ Wave range ═══ */}
+          <div className={`transition-opacity ${thresholds.highWavesEnabled ? '' : 'opacity-50'}`}>
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Waves size={16} className="text-orange-400" />
-                <span className="text-sm font-bold text-white">{t('alerts.highWaves', 'High Waves')}</span>
+                <Waves size={15} className="text-orange-400" />
+                <span className="text-sm font-bold text-white">{t('alerts.highWaves', 'Wave Height')}</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={thresholds.highWavesEnabled}
-                  onChange={toggleHighWaves}
-                  className="sr-only peer"
-                />
+                <input type="checkbox" checked={thresholds.highWavesEnabled} onChange={toggleHighWaves} className="sr-only peer" />
                 <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-orange-500/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
               </label>
             </div>
-            <label className="text-xs text-white/60 flex justify-between mb-1.5">
-              {t('dashboard.waveThreshold', 'Wave height threshold')}
-              <span className="text-white font-bold">{thresholds.waveHeightThreshold} m</span>
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="10"
-              step="0.5"
-              value={thresholds.waveHeightThreshold}
-              onChange={(e) => setWaveThreshold(parseFloat(e.target.value))}
-              disabled={!thresholds.highWavesEnabled}
-              className="w-full accent-orange-500"
+            <RangeThresholdControl
+              label={t('dashboard.waveThreshold', 'Wave height')}
+              unit=" m"
+              range={alertPrefs.waveHeightRange ?? DEFAULT_WAVE_RANGE}
+              onChange={(r) => { setWaveRange(r); setWaveThreshold(r.high); }}
+              min={0}
+              max={10}
+              step={0.1}
             />
-            <div className="flex justify-between text-[10px] text-white/30 mt-1">
-              <span>0.5m</span>
-              <span>10m</span>
-            </div>
           </div>
 
-          {/* ═══ Wind threshold card ═══ */}
-          <div className={`glass-inner rounded-xl p-4 border transition-colors ${thresholds.strongWindsEnabled ? 'border-blue-500/30' : 'border-white/5 opacity-60'}`}>
-            <div className="flex items-center justify-between mb-3">
+          {/* ═══ Wind range ═══ */}
+          <div className={`transition-opacity ${thresholds.strongWindsEnabled ? '' : 'opacity-50'}`}>
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Wind size={16} className="text-blue-400" />
-                <span className="text-sm font-bold text-white">{t('alerts.strongWinds', 'Strong Winds')}</span>
+                <Wind size={15} className="text-blue-400" />
+                <span className="text-sm font-bold text-white">{t('alerts.strongWinds', 'Wind Speed')}</span>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={thresholds.strongWindsEnabled}
-                  onChange={toggleStrongWinds}
-                  className="sr-only peer"
-                />
+                <input type="checkbox" checked={thresholds.strongWindsEnabled} onChange={toggleStrongWinds} className="sr-only peer" />
                 <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-blue-500/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
               </label>
             </div>
-            <label className="text-xs text-white/60 flex justify-between mb-1.5">
-              {t('dashboard.windThreshold', 'Wind speed threshold')}
-              <span className="text-white font-bold">{thresholds.windSpeedThreshold} km/h</span>
-            </label>
-            <input
-              type="range"
-              min="10"
-              max="100"
-              step="5"
-              value={thresholds.windSpeedThreshold}
-              onChange={(e) => setWindThreshold(parseFloat(e.target.value))}
-              disabled={!thresholds.strongWindsEnabled}
-              className="w-full accent-blue-500"
+            <RangeThresholdControl
+              label={t('dashboard.windThreshold', 'Wind speed')}
+              unit=" km/h"
+              range={alertPrefs.windSpeedRange ?? DEFAULT_WIND_RANGE}
+              onChange={(r) => { setWindRange(r); setWindThreshold(r.high); }}
+              min={0}
+              max={120}
+              step={1}
             />
-            <div className="flex justify-between text-[10px] text-white/30 mt-1">
-              <span>10 km/h</span>
-              <span>100 km/h</span>
-            </div>
           </div>
 
           {/* ═══ Daily Surf Report (push notifications) ═══

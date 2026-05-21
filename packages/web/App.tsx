@@ -127,7 +127,7 @@ function readTourCompletedSync(): boolean {
 }
 
 const AppContent: React.FC = () => {
-  const { setAutoThemeData } = useTheme();
+  const { setAutoThemeData, resolvedTheme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
   const alertConfig = useAlertConfig();
   const { loading: authLoading, user: authUser } = useAuth();
@@ -682,8 +682,35 @@ const AppContent: React.FC = () => {
               <h1 className="text-lg sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap truncate">SeaYou</h1>
             </div>
 
-            {/* Right: Language selector */}
-            <div className="flex-shrink-0 flex items-center gap-2 sm:gap-3">
+            {/* Right: theme toggle + language selector */}
+            <div className="flex-shrink-0 flex items-center gap-1 sm:gap-2">
+              {/* 3-option theme radio group */}
+              <div className="flex items-center rounded-lg overflow-hidden border border-white/10 bg-white/5">
+                {(
+                  [
+                    { value: 'light',        icon: '🌊', label: 'Light' },
+                    { value: 'dark',         icon: '🌙', label: 'Dark'  },
+                    { value: 'bright-deck',  icon: '☀️', label: 'Sun'   },
+                  ] as const
+                ).map(({ value, icon, label }) => {
+                  const active = resolvedTheme === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setTheme(value)}
+                      aria-label={`${label} mode`}
+                      aria-pressed={active}
+                      className={`px-2 py-1.5 text-sm transition-colors ${
+                        active
+                          ? 'bg-white/20 text-white'
+                          : 'text-white/40 hover:text-white/70 hover:bg-white/10'
+                      }`}
+                    >
+                      {icon}
+                    </button>
+                  );
+                })}
+              </div>
               <LanguageSelector />
             </div>
           </header>

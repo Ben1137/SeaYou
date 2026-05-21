@@ -51,8 +51,9 @@ export function ModelComparisonPanel({ lat, lng, onClose }: Props) {
     result !== null &&
     (result.spread.waveHeight > 0.3 || result.spread.windSpeed > 5);
 
+  type PerModelEntry = NonNullable<typeof result>['perModel'][0];
   const metrics: Array<{
-    key: keyof typeof result.perModel[0];
+    key: keyof PerModelEntry;
     label: string;
     unit: string;
     decimals: number;

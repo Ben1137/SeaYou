@@ -50,17 +50,33 @@ function stddev(values: number[]): number {
  * with more than 3 models at once — both to respect Open-Meteo rate limits and
  * to keep latency under ~2 s on a mobile connection.
  */
+/**
+ * Map a weather/atmosphere model ID to the nearest supported marine model.
+ * Open-Meteo's marine API only accepts its own model list — passing a
+ * weather-only ID (e.g. 'best_match', 'icon_seamless') returns HTTP 400
+ * with no current data, causing wave/SST fields to show null.
+ */
+const WEATHER_TO_MARINE_MODEL: Record<string, string> = {
+  best_match:          'best_match',   // marine API also supports best_match
+  ecmwf_ifs025:        'ecmwf_wam',
+  ecmwf_ifs09:         'ecmwf_wam',
+  icon_seamless:       'best_match',   // no direct ICON marine; use best_match
+  gfs_seamless:        'ncep_gfswave',
+  ukmo_seamless:       'best_match',
+  meteofrance_seamless:'mfwam',
+  knmi_seamless:       'best_match',
+};
+
+function marineModelFor(weatherModelId: string): string {
+  return WEATHER_TO_MARINE_MODEL[weatherModelId] ?? 'best_match';
+}
+
 export async function compareModels(
   lat: number,
   lng: number,
   modelIds: string[],
 ): Promise<ComparisonResponse> {
-  const marineBase =
-    `https://marine-api.open-meteo.com/v1/marine` +
-    `?latitude=${lat}&longitude=${lng}` +
-    `&current=wave_height,wave_period,swell_wave_height,sea_surface_temperature` +
-    `&cell_selection=sea`;
-
+  const marineVars = 'wave_height,wave_period,swell_wave_height,sea_surface_temperature';
   const forecastBase =
     `https://api.open-meteo.com/v1/forecast` +
     `?latitude=${lat}&longitude=${lng}` +
@@ -68,11 +84,18 @@ export async function compareModels(
 
   const [marineResults, windResults] = await Promise.all([
     Promise.all(
-      modelIds.map((id) =>
-        fetch(`${marineBase}&models=${id}`)
+      modelIds.map((id) => {
+        const marineId = marineModelFor(id);
+        const url =
+          `https://marine-api.open-meteo.com/v1/marine` +
+          `?latitude=${lat}&longitude=${lng}` +
+          `&current=${marineVars}` +
+          `&cell_selection=sea` +
+          `&models=${marineId}`;
+        return fetch(url)
           .then((r) => (r.ok ? r.json() : null))
-          .catch(() => null),
-      ),
+          .catch(() => null);
+      }),
     ),
     Promise.all(
       modelIds.map((id) =>
