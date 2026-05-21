@@ -32,8 +32,9 @@ import {
   scoreActivity,
   extractCurrentConditions,
   fetchMarineWeather,
+  ACTIVITIES_BY_CATEGORY,
 } from '@seame/core';
-import type { OnboardingPersona, SavedLocation, MarineWeatherData } from '@seame/core';
+import type { OnboardingPersona, SavedLocation, MarineWeatherData, PersonaCategory } from '@seame/core';
 
 // ─── Constants ───
 
@@ -49,6 +50,14 @@ const PERSONA_OPTIONS: {
   { id: 'beachgoer', icon: <Sun size={20} />,       labelKey: 'profile.persona.beachgoer', descKey: 'profile.persona.beachgoerDesc', scoringPersona: ActivityPersona.BEACHGOER },
   { id: 'diver',     icon: <Activity size={20} />,  labelKey: 'profile.persona.diver',     descKey: 'profile.persona.diverDesc',     scoringPersona: ActivityPersona.DIVER },
 ];
+
+const PERSONA_CATEGORY_ICONS: Record<PersonaCategory, string> = {
+  surfer: '🏄',
+  wind_rider: '🪁',
+  mariner: '⛵',
+  beach: '🏖️',
+  diver: '🤿',
+};
 
 const LANGUAGES = [
   { code: 'en', label: 'English',  flag: '🇬🇧' },
@@ -375,6 +384,40 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
                     </button>
                   );
                 })}
+              </div>
+
+              {/* Persona category grid */}
+              <div className="mb-5">
+                <p className="text-xs text-white/30 font-medium mb-2 px-0.5">
+                  {t('profile.personalization', 'Personalization')}
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(ACTIVITIES_BY_CATEGORY) as PersonaCategory[]).map((cat) => {
+                    const isSelected = preferences.personaSelection?.category === cat;
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() =>
+                          setPreference('personaSelection', {
+                            category: cat,
+                            primaryActivity: ACTIVITIES_BY_CATEGORY[cat][0],
+                            secondaryActivities: [],
+                          })
+                        }
+                        className={`p-3 rounded-xl border text-left transition-colors ${
+                          isSelected
+                            ? 'border-blue-400/30 bg-blue-500/15 ring-1 ring-blue-400/20'
+                            : 'border-white/5 bg-white/[0.03] hover:bg-white/[0.06]'
+                        }`}
+                      >
+                        <span className="text-2xl">{PERSONA_CATEGORY_ICONS[cat]}</span>
+                        <div className={`text-sm font-medium mt-1 ${isSelected ? 'text-white' : 'text-white/60'}`}>
+                          {t(`personaCategory.${cat}`, cat)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Language selector */}

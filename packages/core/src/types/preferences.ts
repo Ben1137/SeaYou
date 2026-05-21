@@ -8,6 +8,66 @@
 
 import { ActivityPersona } from './scoring';
 
+// ─── Persona Category (new hierarchical system) ───────────────────────────
+
+export type PersonaCategory = 'surfer' | 'wind_rider' | 'mariner' | 'beach' | 'diver';
+
+export type ActivityId =
+  | 'wave_surf' | 'body_boarding' | 'sup' | 'long_board'
+  | 'kite_surf' | 'wind_surf' | 'wing_foil'
+  | 'sailing' | 'motor_boat' | 'fishing'
+  | 'swim' | 'sunbathe' | 'snorkel'
+  | 'scuba_dive' | 'free_dive' | 'spearfish';
+
+export interface PersonaSelection {
+  category: PersonaCategory;
+  primaryActivity: ActivityId;
+  secondaryActivities: ActivityId[];
+}
+
+export const ACTIVITIES_BY_CATEGORY: Record<PersonaCategory, ActivityId[]> = {
+  surfer:     ['wave_surf', 'body_boarding', 'sup', 'long_board'],
+  wind_rider: ['kite_surf', 'wind_surf', 'wing_foil'],
+  mariner:    ['sailing', 'motor_boat', 'fishing'],
+  beach:      ['swim', 'sunbathe', 'snorkel'],
+  diver:      ['scuba_dive', 'free_dive', 'spearfish'],
+};
+
+export type DashboardCard =
+  | 'surf_rating' | 'wave_height' | 'swell_period' | 'wind_offshore_score'
+  | 'wind_speed' | 'wind_gust' | 'wind_direction' | 'wave_chop'
+  | 'sailing_condition' | 'visibility' | 'logbook' | 'navigation'
+  | 'beach_status' | 'uv_index' | 'air_temp' | 'sea_temp' | 'cloud_cover'
+  | 'currents' | 'tides';
+
+export const DASHBOARD_CARDS_BY_CATEGORY: Record<PersonaCategory, DashboardCard[]> = {
+  surfer:     ['surf_rating', 'wave_height', 'swell_period', 'wind_offshore_score', 'tides'],
+  wind_rider: ['wind_speed', 'wind_gust', 'wind_direction', 'wave_chop', 'tides'],
+  mariner:    ['sailing_condition', 'wind_speed', 'wave_height', 'visibility', 'tides', 'logbook', 'navigation'],
+  beach:      ['beach_status', 'uv_index', 'air_temp', 'sea_temp', 'cloud_cover'],
+  diver:      ['visibility', 'sea_temp', 'wave_height', 'currents'],
+};
+
+// Backwards-compat migration map
+export const OLD_TO_NEW_PERSONA_MAP: Record<string, PersonaSelection> = {
+  mariner:   { category: 'mariner',    primaryActivity: 'sailing',   secondaryActivities: [] },
+  surfer:    { category: 'surfer',     primaryActivity: 'wave_surf',  secondaryActivities: [] },
+  beachgoer: { category: 'beach',      primaryActivity: 'swim',       secondaryActivities: [] },
+  diver:     { category: 'diver',      primaryActivity: 'scuba_dive', secondaryActivities: [] },
+};
+
+// ─── Range-based thresholds ───────────────────────────────────────────────
+
+export interface ThresholdRange {
+  low: number;
+  sweetMin: number;
+  sweetMax: number;
+  high: number;
+}
+
+export const DEFAULT_WAVE_RANGE: ThresholdRange = { low: 0.3, sweetMin: 0.8, sweetMax: 2.0, high: 4.0 };
+export const DEFAULT_WIND_RANGE: ThresholdRange = { low: 8, sweetMin: 18, sweetMax: 28, high: 50 };
+
 // ─── Saved location shape (lightweight — stored inside preferences) ───
 
 export interface SavedLocation {
@@ -101,6 +161,18 @@ export interface UserPreferences {
    * undefined = auto (geo-based best match via getModelForLocation).
    */
   selectedModel?: string;
+
+  /** New hierarchical persona (category + sub-activity). Null until set. */
+  personaSelection?: PersonaSelection | null;
+
+  /** Wave height sweet-spot range for range-based alerts. */
+  waveHeightRange?: ThresholdRange;
+
+  /** Wind speed sweet-spot range for range-based alerts. */
+  windSpeedRange?: ThresholdRange;
+
+  /** Notify the user when both wave and wind are inside their sweet spot. */
+  notifyWhenInSweetSpot?: boolean;
 }
 
 // ─── Defaults ───
@@ -126,6 +198,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   push_opt_in: true,
   home_lat: null,
   home_lon: null,
+  personaSelection: null,
 };
 
 /** Storage key — same across platforms for consistency */

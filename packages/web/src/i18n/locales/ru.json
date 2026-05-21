@@ -639,5 +639,39 @@
       "storm": "Обнаружены штормовые условия — пересмотрите отправление",
       "improving": "Условия значительно улучшатся через {{hours}}ч"
     }
+  },
+  "personaCategory": {
+    "surfer": "Сёрфер",
+    "wind_rider": "Кайт и ветер",
+    "mariner": "Моряк",
+    "beach": "Пляж",
+    "diver": "Дайвер"
+  },
+  "activities": {
+    "wave_surf": "Сёрфинг на волнах",
+    "body_boarding": "Бодиборд",
+    "sup": "SUP-сёрфинг",
+    "long_board": "Лонгборд",
+    "kite_surf": "Кайтсёрфинг",
+    "wind_surf": "Виндсёрфинг",
+    "wing_foil": "Вингфойл",
+    "sailing": "Парусный спорт",
+    "motor_boat": "Моторная лодка",
+    "fishing": "Рыбалка",
+    "swim": "Плавание",
+    "sunbathe": "Загар",
+    "snorkel": "Снорклинг",
+    "scuba_dive": "Дайвинг с аквалангом",
+    "free_dive": "Фридайвинг",
+    "spearfish": "Подводная охота"
+  },
+  "alertConfig": {
+    "tooSmall": "Слишком мало",
+    "sweetMin": "Мин идеальной зоны",
+    "sweetMax": "Макс идеальной зоны",
+    "tooBig": "Опасно выше",
+    "primaryActivity": "Основная активность",
+    "secondaryActivities": "Также уведомить о",
+    "sweetSpotNotify": "Уведомить когда условия идеальны"
   }
 }

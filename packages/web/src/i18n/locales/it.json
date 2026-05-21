@@ -639,5 +639,39 @@
       "storm": "Condizioni di tempesta rilevate — riconsiderare la partenza",
       "improving": "Le condizioni migliorano significativamente tra {{hours}}h"
     }
+  },
+  "personaCategory": {
+    "surfer": "Surfista",
+    "wind_rider": "Kite & Vento",
+    "mariner": "Marinaio",
+    "beach": "Spiaggia",
+    "diver": "Sub"
+  },
+  "activities": {
+    "wave_surf": "Surf sulle onde",
+    "body_boarding": "Bodyboard",
+    "sup": "Stand-Up Paddle",
+    "long_board": "Longboard",
+    "kite_surf": "Kitesurf",
+    "wind_surf": "Windsurf",
+    "wing_foil": "Wing Foil",
+    "sailing": "Vela",
+    "motor_boat": "Motoscafo",
+    "fishing": "Pesca",
+    "swim": "Nuoto",
+    "sunbathe": "Abbronzatura",
+    "snorkel": "Snorkeling",
+    "scuba_dive": "Immersione con bombola",
+    "free_dive": "Apnea",
+    "spearfish": "Pesca subacquea"
+  },
+  "alertConfig": {
+    "tooSmall": "Troppo piccolo",
+    "sweetMin": "Min zona ideale",
+    "sweetMax": "Max zona ideale",
+    "tooBig": "Pericolo sopra",
+    "primaryActivity": "Attività principale",
+    "secondaryActivities": "Avvisami anche per",
+    "sweetSpotNotify": "Notifica quando le condizioni sono perfette"
   }
 }

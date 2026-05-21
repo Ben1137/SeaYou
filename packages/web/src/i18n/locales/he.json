@@ -662,5 +662,39 @@
       "storm": "תנאי סערה זוהו — שקול מחדש את מועד היציאה",
       "improving": "התנאים משתפרים משמעותית בעוד {{hours}} שעות"
     }
+  },
+  "personaCategory": {
+    "surfer": "גולש",
+    "wind_rider": "קייט וגלישת רוח",
+    "mariner": "ימאי",
+    "beach": "חוף",
+    "diver": "צולל"
+  },
+  "activities": {
+    "wave_surf": "גלישת גלים",
+    "body_boarding": "בודי בורד",
+    "sup": "SUP",
+    "long_board": "לונגבורד",
+    "kite_surf": "קייט סרף",
+    "wind_surf": "ווינד סרף",
+    "wing_foil": "ווינג פויל",
+    "sailing": "שייט",
+    "motor_boat": "סירת מנוע",
+    "fishing": "דיג",
+    "swim": "שחייה",
+    "sunbathe": "שיזוף",
+    "snorkel": "שנורקל",
+    "scuba_dive": "צלילה עם ציוד",
+    "free_dive": "צלילה חופשית",
+    "spearfish": "ציד דגים"
+  },
+  "alertConfig": {
+    "tooSmall": "קטן מדי",
+    "sweetMin": "מינימום אזור מתוק",
+    "sweetMax": "מקסימום אזור מתוק",
+    "tooBig": "סכנה מעל",
+    "primaryActivity": "פעילות עיקרית",
+    "secondaryActivities": "הזהר אותי גם על",
+    "sweetSpotNotify": "הודע כשהתנאים מושלמים"
   }
 }
