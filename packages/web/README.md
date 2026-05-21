@@ -1,173 +1,123 @@
-# SeaYou - Marine Weather Dashboard 🌊
+# SeaYou — Marine Weather Dashboard
 
-[![Deploy to GitHub Pages](https://github.com/Ben1137/SeaYou/actions/workflows/deploy.yml/badge.svg)](https://github.com/Ben1137/SeaYou/actions/workflows/deploy.yml)
+SeaYou is a comprehensive, real-time marine weather application for sailors, surfers, kite surfers, and beachgoers. It uses the Open-Meteo API to deliver high-resolution marine and atmospheric data through a GPGPU-accelerated map, persona-based dashboards, and intelligent alert system.
 
-SeaYou is a comprehensive, real-time marine weather dashboard designed for sailors, surfers, kite surfers, and beachgoers. It leverages the Open-Meteo API to provide high-resolution marine and atmospheric data, presented through a beautiful, interactive, and responsive UI.
+## Live App
 
-## 🌐 Live Demo
+**Primary (Vercel):** [https://sea-you1-0-app.vercel.app/](https://sea-you1-0-app.vercel.app/)
 
-**Try it now:** [https://ben1137.github.io/SeaYou/](https://ben1137.github.io/SeaYou/)
-
-The app is deployed on GitHub Pages and updates automatically with every push to the main branch.
-
-## 🚀 Features
-
-### 📊 Real-Time Marine Data
-
-- **Activity Reports**: Dedicated summary cards for Sailing conditions, Surf ratings, Pole Surfing (Kite), and Beach comfort levels.
-- **Dynamic Icons**: Visual indicators that update based on live conditions (e.g., Waves vs. Swell icons, detailed weather animations).
-- **Live Metrics**: Real-time display of:
-  - Wind Speed & Direction
-  - Wave Height & Period
-  - Swell Height, Direction & Period
-  - Air & Sea Temperatures
-
-### 📈 Interactive Graphs
-
-- **Tabbed Interface**: Seamlessly switch between **Tide Schedules**, **Wave Forecasts**, and **Swell Forecasts**.
-- **Advanced Visualization**:
-  - Dual-axis charts combining height (Area) and period (Line).
-  - Tide charts with clear High/Low event markers and Mean Sea Level indication.
-  - Interactive tooltips for precise data analysis.
-
-### 📅 Detailed Forecasts
-
-- **Persona-Based Tables**: Tailored 24-hour forecast views for different users:
-  - **Mariner**: Pressure, Sea State, Visibility, Wind, Swell.
-  - **Surfer**: Detailed Wave vs. Swell analysis, Period, and experimental Surf Ratings.
-  - **Kite Surfer**: Wind Speed vs. Gusts, Direction, and riding conditions.
-  - **Beachgoer**: UV Index, "Sand Wind" factor, Temperature, and general comfort.
-
-### ⚡ Alert System
-
-- **Customizable Thresholds**: User-configurable settings for Wave Height and Wind Speed alerts.
-- **Visual Warnings**:
-  - **Storm Warning**: Severe weather conditions.
-  - **Rough Weather Advisory**: High winds/seas.
-  - **Tsunami Simulation**: Experimental alert mode for high-impact wave events.
-
-## 🛠️ Tech Stack
-
-- **Frontend Framework**: [React](https://react.dev/) with [Vite](https://vitejs.dev/)
-- **Language**: [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Charts**: [Recharts](https://recharts.org/)
-- **Icons**: [Lucide React](https://lucide.dev/)
-- **Data Source**: [Open-Meteo API](https://open-meteo.com/) (Marine & Forecast APIs)
-- **Date Handling**: [date-fns](https://date-fns.org/)
-- **Deployment**: GitHub Actions → GitHub Pages
-
-## 📦 Local Development
-
-### Prerequisites
-
-- Node.js 18+ and npm
-
-### Setup
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/Ben1137/SeaYou.git
-    cd SeaYou
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    npm install
-    ```
-
-3.  **Run the development server:**
-
-    ```bash
-    npm run dev
-    ```
-
-4.  **Open in Browser:**
-    Navigate to `http://localhost:3000` (or the port shown in your terminal).
-
-### Build for Production
-
-```bash
-npm run build
-```
-
-The optimized production build will be in the `dist/` directory.
-
-## 🚀 Deployment
-
-This project uses **GitHub Actions** for automatic deployment to GitHub Pages.
-
-### How It Works
-
-1. Push changes to the `main` branch
-2. GitHub Actions automatically builds the app
-3. Deploys to GitHub Pages (usually takes 2-3 minutes)
-4. Live site updates at: https://ben1137.github.io/SeaYou/
-
-### Deployment Configuration
-
-- **Workflow**: `.github/workflows/deploy.yml`
-- **Build Tool**: Vite with base path `/SeaYou/`
-- **Hosting**: GitHub Pages (free, HTTPS enabled)
-
-### Manual Deployment
-
-You can also trigger a deployment manually:
-
-1. Go to the [Actions tab](https://github.com/Ben1137/SeaYou/actions)
-2. Select "Deploy to GitHub Pages"
-3. Click "Run workflow"
-
-## 🌍 Configuration
-
-### API Integration
-
-No API keys are required for the default Open-Meteo integration. The app makes client-side requests to:
-
-- `https://marine-api.open-meteo.com/v1/marine`
-- `https://api.open-meteo.com/v1/forecast`
-
-### Location Settings
-
-To modify the default location, update the coordinates in `App.tsx` or passed to the `Dashboard` component.
-
-## 🚀 Deployment
-
-SeaYou deploys to two targets, each requiring a different `VITE_PWA_BASE` value so the PWA manifest `scope`, `start_url`, and icon paths resolve correctly.
-
-| Target | URL | `VITE_PWA_BASE` | How it's set |
-|---|---|---|---|
-| **Vercel** (primary) | `sea-you1-0-app.vercel.app/` | `/` | Vercel dashboard → Environment Variables |
-| **GitHub Pages** | `ben1137.github.io/SeaYou1.0/` | `/SeaYou1.0/` | `.github/workflows/deploy.yml` (automatic) |
-
-**Vercel setup (one-time):** In the Vercel dashboard → Settings → Environment Variables, add `VITE_PWA_BASE=` `/` for Production, Preview, and Development.
-
-**GitHub Pages:** `.github/workflows/deploy.yml` sets `VITE_PWA_BASE=/SeaYou1.0/` automatically on every push to `main`.
-
-See [.env.example](.env.example) for all configurable environment variables.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📝 License
-
-This project is open source and available for personal and educational use.
-
-## 🙏 Acknowledgments
-
-- Marine and weather data provided by [Open-Meteo](https://open-meteo.com/)
-- Icons by [Lucide](https://lucide.dev/)
-- Charts powered by [Recharts](https://recharts.org/)
+> The GitHub Pages URL is a secondary mirror that lags behind Vercel by one CI run. Vercel is the canonical deployment.
 
 ---
 
-**Live Demo:** [https://ben1137.github.io/SeaYou/](https://ben1137.github.io/SeaYou/) 🌊⛵
+## Features
+
+### Real-Time Marine Data
+
+- **Activity Reports** — Dedicated summary cards for Sailing, Surfing, Kite Surfing, and Beach comfort.
+- **Live Metrics** — Wind Speed & Direction, Wave Height & Period, Swell, Air & Sea Temperatures.
+- **Persona-Based Forecast Tables** — 24-hour tailored views for Mariner, Surfer, Kiter, and Beachgoer.
+
+### Interactive Map (MapLibre + GPGPU WebGL)
+
+- **Wind & Current Particles** — Windy-style GPGPU particle system (up to 262k particles on desktop).
+- **Wave Heatmap, Sea Temperature, Air Layers** — WebGL heatmaps with colour ramps and opacity blending.
+- **Activity Layers** — Swell Direction, Dive Suitability, Chop Level, Gust Delta.
+- **Forecast Model Picker** — Compact dropdown floating on the map canvas. Switch between ICON, ECMWF, GFS, AROME, and more without leaving the map. Preference persists to user profile.
+- **Model Comparison Panel** — Side-by-side table of wave height, wind speed, swell, and sea temp across up to 3 models simultaneously. Highlights when models disagree significantly (low-confidence forecast warning).
+- **AIS Vessel Traffic** — Live crowd-sourced vessel tracking layer (opt-in toggle in the layers panel). CPA collision-proximity alerts.
+- **Navigational Charts** — OpenSeaMap ENC overlay (buoys, beacons, channel markers) and official NOAA ENC tiles (US waters, free for all users).
+- **Tap-to-Query** — Tap any ocean point for an instant popup with wind, wave, current, and depth data.
+
+### Bright Deck — Sun Mode Theme
+
+A pure-white, zero-transparency theme optimised for reading the screen in direct sunlight. Activated via the theme toggle in Settings or the quick-access button on the dashboard. All glassmorphism surfaces are replaced with solid high-contrast panels.
+
+### Alert System
+
+- **Range-Based Sweet-Spot Alerts** — Define a target wave height and wind speed range (not just an upper threshold). Receive a notification when both are simultaneously inside your personal sweet spot — ideal for planning the perfect session.
+- **Threshold Alerts** — Upper-bound storm and strong-wind warnings as before.
+- **Tsunami Warnings** — Live GDACS data with map epicentres.
+
+### Per-User Onboarding
+
+A guided wizard collects your activity persona, home location, and alert preferences on first launch. Preferences sync to the cloud via Supabase so settings follow you across devices — not locked to a single browser's localStorage.
+
+---
+
+## Tech Stack
+
+| Technology | Version | Role |
+|---|---|---|
+| React | 19.2 | UI framework |
+| MapLibre GL JS | 5.0 | Map rendering |
+| WebGL / GPGPU | — | Particle engines, heatmaps |
+| Vite | 6.2 | Build tool |
+| TailwindCSS | 4.1 | Styling |
+| TanStack Query | 5.x | Data fetching & caching |
+| i18next | 25.x | 7-language internationalisation |
+| Supabase | — | Auth + cloud preferences sync |
+| Open-Meteo | — | Marine & forecast weather data |
+| pnpm + Turborepo | — | Monorepo tooling |
+
+---
+
+## Local Development
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+
+### Setup
+
+```bash
+git clone https://github.com/Ben1137/SeaYou.git
+cd SeaYou
+pnpm install
+```
+
+### Run dev server (web only)
+
+```bash
+pnpm --filter @seame/web dev
+```
+
+### Run all packages
+
+```bash
+pnpm dev
+```
+
+Open `http://localhost:5173` (or the port shown in the terminal).
+
+### Build
+
+```bash
+pnpm --filter @seame/core build   # always build core first
+pnpm --filter @seame/web build
+```
+
+---
+
+## Deployment
+
+SeaYou deploys to two targets. Vercel is primary.
+
+| Target | URL | `VITE_PWA_BASE` |
+|---|---|---|
+| **Vercel** (primary) | `sea-you1-0-app.vercel.app/` | `/` |
+| GitHub Pages (mirror) | `ben1137.github.io/SeaYou1.0/` | `/SeaYou1.0/` |
+
+Vercel deploys automatically on every push to `main`. GitHub Pages is triggered by `.github/workflows/deploy.yml`.
+
+See `.env.example` for all configurable environment variables.
+
+---
+
+## Acknowledgments
+
+- Weather and marine data by [Open-Meteo](https://open-meteo.com/)
+- Map tiles by [MapLibre GL JS](https://maplibre.org/)
+- Icons by [Lucide](https://lucide.dev/)
+- Charts by [Recharts](https://recharts.org/)
