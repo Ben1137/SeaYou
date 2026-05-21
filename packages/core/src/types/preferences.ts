@@ -129,6 +129,9 @@ export interface UserPreferences {
   /** Whether the user has completed the post-onboarding app tour */
   hasCompletedTour: boolean;
 
+  /** Per-user onboarding completion flag — synced to Supabase so it persists across devices. */
+  hasCompletedOnboarding: boolean;
+
   /**
    * OneSignal Player (Subscription) ID. Captured on the client right after
    * the user grants push permission and written here by AlertContext.
@@ -194,6 +197,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   favoriteLocations: [],
   recentSearches: [],
   hasCompletedTour: false,
+  hasCompletedOnboarding: false,
   onesignal_player_id: null,
   push_opt_in: true,
   home_lat: null,
