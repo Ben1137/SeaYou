@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: CI Build
 
 on:
   push:
@@ -7,12 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -40,28 +34,10 @@ jobs:
         # and core/package.json exports point only to dist/index.js
         run: pnpm --filter @seame/core build
 
-      - name: Build @seame/web for GitHub Pages
-        # VITE_PWA_BASE ensures scope/start_url/icons all use /SeaYou1.0/ prefix
-        # so the PWA installs correctly from ben1137.github.io/SeaYou1.0/
+      - name: Build @seame/web
         env:
           VITE_PWA_BASE: /SeaYou1.0/
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ONESIGNAL_APP_ID: ${{ secrets.VITE_ONESIGNAL_APP_ID }}
         run: pnpm --filter @seame/web build
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: packages/web/dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
