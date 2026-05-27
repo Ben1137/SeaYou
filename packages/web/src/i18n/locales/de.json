@@ -250,7 +250,8 @@
     "waveSurferForecast": "Wellenreiter-Vorhersage",
     "windSurferForecast": "Windsurfer-Vorhersage",
     "sailorForecast": "Segler-Vorhersage",
-    "diverForecast": "Taucher-Vorhersage"
+    "diverForecast": "Taucher-Vorhersage",
+    "noTideData": "Keine Gezeitendaten für diesen Standort verfügbar"
   },
   "table": {
     "period": "Periode",
@@ -409,7 +410,11 @@
     "gustDelta": "Böendifferenz",
     "currentHeatmap": "Strömungsgeschwindigkeit",
     "model": "Modell",
-    "compareModels": "Vergleichen"
+    "compareModels": "Vergleichen",
+    "noaaCharts": "NOAA ENC (USA)",
+    "noaaHint": "Offizielle NOAA-Seekarten — nur US-Gewässer",
+    "linzCharts": "LINZ Karten (NZ)",
+    "linzHint": "Offizielle LINZ-Seekarten — nur neuseeländische Gewässer"
   },
   "units": {
     "meters": "m",

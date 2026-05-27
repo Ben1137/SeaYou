@@ -156,6 +156,45 @@ export default defineConfig(({ mode }) => {
             }
           },
           {
+            // Cache OpenSeaMap seamark tiles (CacheFirst — tiles change rarely)
+            urlPattern: /^https:\/\/tiles\.openseamap\.org\/seamark\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'openseamap-tiles',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 7 * 24 * 60 * 60 // 1 week
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            // Cache NOAA ENC chart tiles proxied via /api/noaa
+            urlPattern: /^https?:\/\/.*\/api\/noaa.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'noaa-enc-tiles',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 7 * 24 * 60 * 60 // 1 week
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            // Cache LINZ NZMariner chart tiles (CacheFirst — official charts update infrequently)
+            urlPattern: /^https:\/\/tiles-cdn\.koordinates\.com\/services.*\/layer=50772\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'linz-tiles',
+              expiration: {
+                maxEntries: 500,
+                maxAgeSeconds: 7 * 24 * 60 * 60 // 1 week
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
             // Cache static assets
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
             handler: 'CacheFirst',

@@ -11,7 +11,7 @@ import {
   ReverseGeocodingApiResponse
 } from '../types';
 import { addHours, format, startOfHour, addDays, parseISO, addMinutes } from 'date-fns';
-import { generateTideData, getMoonData } from '../utils/calculations';
+import { getMoonData } from '../utils/calculations';
 import { getWeatherDescription } from '../utils/formatting';
 import { API_ENDPOINTS, WEATHER_CONSTANTS } from '../constants';
 import { deduplicatedFetch } from '../utils/requestDeduplication';
@@ -194,7 +194,54 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
       hourlyForecast
     };
 
-    const tides = generateTideData(lat, lng);
+    // Build TideData from the real sea_level_height_msl hourly array.
+    // Falls back to undefined for inland/landlocked locations where the marine
+    // API returns null/empty — the Dashboard shows a graceful empty state.
+    const tides: import('../types').TideData | undefined = (() => {
+      const seaLevels = marineData?.hourly?.sea_level_height_msl as number[] | undefined;
+      const times = marineData?.hourly?.time as string[] | undefined;
+      if (!seaLevels || !times || seaLevels.length === 0 || seaLevels.every((v) => v == null)) {
+        return undefined;
+      }
+
+      // Align to current hour
+      const marineNowIdx = Math.max(0, times.findIndex((t: string) => t.startsWith(nowLocalISO)));
+      const slice24Times = times.slice(marineNowIdx, marineNowIdx + 24);
+      const slice24Levels = seaLevels.slice(marineNowIdx, marineNowIdx + 24);
+
+      const hourly = slice24Times.map((time, i) => ({
+        time,
+        height: slice24Levels[i] ?? 0,
+      }));
+
+      const currentHeight = hourly[0]?.height ?? 0;
+      const rising = hourly.length > 1 ? (hourly[1].height ?? 0) > currentHeight : false;
+
+      // Find next high and low tide by scanning for local extrema
+      let nextHigh: import('../types').TideEvent | undefined;
+      let nextLow: import('../types').TideEvent | undefined;
+      for (let i = 1; i < hourly.length - 1; i++) {
+        const prev = hourly[i - 1].height;
+        const curr = hourly[i].height;
+        const next = hourly[i + 1].height;
+        if (!nextHigh && curr > prev && curr > next) {
+          nextHigh = { time: hourly[i].time, height: curr, type: 'HIGH' };
+        }
+        if (!nextLow && curr < prev && curr < next) {
+          nextLow = { time: hourly[i].time, height: curr, type: 'LOW' };
+        }
+        if (nextHigh && nextLow) break;
+      }
+      // Fallback sentinels if no extremum found in the 24-hour window
+      if (!nextHigh) {
+        nextHigh = { time: addHours(new Date(), 6).toISOString(), height: currentHeight + 1, type: 'HIGH' };
+      }
+      if (!nextLow) {
+        nextLow = { time: addHours(new Date(), 12).toISOString(), height: Math.max(0, currentHeight - 1), type: 'LOW' };
+      }
+
+      return { currentHeight, rising, nextHigh, nextLow, hourly };
+    })();
 
     const mergedHourly = {
       ...(marineData?.hourly ?? {}), // Waves, Sea Temp, Currents, Sea Level (null for inland)
@@ -249,7 +296,7 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
         swellPeriod: marineData?.current?.swell_wave_period ?? 0,
         pressure: current.surface_pressure || 0,
         visibility: current.visibility || 0,
-        seaLevel: tides.currentHeight,
+        seaLevel: tides?.currentHeight ?? 0,
         uvIndex: (() => {
            // Use the same local time calculation as above
            const idx = hourly.time?.findIndex((t: string) => t.startsWith(nowLocalISO)) ?? -1;

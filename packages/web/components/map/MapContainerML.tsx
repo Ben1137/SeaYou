@@ -27,11 +27,10 @@ import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
 import { NOAAEncLayerML } from './layers/NOAAEncLayerML';
+import { LINZLayerML } from './layers/LINZLayerML';
 import { RainRadarLayerML } from './layers/RainRadarLayerML';
 import { CoastlineLayerML } from './layers/CoastlineLayerML';
 import { MarineAreasLayerML } from './layers/MarineAreasLayerML';
-
-// Pro Navigation Engine — OpenSeaMap ENC overlay (Phase 8)
 import { OpenSeaMapLayerML } from './layers/OpenSeaMapLayerML';
 
 // Custom WebGL Layers (Phase 2)
@@ -417,9 +416,10 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   }, []);
 
   /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
-  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc') => {
-    // NOAA ENC is US public data — free for all users
-    if (isFreeUser && key !== 'noaaEnc') {
+  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc' | 'linz') => {
+    // Free-tier layers: navigational chart overlays (public/open data) and NOAA/LINZ official charts
+    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz'];
+    if (isFreeUser && !freeLayers.includes(key)) {
       setShowPaywall(true);
       return;
     }
@@ -482,7 +482,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     marineAreas: false,
     radar: false,
     enc: false, // OpenSeaMap navigational charts
-    noaaEnc: false, // Phase 7 — NOAA ENC Online raster (US waters)
+    noaaEnc: false, // NOAA ENC Online raster (US waters)
+    linz: false, // LINZ NZMariner official charts (New Zealand waters)
   });
 
   // AIS vessel traffic toggle (default on — can be disabled by user)
@@ -1333,9 +1334,16 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             <button
               onClick={() => tryToggleOverlay('noaaEnc')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.noaaEnc ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
-              title="Official NOAA Electronic Navigational Charts — US waters only"
+              title={t('map.noaaHint') || 'Official NOAA Electronic Navigational Charts — US waters only'}
             >
-              <Compass size={12} /> <span className="flex-1">NOAA ENC (US)</span>
+              <Compass size={12} /> <span className="flex-1">{t('map.noaaCharts') || 'NOAA ENC (US)'}</span>
+            </button>
+            <button
+              onClick={() => tryToggleOverlay('linz')}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.linz ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              title={t('map.linzHint') || 'Official LINZ Marine Charts — New Zealand waters only'}
+            >
+              <Compass size={12} /> <span className="flex-1">{t('map.linzCharts') || 'LINZ Charts (NZ)'}</span>
             </button>
             <button
               onClick={() => { setAisVisible((v) => !v); setIsLayersPanelExpanded(false); }}
@@ -1672,16 +1680,31 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         animated={false}
       />
 
-      {/* OpenSeaMap ENC overlay (Phase 8 — Pro Navigation) */}
+      {/*
+        ─── Navigational Chart Layer Stack ──────────────────────────────────
+        Draw order (bottom → top):
+          BathymetryLayerML   — EMODnet WMS depth raster, beforeId=first symbol
+          RainRadarLayerML    — RainViewer tile overlay, no beforeId
+          OpenSeaMapLayerML   — OpenSeaMap seamark tiles, no beforeId (above labels)
+          NOAAEncLayerML      — NOAA ENC, US waters only, no beforeId
+          LINZLayerML         — LINZ NZMariner, NZ waters only, no beforeId
+
+        Attribution: each source defines its own attribution string; MapLibre
+        collects them automatically into the bottom-right attribution control.
+        ─────────────────────────────────────────────────────────────────────
+      */}
+
+      {/* OpenSeaMap — global crowd-sourced seamark overlay (free tier) */}
       <OpenSeaMapLayerML
         visible={geoJSONLayers.enc}
         opacity={0.85}
       />
 
-      {/* NOAA ENC Online overlay — Phase 7. Official US navigational
-          charts. No-op outside US waters (service simply serves empty
-          tiles). */}
+      {/* NOAA ENC — official US navigational charts (free tier) */}
       <NOAAEncLayerML enabled={geoJSONLayers.noaaEnc} opacity={0.85} />
+
+      {/* LINZ NZMariner — official NZ marine charts, bounds-restricted (free tier) */}
+      <LINZLayerML visible={geoJSONLayers.linz} opacity={0.85} />
 
       {/*
         Wave Composite Layer — heatmap base + whitecap particles on top.
