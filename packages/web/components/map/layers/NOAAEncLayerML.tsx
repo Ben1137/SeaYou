@@ -9,7 +9,7 @@
  * Tile service: gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/export
  * No API key required.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMap } from '../useMap';
 
 const SOURCE_ID = 'noaa-enc-source-v9';
@@ -43,11 +43,13 @@ export const NOAAEncLayerML: React.FC<NOAAEncLayerMLProps> = ({
   opacity = 0.85,
 }) => {
   const map = useMap();
+  const addedRef = useRef(false);
 
+  // Add / remove the layer when `enabled` or `map` changes
   useEffect(() => {
-    if (!map || !enabled) return;
+    if (!map) return;
 
-    const addLayer = () => {
+    const setupLayer = () => {
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'raster',
@@ -66,24 +68,56 @@ export const NOAAEncLayerML: React.FC<NOAAEncLayerMLProps> = ({
           type: 'raster',
           source: SOURCE_ID,
           paint: { 'raster-opacity': opacity },
+          layout: { visibility: 'visible' },
         });
       } else {
+        map.setLayoutProperty(LAYER_ID, 'visibility', 'visible');
         map.setPaintProperty(LAYER_ID, 'raster-opacity', opacity);
       }
+      addedRef.current = true;
     };
 
-    if (map.isStyleLoaded()) addLayer();
-    else map.once('styledata', addLayer);
-
-    return () => {
-      map.off('styledata', addLayer);
+    const teardownLayer = () => {
       try {
         if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
         if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
       } catch {
         /* style torn down already — safe to ignore */
       }
+      addedRef.current = false;
     };
+
+    if (enabled) {
+      if (map.isStyleLoaded()) {
+        setupLayer();
+      } else {
+        const onStyleLoad = () => {
+          setupLayer();
+          map.off('style.load', onStyleLoad);
+        };
+        map.on('style.load', onStyleLoad);
+        return () => map.off('style.load', onStyleLoad);
+      }
+    } else if (addedRef.current) {
+      teardownLayer();
+    }
+
+    return () => {
+      if (addedRef.current) teardownLayer();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, enabled]);
+
+  // Update opacity in-place when it changes (without recreating the layer)
+  useEffect(() => {
+    if (!map || !enabled || !addedRef.current) return;
+    try {
+      if (map.getLayer(LAYER_ID)) {
+        map.setPaintProperty(LAYER_ID, 'raster-opacity', opacity);
+      }
+    } catch {
+      // Ignore — layer might be transitioning
+    }
   }, [map, enabled, opacity]);
 
   return null;

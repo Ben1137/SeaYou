@@ -220,14 +220,86 @@ export const fetchNoticesToMariners = async (
 };
 
 /**
- * Parse Notices to Mariners XML
+ * Parse Notices to Mariners XML using the browser's native DOMParser.
+ *
+ * NOAA LNM XML structure (simplified):
+ *   <lnm>
+ *     <notice>
+ *       <chartNumber>...</chartNumber>
+ *       <title>...</title>
+ *       <date>...</date>
+ *       <description>...</description>
+ *       <latitude>...</latitude>   <!-- optional -->
+ *       <longitude>...</longitude> <!-- optional -->
+ *     </notice>
+ *   </lnm>
  */
-const parseNoticesXML = (xml: string, boundingBox: any): any[] => {
-  // Simplified parser - full implementation would use DOMParser
-  // For now, return empty array
-  // TODO: Implement full XML parsing
-  console.warn('Notices to Mariners parsing not fully implemented');
-  return [];
+const parseNoticesXML = (
+  xml: string,
+  boundingBox: { north: number; south: number; east: number; west: number }
+): Array<{
+  id: string;
+  title: string;
+  date: string;
+  description: string;
+  lat?: number;
+  lon?: number;
+  chartNumbers: string[];
+}> => {
+  try {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) return [];
+
+    const notices = Array.from(doc.querySelectorAll('notice'));
+
+    return notices.reduce<Array<{
+      id: string;
+      title: string;
+      date: string;
+      description: string;
+      lat?: number;
+      lon?: number;
+      chartNumbers: string[];
+    }>>((acc, node, index) => {
+      const text = (selector: string) =>
+        node.querySelector(selector)?.textContent?.trim() ?? '';
+
+      const latRaw = parseFloat(text('latitude') || text('lat'));
+      const lonRaw = parseFloat(text('longitude') || text('lon'));
+      const lat = isFinite(latRaw) ? latRaw : undefined;
+      const lon = isFinite(lonRaw) ? lonRaw : undefined;
+
+      // Filter to bounding box when coordinates are present
+      if (
+        lat !== undefined &&
+        lon !== undefined &&
+        (lat < boundingBox.south ||
+          lat > boundingBox.north ||
+          lon < boundingBox.west ||
+          lon > boundingBox.east)
+      ) {
+        return acc;
+      }
+
+      const chartNumber = text('chartNumber') || text('chart_number');
+
+      acc.push({
+        id: `lnm-${chartNumber || index}-${text('date').replace(/\W/g, '')}`,
+        title: text('title') || `Notice ${index + 1}`,
+        date: text('date') || text('pubDate') || '',
+        description: text('description') || text('summary') || '',
+        lat,
+        lon,
+        chartNumbers: chartNumber ? [chartNumber] : [],
+      });
+
+      return acc;
+    }, []);
+  } catch {
+    return [];
+  }
 };
 
 /**
