@@ -146,12 +146,18 @@ Deno.serve(async (req) => {
       heartbeatTimer = setInterval(sendHeartbeat, 25_000);
 
       ws.onopen = () => {
-        console.log(`[ais-relay] upstream WS open — subscribing bbox [${lat1},${lon1}] to [${lat2},${lon2}]`);
+        console.log(
+          `[ais-relay] upstream WS OPEN` +
+          ` | ts=${new Date().toISOString()}` +
+          ` | bbox=[${lat1},${lon1}]->[${lat2},${lon2}]` +
+          ` | readyState=${ws.readyState}`,
+        );
         ws.send(JSON.stringify({
           APIKey: apiKey,
           BoundingBoxes: [[[lat1, lon1], [lat2, lon2]]],
           FilterMessageTypes: ['PositionReport'],
         }));
+        console.log('[ais-relay] subscription payload sent to AISStream');
       };
 
       ws.onmessage = (ev) => {
@@ -192,7 +198,28 @@ Deno.serve(async (req) => {
       };
 
       ws.onclose = (ev) => {
-        console.log(`[ais-relay] upstream WS closed: code=${ev.code} reason=${ev.reason ?? ''} (forwarded ${positionReportCount} reports)`);
+        // Close codes reference: https://www.rfc-editor.org/rfc/rfc6455#section-7.4
+        // 1000 = normal, 1001 = going away, 1006 = abnormal (no close frame received),
+        // 4xxx = application-level (AISStream uses these for auth/rate-limit errors).
+        const reason = ev.reason ?? '';
+        const wasClean = ev.wasClean;
+        console.log(
+          `[ais-relay] upstream WS CLOSED` +
+          ` | code=${ev.code}` +
+          ` | reason="${reason}"` +
+          ` | wasClean=${wasClean}` +
+          ` | forwarded=${positionReportCount} PositionReports` +
+          ` | ts=${new Date().toISOString()}`,
+        );
+        if (!wasClean || ev.code !== 1000) {
+          console.error(
+            `[ais-relay] upstream WS closed UNEXPECTEDLY — code=${ev.code} reason="${reason}"` +
+            ` — this is likely the root cause of client Unexpected EOF`,
+          );
+        }
+        // Forward the close details to the client as a structured SSE event
+        // BEFORE closing the controller so the client can log a meaningful error.
+        sendEvent({ type: 'error', message: 'Upstream WS closed', code: ev.code, reason });
         clearInterval(heartbeatTimer);
         try { controller.close(); } catch { /* already closed */ }
         resolveStreamDone();
@@ -200,20 +227,18 @@ Deno.serve(async (req) => {
 
       ws.onerror = (ev) => {
         const errMsg = (ev as ErrorEvent).message ?? 'unknown';
-        console.log(`[ais-relay] upstream WS error: ${JSON.stringify({
-          type: (ev as Event).type,
-          msg: errMsg,
-        })}`);
-        // Send a typed SSE event so the client can distinguish "upstream broken"
-        // (cert expired, host unreachable) from a transient drop worth retrying.
-        try {
-          controller.enqueue(new TextEncoder().encode(
-            `event: upstream_error\ndata: ${JSON.stringify({
-              message: errMsg,
-              retryable: false,
-            })}\n\n`,
-          ));
-        } catch { /* client already disconnected */ }
+        // Use console.error so this appears at ERROR level in Supabase Function logs,
+        // not buried in INFO — makes it findable at a glance without log filtering.
+        console.error(
+          `[ais-relay] upstream WS ERROR` +
+          ` | type=${(ev as Event).type}` +
+          ` | message="${errMsg}"` +
+          ` | ts=${new Date().toISOString()}` +
+          ` | forwarded=${positionReportCount} PositionReports`,
+        );
+        // Forward to client via sendEvent (consistent with other event paths)
+        // so the client can distinguish cert/DNS failures from transient drops.
+        sendEvent({ type: 'error', message: 'Upstream WS error', code: 0, reason: errMsg });
         clearInterval(heartbeatTimer);
         try { controller.close(); } catch { /* already closed */ }
         resolveStreamDone();

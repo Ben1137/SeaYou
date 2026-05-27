@@ -269,7 +269,28 @@ class AISService {
       try {
         const v = JSON.parse(ev.data as string) as AISTarget & {
           ts?: string;
+          type?: string;
+          message?: string;
+          code?: number;
+          reason?: string;
         };
+        // Structured error forwarded from the Edge Function (upstream WS closed/errored).
+        // Log it prominently before scheduling a reconnect so it's visible in devtools.
+        if (v.type === 'error') {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[ais] upstream error from relay — message="${v.message ?? 'unknown'}"` +
+            ` | code=${v.code ?? 'n/a'}` +
+            ` | reason="${v.reason ?? ''}"` +
+            ` — scheduling reconnect`,
+          );
+          // Close the EventSource so our own scheduleReconnect controls retry timing
+          // instead of the browser's built-in auto-reconnect (which backs off to 3 s).
+          if (this.es) { this.es.close(); this.es = null; }
+          this.connected = false;
+          this.scheduleReconnect();
+          return;
+        }
         if (!v.mmsi || typeof v.lat !== 'number' || typeof v.lon !== 'number') {
           return;
         }
