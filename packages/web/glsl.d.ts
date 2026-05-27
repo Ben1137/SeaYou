@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // Type declarations for GLSL shader imports
 declare module '*.glsl' {
   const value: string;

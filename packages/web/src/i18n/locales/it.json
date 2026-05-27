@@ -250,7 +250,8 @@
     "waveSurferForecast": "Previsioni surf",
     "windSurferForecast": "Previsioni windsurf",
     "sailorForecast": "Previsioni vela",
-    "diverForecast": "Previsioni immersioni"
+    "diverForecast": "Previsioni immersioni",
+    "noTideData": "Nessun dato sulla marea disponibile per questa posizione"
   },
   "table": {
     "period": "Periodo",
@@ -410,7 +411,11 @@
     "gustDelta": "Delta raffiche",
     "currentHeatmap": "Velocità corrente",
     "model": "Modello",
-    "compareModels": "Confronta"
+    "compareModels": "Confronta",
+    "noaaCharts": "NOAA ENC (USA)",
+    "noaaHint": "Carte nautiche ufficiali NOAA — solo acque statunitensi",
+    "linzCharts": "Carte LINZ (NZ)",
+    "linzHint": "Carte nautiche ufficiali LINZ — solo acque della Nuova Zelanda"
   },
   "units": {
     "meters": "m",

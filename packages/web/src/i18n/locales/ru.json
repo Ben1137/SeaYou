@@ -250,7 +250,8 @@
     "waveSurferForecast": "Прогноз для сёрферов",
     "windSurferForecast": "Прогноз для виндсёрферов",
     "sailorForecast": "Прогноз для яхтсменов",
-    "diverForecast": "Прогноз для дайверов"
+    "diverForecast": "Прогноз для дайверов",
+    "noTideData": "Данные о приливах для этого местоположения недоступны"
   },
   "table": {
     "period": "Период",
@@ -410,7 +411,11 @@
     "gustDelta": "Разница порывов ветра",
     "currentHeatmap": "Скорость течения",
     "model": "Модель",
-    "compareModels": "Сравнить"
+    "compareModels": "Сравнить",
+    "noaaCharts": "NOAA ENC (США)",
+    "noaaHint": "Официальные морские карты NOAA — только воды США",
+    "linzCharts": "Карты LINZ (НЗ)",
+    "linzHint": "Официальные морские карты LINZ — только воды Новой Зеландии"
   },
   "units": {
     "meters": "м",

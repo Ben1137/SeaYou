@@ -250,7 +250,8 @@
     "waveSurferForecast": "Wave Surfer's Forecast",
     "windSurferForecast": "Wind Surfer's Forecast",
     "sailorForecast": "Sailor's Forecast",
-    "diverForecast": "Diver's Forecast"
+    "diverForecast": "Diver's Forecast",
+    "noTideData": "No tide data available for this location"
   },
   "table": {
     "period": "Period",
@@ -443,6 +444,10 @@
     "chopLevel": "Chop Level",
     "gustDelta": "Gust Delta",
     "currentHeatmap": "Current Speed",
+    "noaaCharts": "NOAA ENC (US)",
+    "noaaHint": "Official NOAA Electronic Navigational Charts — US waters only",
+    "linzCharts": "LINZ Charts (NZ)",
+    "linzHint": "Official LINZ Marine Charts — New Zealand waters only",
     "model": "Model",
     "compareModels": "Compare"
   },

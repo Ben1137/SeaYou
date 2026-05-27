@@ -677,42 +677,50 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         </div>
 
         <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-0' : 'h-64'}`}>
-          <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
-            {activeGraph === 'tide' ? (
-              <AreaChart data={tideChartData}>
-                <defs>
-                  <linearGradient id="colorTide" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--chart-primary)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="var(--chart-primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} />
-                <Area type="monotone" dataKey="height" stroke="var(--chart-primary)" fillOpacity={1} fill="url(#colorTide)" strokeWidth={2} name={t('forecast.tideHeight')} />
-              </AreaChart>
-            ) : (
-              <ComposedChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
-                <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
-                <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} labelStyle={{ color: 'rgba(255,255,255,0.6)' }} />
-                {activeGraph === 'wave' ? (
-                  <>
-                    <Area yAxisId="left" type="monotone" dataKey="waveHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.waveHeight')} />
-                    <Line yAxisId="right" type="monotone" dataKey="wavePeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.wavePeriod')} />
-                  </>
-                ) : (
-                  <>
-                    <Area yAxisId="left" type="monotone" dataKey="swellHeight" stroke="var(--chart-secondary)" fill="var(--chart-secondary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.swellHeight')} />
-                    <Line yAxisId="right" type="monotone" dataKey="swellPeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.swellPeriod')} />
-                  </>
-                )}
-              </ComposedChart>
-            )}
-          </ResponsiveContainer>
+          {/* Tide tab: show empty state when sea_level_height_msl has no data (inland locations) */}
+          {activeGraph === 'tide' && !weatherData.tides ? (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-white/30">
+              <Waves size={28} />
+              <p className="text-xs text-center">{t('forecast.noTideData', 'No tide data available for this location')}</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+              {activeGraph === 'tide' ? (
+                <AreaChart data={tideChartData}>
+                  <defs>
+                    <linearGradient id="colorTide" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--chart-primary)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="var(--chart-primary)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={['dataMin - 0.5', 'dataMax + 0.5']} unit=" m" />
+                  <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} formatter={(v: number | undefined) => [`${(v ?? 0).toFixed(2)} m`, t('forecast.tideHeight')]} />
+                  <Area type="monotone" dataKey="height" stroke="var(--chart-primary)" fillOpacity={1} fill="url(#colorTide)" strokeWidth={2} name={t('forecast.tideHeight')} />
+                </AreaChart>
+              ) : (
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} labelStyle={{ color: 'rgba(255,255,255,0.6)' }} />
+                  {activeGraph === 'wave' ? (
+                    <>
+                      <Area yAxisId="left" type="monotone" dataKey="waveHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.waveHeight')} />
+                      <Line yAxisId="right" type="monotone" dataKey="wavePeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.wavePeriod')} />
+                    </>
+                  ) : (
+                    <>
+                      <Area yAxisId="left" type="monotone" dataKey="swellHeight" stroke="var(--chart-secondary)" fill="var(--chart-secondary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.swellHeight')} />
+                      <Line yAxisId="right" type="monotone" dataKey="swellPeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.swellPeriod')} />
+                    </>
+                  )}
+                </ComposedChart>
+              )}
+            </ResponsiveContainer>
+          )}
         </div>
       </section>
 
