@@ -413,6 +413,7 @@
     "currentHeatmap": "Strömungsgeschwindigkeit",
     "model": "Modell",
     "compareModels": "Vergleichen",
+    "navCharts": "Seekarten (ENC)",
     "noaaCharts": "NOAA ENC (USA)",
     "noaaHint": "Offizielle NOAA-Seekarten — nur US-Gewässer",
     "linzCharts": "LINZ Karten (NZ)",

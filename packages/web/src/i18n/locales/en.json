@@ -446,6 +446,7 @@
     "chopLevel": "Chop Level",
     "gustDelta": "Gust Delta",
     "currentHeatmap": "Current Speed",
+    "navCharts": "Navigational Charts (ENC)",
     "noaaCharts": "NOAA ENC (US)",
     "noaaHint": "Official NOAA Electronic Navigational Charts — US waters only",
     "linzCharts": "LINZ Charts (NZ)",

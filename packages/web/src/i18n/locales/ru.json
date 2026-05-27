@@ -414,6 +414,7 @@
     "currentHeatmap": "Скорость течения",
     "model": "Модель",
     "compareModels": "Сравнить",
+    "navCharts": "Навигационные карты (ENC)",
     "noaaCharts": "NOAA ENC (США)",
     "noaaHint": "Официальные морские карты NOAA — только воды США",
     "linzCharts": "Карты LINZ (НЗ)",

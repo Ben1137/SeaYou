@@ -396,6 +396,7 @@
     "currentHeatmap": "Velocidad de corriente",
     "model": "Modelo",
     "compareModels": "Comparar",
+    "navCharts": "Cartas Náuticas (ENC)",
     "noaaCharts": "NOAA ENC (EE.UU.)",
     "noaaHint": "Cartas náuticas oficiales NOAA — solo aguas de EE.UU.",
     "linzCharts": "Cartas LINZ (NZ)",
