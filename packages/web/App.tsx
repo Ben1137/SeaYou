@@ -943,7 +943,7 @@ const AppContent: React.FC = () => {
                 >
                   <MapProvider>
                     {prefsLoaded
-                      ? <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} tsunamiRisks={tsunamiRisks} favoriteLocations={alertConfig.favoriteLocations} />
+                      ? <MapContainerML currentLocation={{ lat: currentLocation.lat, lng: currentLocation.lng }} tsunamiRisks={tsunamiRisks} favoriteLocations={alertConfig.favoriteLocations} tides={weatherData?.tides} />
                       : null}
                   </MapProvider>
                 </ErrorBoundary>

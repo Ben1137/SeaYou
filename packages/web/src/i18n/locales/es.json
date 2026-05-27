@@ -251,7 +251,9 @@
     "windSurferForecast": "Pronóstico de windsurf",
     "sailorForecast": "Pronóstico de vela",
     "diverForecast": "Pronóstico de buceo",
-    "noTideData": "No hay datos de mareas disponibles para esta ubicación"
+    "noTideData": "No hay datos de mareas disponibles para esta ubicación",
+    "rising": "Subiendo",
+    "falling": "Bajando"
   },
   "table": {
     "period": "Período",

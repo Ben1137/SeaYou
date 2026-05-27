@@ -561,7 +561,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       })()}
 
       {/* ─── Conditions Grid ─── */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className={`grid grid-cols-2 gap-4 ${weatherData.tides ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
         {/* Wave Height */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center"><Activity size={12} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
@@ -624,6 +624,34 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
           </p>
         </div>
+
+        {/* Sea Level / Tidal Trend — only rendered when real tide data is available */}
+        {weatherData.tides && (
+          <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
+            <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center">
+              <Waves size={12} className="mr-1.5" /> {t('forecast.tideHeight')}
+            </h3>
+            <div className="relative z-10 mt-2">
+              <div className="flex items-end mb-1">
+                <span className="text-4xl font-bold leading-none tabular-nums">
+                  {weatherData.tides.currentHeight.toFixed(2)}
+                </span>
+                <span className="text-lg ml-1 mb-1 font-medium">m</span>
+              </div>
+              <p
+                className={`text-[10px] font-medium flex items-center gap-1 ${weatherData.tides.rising ? 'text-teal-400' : 'text-amber-500'}`}
+                title={weatherData.tides.rising ? t('forecast.rising') : t('forecast.falling')}
+              >
+                {weatherData.tides.rising
+                  ? <ArrowUp size={11} className="shrink-0" />
+                  : <ArrowDown size={11} className="shrink-0" />
+                }
+                {weatherData.tides.rising ? t('forecast.rising') : t('forecast.falling')}
+              </p>
+            </div>
+            <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
+          </div>
+        )}
       </section>
 
       {/* ─── Wave Forecast Chart ─── */}

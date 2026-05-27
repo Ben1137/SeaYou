@@ -251,7 +251,9 @@
     "windSurferForecast": "תחזית גולשי רוח",
     "sailorForecast": "תחזית שייטים",
     "diverForecast": "תחזית צוללנים",
-    "noTideData": "אין נתוני גאות ושפל זמינים עבור מיקום זה"
+    "noTideData": "אין נתוני גאות ושפל זמינים עבור מיקום זה",
+    "rising": "עולה",
+    "falling": "יורד"
   },
   "table": {
     "period": "תקופה",

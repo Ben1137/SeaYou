@@ -251,7 +251,9 @@
     "windSurferForecast": "Prévisions planche à voile",
     "sailorForecast": "Prévisions voile",
     "diverForecast": "Prévisions plongée",
-    "noTideData": "Pas de données de marée disponibles pour cet emplacement"
+    "noTideData": "Pas de données de marée disponibles pour cet emplacement",
+    "rising": "Montante",
+    "falling": "Descendante"
   },
   "table": {
     "period": "Période",

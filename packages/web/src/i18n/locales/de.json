@@ -251,7 +251,9 @@
     "windSurferForecast": "Windsurfer-Vorhersage",
     "sailorForecast": "Segler-Vorhersage",
     "diverForecast": "Taucher-Vorhersage",
-    "noTideData": "Keine Gezeitendaten für diesen Standort verfügbar"
+    "noTideData": "Keine Gezeitendaten für diesen Standort verfügbar",
+    "rising": "Steigend",
+    "falling": "Fallend"
   },
   "table": {
     "period": "Periode",

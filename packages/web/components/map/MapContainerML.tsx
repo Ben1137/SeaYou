@@ -5,7 +5,7 @@ import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, fetchDepth, toTelHref, offlineNavigation } from '@seame/core';
 import { FollowModeController } from './FollowModeController';
 import type { MarinaDetails } from '@seame/core';
-import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock, BarChart2 } from 'lucide-react';
+import { MapPin, Wind, Layers, Waves, X, Clock, Activity, Droplets, ChevronDown, ChevronUp, Thermometer, CloudRain, Cloud, Navigation, Anchor, Compass, Lock, BarChart2, ArrowUp, ArrowDown } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
@@ -102,11 +102,14 @@ type AdvancedLayer =
   | 'CURRENT_HEATMAP';
 
 import type { SavedLocation } from '@seame/core';
+import type { TideData } from '@seame/core';
 
 interface MapContainerMLProps {
   currentLocation: Coordinate;
   tsunamiRisks?: TsunamiRisk[];
   favoriteLocations?: SavedLocation[];
+  /** Current-location tide data — passed from App so the sidebar can show the tidal trend. */
+  tides?: TideData;
 }
 
 const getWindColor = (speed: number) => {
@@ -341,7 +344,7 @@ function buildMarinaPopupHTML(port: PortFeature, details: MarinaDetails | null):
   </div>`;
 }
 
-export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLocations = [] }: MapContainerMLProps) {
+export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLocations = [], tides }: MapContainerMLProps) {
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -1368,6 +1371,15 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               <p className="text-[10px] text-white/40 uppercase tracking-wider">
                 {selectedPointDetail ? `${selectedPointDetail.lat.toFixed(4)}N, ${selectedPointDetail.lng.toFixed(4)}E` : t('map.loadingData')}
               </p>
+              {tides && (
+                <div
+                  className={`mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 ${tides.rising ? 'bg-teal-400/15 text-teal-400' : 'bg-amber-500/15 text-amber-500'}`}
+                  title={`${t('forecast.tideHeight')}: ${tides.currentHeight.toFixed(2)} m`}
+                >
+                  {tides.rising ? <ArrowUp size={10} className="shrink-0" /> : <ArrowDown size={10} className="shrink-0" />}
+                  {tides.currentHeight.toFixed(2)} m &mdash; {tides.rising ? t('forecast.rising') : t('forecast.falling')}
+                </div>
+              )}
             </div>
             <button onClick={() => setIsDetailSidebarOpen(false)} aria-label={t('common.close', 'Close')} className="p-1 hover:bg-white/10 rounded text-white/40 transition-colors"><X size={20}/></button>
           </div>

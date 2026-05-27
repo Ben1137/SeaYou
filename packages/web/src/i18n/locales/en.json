@@ -251,7 +251,9 @@
     "windSurferForecast": "Wind Surfer's Forecast",
     "sailorForecast": "Sailor's Forecast",
     "diverForecast": "Diver's Forecast",
-    "noTideData": "No tide data available for this location"
+    "noTideData": "No tide data available for this location",
+    "rising": "Rising",
+    "falling": "Falling"
   },
   "table": {
     "period": "Period",
