@@ -35,6 +35,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build @seame/core
+        # Must run before @seame/web — fresh CI checkout has no dist/
+        # and core/package.json exports point only to dist/index.js
+        run: pnpm --filter @seame/core build
+
       - name: Build @seame/web for GitHub Pages
         # VITE_PWA_BASE ensures scope/start_url/icons all use /SeaYou1.0/ prefix
         # so the PWA installs correctly from ben1137.github.io/SeaYou1.0/
