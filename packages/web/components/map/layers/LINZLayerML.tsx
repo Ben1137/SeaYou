@@ -10,6 +10,11 @@
  *
  * Attribution: Land Information New Zealand (LINZ), CC BY 4.0
  *
+ * Dark-mode legibility: NZMariner tiles have transparent backgrounds — black
+ * linework is invisible on SeaYou's dark basemap. A paper-coloured fill layer
+ * (linz-bg-layer) is inserted beneath the raster layer so chart lines render
+ * on a light backdrop. Both layers share the same opacity value.
+ *
  * Free tier — no paywall (open government data).
  */
 
@@ -23,10 +28,39 @@ export interface LINZLayerMLProps {
 }
 
 const SOURCE_ID = 'linz-nzmariner-source';
-const LAYER_ID = 'linz-nzmariner-layer';
+const LAYER_ID  = 'linz-nzmariner-layer';
+const BG_SOURCE_ID = 'linz-bg-source';
+const BG_LAYER_ID  = 'linz-bg-layer';
 
-// New Zealand bounding box — MapLibre won't request tiles outside this area
+// Paper backdrop colour — warm off-white mimicking traditional chart paper.
+const PAPER_COLOR = '#f4f1ea';
+
+// New Zealand bounding box — MapLibre won't request tiles outside this area.
 const NZ_BOUNDS: [number, number, number, number] = [165, -48, 178.6, -34];
+
+// GeoJSON polygon matching NZ_BOUNDS, used for the paper backdrop fill layer.
+const NZ_BBOX_GEOJSON: GeoJSON.FeatureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: {},
+      geometry: {
+        type: 'Polygon',
+        // [minLng, minLat] → [maxLng, minLat] → [maxLng, maxLat] → [minLng, maxLat] → close
+        coordinates: [
+          [
+            [165,   -48],
+            [178.6, -48],
+            [178.6, -34],
+            [165,   -34],
+            [165,   -48],
+          ],
+        ],
+      },
+    },
+  ],
+};
 
 const ATTRIBUTION =
   '&copy; <a href="https://www.linz.govt.nz" target="_blank" rel="noopener">LINZ</a> (CC BY 4.0)';
@@ -65,6 +99,28 @@ export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
         return;
       }
 
+      // ── 1. Paper backdrop (fill) — added FIRST so raster renders on top ──
+      if (!map.getSource(BG_SOURCE_ID)) {
+        map.addSource(BG_SOURCE_ID, {
+          type: 'geojson',
+          data: NZ_BBOX_GEOJSON,
+        });
+      }
+      if (!map.getLayer(BG_LAYER_ID)) {
+        map.addLayer({
+          id: BG_LAYER_ID,
+          type: 'fill',
+          source: BG_SOURCE_ID,
+          paint: {
+            'fill-color': PAPER_COLOR,
+            'fill-opacity': opacity,
+          },
+        });
+      } else {
+        map.setPaintProperty(BG_LAYER_ID, 'fill-opacity', opacity);
+      }
+
+      // ── 2. Chart raster — added AFTER backdrop so lines appear on top ──
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'raster',
@@ -76,9 +132,7 @@ export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
           attribution: ATTRIBUTION,
         });
       }
-
       if (!map.getLayer(LAYER_ID)) {
-        // No beforeId — chart marks must render above base-map symbols
         map.addLayer({
           id: LAYER_ID,
           type: 'raster',
@@ -96,8 +150,10 @@ export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
 
     const teardownLayer = () => {
       try {
-        if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
+        if (map.getLayer(LAYER_ID))  map.removeLayer(LAYER_ID);
         if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+        if (map.getLayer(BG_LAYER_ID))  map.removeLayer(BG_LAYER_ID);
+        if (map.getSource(BG_SOURCE_ID)) map.removeSource(BG_SOURCE_ID);
       } catch {
         // Map may be transitioning / disposed — safe to ignore
       }
@@ -125,14 +181,14 @@ export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, visible]);
 
+  // Update opacity on both layers in-place without recreating them
   useEffect(() => {
     if (!map || !visible || !addedRef.current) return;
     try {
-      if (map.getLayer(LAYER_ID)) {
-        map.setPaintProperty(LAYER_ID, 'raster-opacity', opacity);
-      }
+      if (map.getLayer(LAYER_ID))   map.setPaintProperty(LAYER_ID,   'raster-opacity', opacity);
+      if (map.getLayer(BG_LAYER_ID)) map.setPaintProperty(BG_LAYER_ID, 'fill-opacity',   opacity);
     } catch {
-      // Ignore
+      // Ignore — layers may be transitioning
     }
   }, [map, visible, opacity]);
 
