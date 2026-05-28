@@ -31,13 +31,16 @@ const NZ_BOUNDS: [number, number, number, number] = [165, -48, 178.6, -34];
 const ATTRIBUTION =
   '&copy; <a href="https://www.linz.govt.nz" target="_blank" rel="noopener">LINZ</a> (CC BY 4.0)';
 
+// Resolved at bundle time by Vite's static import.meta.env replacement.
+// Must be at module scope — inside a component function the substitution
+// can silently produce undefined in some Vite/HMR configurations.
+const TILE_URL =
+  `https://tiles-cdn.koordinates.com/services;key=${import.meta.env.VITE_LINZ_API_KEY}` +
+  `/tiles/v4/layer=50772/EPSG:3857/{z}/{x}/{y}.png`;
+
 export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
   const map = useMap();
   const addedRef = useRef(false);
-
-  const tileUrl =
-    `https://tiles-cdn.koordinates.com/services;key=${import.meta.env.VITE_LINZ_API_KEY}` +
-    `/tiles/v4/layer=50772/EPSG:3857/{z}/{x}/{y}.png`;
 
   useEffect(() => {
     if (!map) return;
@@ -46,7 +49,7 @@ export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'raster',
-          tiles: [tileUrl],
+          tiles: [TILE_URL],
           tileSize: 256,
           minzoom: 5,
           maxzoom: 18,

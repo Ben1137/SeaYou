@@ -80,19 +80,19 @@ export default defineConfig(({ mode }) => {
         start_url: base,
         icons: [
           {
-            src: `${base}pwa-192x192.png`,
+            src: `${base}pwa-192x192.svg`,
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/svg+xml'
           },
           {
-            src: `${base}pwa-512x512.png`,
+            src: `${base}pwa-512x512.svg`,
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/svg+xml'
           },
           {
-            src: `${base}pwa-512x512.png`,
+            src: `${base}pwa-512x512.svg`,
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/svg+xml',
             purpose: 'any maskable'
           }
         ]

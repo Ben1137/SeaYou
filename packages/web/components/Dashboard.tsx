@@ -704,7 +704,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           )}
         </div>
 
-        <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-0' : 'h-64'}`}>
+        <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-0 min-h-[256px]' : 'h-64'}`}>
           {/* Tide tab: show empty state when sea_level_height_msl has no data (inland locations) */}
           {activeGraph === 'tide' && !weatherData.tides ? (
             <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-white/30">
