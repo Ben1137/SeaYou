@@ -34,9 +34,19 @@ const ATTRIBUTION =
 // Resolved at bundle time by Vite's static import.meta.env replacement.
 // Must be at module scope — inside a component function the substitution
 // can silently produce undefined in some Vite/HMR configurations.
-const TILE_URL =
-  `https://tiles-cdn.koordinates.com/services;key=${import.meta.env.VITE_LINZ_API_KEY}` +
-  `/tiles/v4/layer=50772/EPSG:3857/{z}/{x}/{y}.png`;
+const LINZ_API_KEY = import.meta.env.VITE_LINZ_API_KEY;
+
+// True only when the key is a non-empty string that isn't the literal
+// "undefined" (which Vite produces when the env var is absent at build time).
+const LINZ_KEY_VALID =
+  typeof LINZ_API_KEY === 'string' &&
+  LINZ_API_KEY.length > 0 &&
+  LINZ_API_KEY !== 'undefined';
+
+const TILE_URL = LINZ_KEY_VALID
+  ? `https://tiles-cdn.koordinates.com/services;key=${LINZ_API_KEY}` +
+    `/tiles/v4/layer=50772/EPSG:3857/{z}/{x}/{y}.png`
+  : '';
 
 export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
   const map = useMap();
@@ -46,6 +56,15 @@ export function LINZLayerML({ visible, opacity = 0.85 }: LINZLayerMLProps) {
     if (!map) return;
 
     const setupLayer = () => {
+      if (!LINZ_KEY_VALID) {
+        console.warn(
+          '[LINZLayerML] VITE_LINZ_API_KEY is missing or invalid. ' +
+          'The New Zealand marine chart layer will be disabled. ' +
+          'Add the key to your .env file (local) or environment variables (production).'
+        );
+        return;
+      }
+
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'raster',
