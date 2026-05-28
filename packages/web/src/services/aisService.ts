@@ -139,9 +139,9 @@ class AISService {
    * spec — the two corners of the rectangle.
    */
   setBBox(bbox: [[number, number], [number, number]]) {
-    this.bbox = bbox;
-
-    // Guard: skip connection if viewport is too large for the relay cap.
+    // Guard BEFORE storing — if the viewport is too large we must not update
+    // this.bbox, otherwise a later scheduleReconnect() will fire connectViaRelay()
+    // with the oversized bbox and hit the server's 400 cap.
     const [[lat1, lon1], [lat2, lon2]] = bbox;
     const latSpan = Math.abs(lat1 - lat2);
     const lonSpan = Math.abs(lon1 - lon2);
@@ -149,6 +149,7 @@ class AISService {
       this.emit('zoomedOut', true);
       return;
     }
+    this.bbox = bbox;
     this.emit('zoomedOut', false);
 
     if (this.connected && this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -218,6 +219,17 @@ class AISService {
    */
   async connectViaRelay(): Promise<void> {
     if (!this.bbox) return;
+
+    // Defensive size check — this.bbox should never be oversized thanks to the
+    // setBBox guard, but scheduleReconnect() calls this directly so we double-check
+    // here to guarantee we never generate a URL the server will reject with 400.
+    const [[cLat1, cLon1], [cLat2, cLon2]] = this.bbox;
+    if (
+      Math.abs(cLat1 - cLat2) > AISService.MAX_BBOX_DEG ||
+      Math.abs(cLon1 - cLon2) > AISService.MAX_BBOX_DEG
+    ) {
+      return;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const supabaseUrl: string =

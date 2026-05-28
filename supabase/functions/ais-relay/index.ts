@@ -41,7 +41,10 @@ Deno.serve(async (req) => {
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
-  const apiKey = Deno.env.get('AISSTREAM_API_KEY');
+  // .trim() guards against a secret value accidentally set with leading/trailing
+  // whitespace (e.g. copy-paste from a dashboard). AISStream silently drops the
+  // upstream WebSocket with no close reason when the key is invalid.
+  const apiKey = Deno.env.get('AISSTREAM_API_KEY')?.trim();
   if (!apiKey) {
     return new Response('AIS not configured', { status: 503, headers: corsHeaders });
   }
