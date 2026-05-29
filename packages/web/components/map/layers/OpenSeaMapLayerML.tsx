@@ -20,16 +20,15 @@
  *   - Source/layer are torn down on unmount AND when `visible` becomes false
  *     so the browser stops fetching tiles entirely when toggled off.
  *
- * Dark-mode legibility: OpenSeaMap seamark tiles have transparent backgrounds
- * with dark-outlined symbols.  On SeaYou's dark basemap the symbols are nearly
- * invisible and a MapLibre GL JS 5.0 rendering artifact causes the raster layer
- * to initially appear as a solid-black rectangle while tiles are loading.
- * A global paper-coloured fill layer (osm-bg-layer) is inserted beneath the
- * raster layer at low opacity so:
- *   a) The black loading-state artifact is masked.
- *   b) Seamark symbols render against a slightly lighter backdrop and are legible.
- * raster-fade-duration is set to 0 to additionally suppress the black fade-in
- * that MapLibre uses when tiles are first composited.
+ * Dark-mode legibility: OpenSeaMap seamark tiles are sparse transparent overlays
+ * (404 where no symbol exists — expected). Symbol outlines are dark, so we lift
+ * them against the dark basemap using raster-brightness-min and raster-contrast
+ * paint properties. This affects only the (mostly transparent) seamark pixels and
+ * does NOT add any fill over the ocean.
+ *
+ * raster-fade-duration is set to 0 to suppress the black compositing artifact in
+ * MapLibre GL JS 5.0 where newly-added raster layers briefly appear as a solid
+ * black rectangle before tiles arrive.
  *
  * Phase 8 — Pro Navigation Engine (ENC overlay)
  */
@@ -47,46 +46,12 @@ export interface OpenSeaMapLayerMLProps {
 
 // ─── Constants ───
 
-const SOURCE_ID    = 'openseamap-source';
-const LAYER_ID     = 'openseamap-layer';
-const BG_SOURCE_ID = 'osm-bg-source';
-const BG_LAYER_ID  = 'osm-bg-layer';
-
-const TILE_URL = 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png';
+const SOURCE_ID = 'openseamap-source';
+const LAYER_ID  = 'openseamap-layer';
+const TILE_URL  = 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png';
 const ATTRIBUTION =
   '&copy; <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> contributors';
 const DEFAULT_OPACITY = 0.85;
-
-// Warm off-white that mimics traditional nautical chart paper.
-// Used at low opacity so it only slightly brightens the ocean without
-// destroying the dark-mode aesthetic.
-const PAPER_COLOR = '#f4f1ea';
-// Fraction of PAPER_COLOR blended over the basemap — keep this low so dark
-// mode is preserved while seamark symbols remain legible.
-const BG_OPACITY = 0.20;
-
-// GeoJSON covering the entire world — used as the backdrop fill geometry.
-const WORLD_BBOX_GEOJSON: GeoJSON.FeatureCollection = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      properties: {},
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [-180, -90],
-            [ 180, -90],
-            [ 180,  90],
-            [-180,  90],
-            [-180, -90],
-          ],
-        ],
-      },
-    },
-  ],
-};
 
 // ─── Component ───
 
@@ -102,28 +67,6 @@ export function OpenSeaMapLayerML({
     if (!map) return;
 
     const setupLayer = () => {
-      // ── 1. Paper backdrop (fill) — added FIRST so raster renders on top ──
-      if (!map.getSource(BG_SOURCE_ID)) {
-        map.addSource(BG_SOURCE_ID, {
-          type: 'geojson',
-          data: WORLD_BBOX_GEOJSON,
-        });
-      }
-      if (!map.getLayer(BG_LAYER_ID)) {
-        map.addLayer({
-          id: BG_LAYER_ID,
-          type: 'fill',
-          source: BG_SOURCE_ID,
-          paint: {
-            'fill-color': PAPER_COLOR,
-            'fill-opacity': BG_OPACITY,
-          },
-        });
-      } else {
-        map.setLayoutProperty(BG_LAYER_ID, 'visibility', 'visible');
-      }
-
-      // ── 2. Seamark raster — added AFTER backdrop so symbols appear on top ──
       if (!map.getSource(SOURCE_ID)) {
         map.addSource(SOURCE_ID, {
           type: 'raster',
@@ -142,10 +85,14 @@ export function OpenSeaMapLayerML({
           source: SOURCE_ID,
           paint: {
             'raster-opacity': opacity,
-            // Suppress the black-rectangle artifact in MapLibre GL JS 5.0:
-            // without this, the raster layer starts fully transparent (black
-            // in WebGL) and fades in, making tiles appear as a solid-black
-            // overlay on slow CDN responses.
+            // Lift dark seamark symbol outlines against the dark MapTiler basemap.
+            // Affects only the (mostly transparent) seamark pixels — does NOT
+            // add any fill or color to empty water tiles.
+            'raster-brightness-min': 0.15,
+            'raster-contrast': 0.3,
+            // Suppress the MapLibre GL JS 5.0 black-rectangle loading artifact:
+            // without this the layer fades in from a WebGL-transparent (black)
+            // state, making it briefly appear as a solid dark rectangle.
             'raster-fade-duration': 0,
           },
           layout: {
@@ -163,11 +110,9 @@ export function OpenSeaMapLayerML({
 
     const teardownLayer = () => {
       try {
-        if (map.getLayer(LAYER_ID))     map.removeLayer(LAYER_ID);
-        if (map.getSource(SOURCE_ID))   map.removeSource(SOURCE_ID);
-        if (map.getLayer(BG_LAYER_ID))  map.removeLayer(BG_LAYER_ID);
-        if (map.getSource(BG_SOURCE_ID)) map.removeSource(BG_SOURCE_ID);
-      } catch (e) {
+        if (map.getLayer(LAYER_ID))   map.removeLayer(LAYER_ID);
+        if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+      } catch {
         // Map may be in transition / disposed — safe to ignore
       }
       addedRef.current = false;
