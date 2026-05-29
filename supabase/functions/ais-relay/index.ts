@@ -153,14 +153,27 @@ Deno.serve(async (req) => {
           `[ais-relay] upstream WS OPEN` +
           ` | ts=${new Date().toISOString()}` +
           ` | bbox=[${lat1},${lon1}]->[${lat2},${lon2}]` +
-          ` | readyState=${ws.readyState}`,
+          ` | readyState=${ws.readyState}` +
+          ` | keyLen=${apiKey.length}` +
+          ` | keyPrefix=${apiKey.slice(0, 6)}…`,
         );
-        ws.send(JSON.stringify({
+
+        // Build payload separately so we can log the exact JSON string
+        // (with API key masked) before sending — this is the primary diagnostic
+        // for AisStream rejections that show as silent EOF / code 1006.
+        const subscriptionPayload = {
           APIKey: apiKey,
           BoundingBoxes: [[[lat1, lon1], [lat2, lon2]]],
           FilterMessageTypes: ['PositionReport'],
-        }));
-        console.log('[ais-relay] subscription payload sent to AISStream');
+        };
+        const payloadJson = JSON.stringify(subscriptionPayload);
+        const maskedPayload = payloadJson.replace(
+          /"APIKey":"[^"]*"/,
+          `"APIKey":"${apiKey.slice(0, 6)}…[masked]"`,
+        );
+        console.log(`[ais-relay] sending subscription payload: ${maskedPayload}`);
+        ws.send(payloadJson);
+        console.log(`[ais-relay] subscription payload sent — byteLength=${new TextEncoder().encode(payloadJson).length}`);
       };
 
       ws.onmessage = (ev) => {
