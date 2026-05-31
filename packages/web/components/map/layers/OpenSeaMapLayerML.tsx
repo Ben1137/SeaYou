@@ -20,28 +20,10 @@
  *   - Source/layer are torn down on unmount AND when `visible` becomes false
  *     so the browser stops fetching tiles entirely when toggled off.
  *
- * Dark-mode legibility: OpenSeaMap seamark tiles are sparse transparent overlays
- * (404 where no symbol exists — expected) baked for a LIGHT background — dark ink
- * symbols on transparent PNG. On the near-black MapTiler ocean they are invisible.
- *
- * MapLibre GL JS 5.x has no raster-color/per-pixel remap (that is a Mapbox-
- * proprietary extension not ported to MapLibre). The raster shader applies:
- *   output = mix(vec3(brightness_min), vec3(brightness_max), rgb_channel)
- * Setting brightness_min=0.60 maps near-black ink pixels (value ~0) to
- * medium grey (~0.60) — clearly visible against the dark ocean. Saturated buoy
- * colors (red/green lateral marks, yellow special marks) retain their IALA hue
- * identity and just become lighter, which is correct for dark-mode display.
- * Full inversion (brightness_min=1, brightness_max=0) would flip red→cyan and
- * break the IALA color system — so it is NOT used here.
- *
  * raster-fade-duration is set to 0 to suppress the black compositing artifact in
  * MapLibre GL JS 5.0 where newly-added raster layers briefly appear as a solid
- * black rectangle before tiles arrive.
- *
- * Long-term note: the raster overlay will always fight a dark base because tiles
- * are baked for a light background. The robust fix is vector seamark tiles +
- * sprites styled for dark mode (as used by prozessor13/seamap). Consider as a
- * future epic if legibility remains insufficient.
+ * black rectangle before tiles arrive. No other raster paint adjustments are
+ * applied — the tiles are rendered as pure transparent overlays.
  *
  * Phase 8 — Pro Navigation Engine (ENC overlay)
  */
@@ -98,20 +80,6 @@ export function OpenSeaMapLayerML({
           source: SOURCE_ID,
           paint: {
             'raster-opacity': opacity,
-            // Lift dark seamark ink to a visible grey against the near-black ocean.
-            // Shader: output = mix(vec3(brightness_min), vec3(brightness_max), rgb)
-            // → input black (ink, ~0) maps to 0.60 (visible medium grey)
-            // → input white (paper halo, ~1) maps to 1.0 (bright highlight)
-            // Saturated IALA colors (red/green/yellow marks) keep their hue and
-            // just become lighter. NOT using inversion (min=1,max=0) which would
-            // flip red→cyan and break the IALA color system.
-            'raster-brightness-min': 0.60,
-            'raster-brightness-max': 1.0,
-            // Boost contrast to sharpen symbol edges on the lifted-brightness canvas.
-            'raster-contrast': 0.2,
-            // Suppress the MapLibre GL JS 5.0 black-rectangle loading artifact:
-            // without this the layer fades in from a WebGL-transparent (black)
-            // state, making it briefly appear as a solid dark rectangle.
             'raster-fade-duration': 0,
           },
           layout: {
