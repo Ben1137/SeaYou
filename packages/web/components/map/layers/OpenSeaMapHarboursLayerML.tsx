@@ -196,10 +196,8 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
       LOG(`fetching bbox [${b.getSouth().toFixed(2)},${b.getWest().toFixed(2)},${b.getNorth().toFixed(2)},${b.getEast().toFixed(2)}]`);
 
-      fetch(OVERPASS_ENDPOINT, {
-        method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      fetch(`${OVERPASS_ENDPOINT}?data=${encodeURIComponent(query)}`, {
+        headers: { 'Accept': 'application/json' },
         signal: controller.signal,
       })
         .then((r) => r.json())

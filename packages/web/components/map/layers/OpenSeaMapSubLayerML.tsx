@@ -73,7 +73,7 @@ export function OpenSeaMapSubLayerML({
           type: 'raster',
           source: sourceId,
           paint: {
-            'raster-opacity': opacity * 0.24,
+            'raster-opacity': 0.85,
             'raster-fade-duration': 0,
             'raster-brightness-min': 1,
             'raster-brightness-max': 1,
@@ -82,7 +82,7 @@ export function OpenSeaMapSubLayerML({
         });
       } else {
         map.setLayoutProperty(backingLayerId, 'visibility', 'visible');
-        map.setPaintProperty(backingLayerId, 'raster-opacity', opacity * 0.24);
+        map.setPaintProperty(backingLayerId, 'raster-opacity', 0.85);
       }
 
       // MAIN: native PNG colours, zero adjustments
@@ -149,7 +149,7 @@ export function OpenSeaMapSubLayerML({
       if (map.getLayer(layerId))
         map.setPaintProperty(layerId, 'raster-opacity', opacity);
       if (map.getLayer(backingLayerId))
-        map.setPaintProperty(backingLayerId, 'raster-opacity', opacity * 0.24);
+        map.setPaintProperty(backingLayerId, 'raster-opacity', 0.85);
     } catch { /* transitioning */ }
   }, [map, visible, opacity, layerId, backingLayerId]);
 
