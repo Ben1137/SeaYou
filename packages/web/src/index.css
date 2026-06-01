@@ -857,3 +857,33 @@ input[type=range]::-webkit-slider-runnable-track {
   color: #1f2937;
   border-color: rgba(15, 23, 42, 0.12);
 }
+
+/* ── OpenSeaMap Harbour Popup ─────────────────────────────────────────────── */
+.seayou-harbour-popup-container .maplibregl-popup-content {
+  background: rgba(10, 20, 40, 0.92);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  border-radius: 10px;
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+.seayou-harbour-popup-container .maplibregl-popup-tip {
+  border-top-color: rgba(10, 20, 40, 0.92);
+}
+.seayou-harbour-popup {
+  font-family: system-ui, -apple-system, sans-serif;
+  min-width: 260px;
+  max-width: 320px;
+}
+.seayou-harbour-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin-bottom: 2px;
+}
+.seayou-harbour-coords {
+  font-size: 10px;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
