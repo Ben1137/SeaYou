@@ -23,11 +23,23 @@
  * Globe projection fix:
  *   The MapTiler Dataviz Dark style JSON declares "projection": {"type": "globe"}.
  *   OpenSeaMap tiles are flat Web Mercator XYZ — re-projecting them onto a
- *   sphere causes per-tile positional drift that worsens with zoom. While the
- *   ENC layer is active, we force the map to mercator projection so tile
- *   coordinates align exactly with the basemap. A style.load listener re-applies
- *   mercator if a style reload ever reverts the setting. On teardown, globe is
- *   restored so GPGPU particle layers (wind/current) continue draping correctly.
+ *   sphere causes per-tile positional drift that worsens with zoom.
+ *
+ *   CRITICAL BUG THAT WAS FIXED HERE:
+ *   Previously this component had two separate useEffect hooks sharing [map, visible]
+ *   deps — one for setProjection, one for addSource/addLayer. React runs them in
+ *   declaration order. setProjection() calls tileManagers[key].reload() on every
+ *   basemap source, putting tiles into 'reloading' state. This makes isStyleLoaded()
+ *   return false (style.loaded() iterates tileManagers and returns false for any
+ *   tile in 'reloading' state). The layer lifecycle effect then deferred setupLayer()
+ *   to a style.load listener that NEVER fires (style.load only fires on full style
+ *   JSON reload, never after setProjection). Silent failure: source/layers never added.
+ *
+ *   Fix: single useEffect merges both operations. setProjection() is called first
+ *   (synchronous), then setupLayer() immediately after — no isStyleLoaded() check
+ *   needed because setProjection() itself only works when the style IS loaded.
+ *   Uses !!map.getStyle() for the fallback gate instead of isStyleLoaded(), because
+ *   getStyle() returns the parsed style object regardless of tile reload state.
  *
  * Dark mode legibility — dual-layer technique:
  *   OpenSeaMap tiles use black text and colored symbols on a transparent
@@ -63,13 +75,16 @@ export interface OpenSeaMapLayerMLProps {
 
 // ─── Constants ───
 
-const SOURCE_ID      = 'openseamap-source';
-const LAYER_ID       = 'openseamap-layer';
+const SOURCE_ID        = 'openseamap-source';
+const LAYER_ID         = 'openseamap-layer';
 const BACKING_LAYER_ID = 'openseamap-backing';
-const TILE_URL  = 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png';
-const ATTRIBUTION =
+const TILE_URL         = 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png';
+const ATTRIBUTION      =
   '&copy; <a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a> contributors';
-const DEFAULT_OPACITY = 0.85;
+const DEFAULT_OPACITY  = 0.85;
+
+const LOG = (...args: unknown[]) =>
+  console.log('[OpenSeaMap]', ...args);
 
 // ─── Component ───
 
@@ -80,46 +95,38 @@ export function OpenSeaMapLayerML({
   const map = useMap();
   const addedRef = useRef(false);
 
-  // ── Projection toggle ──────────────────────────────────────────────────────
-  // The MapTiler Dataviz Dark style declares "projection": {"type": "globe"}.
-  // We must override this to mercator while ENC is active so XYZ tiles align.
-  // The style.load listener re-applies mercator if a style reload reverts it.
-  useEffect(() => {
-    if (!map || !visible) return;
-
-    const forceProjection = () => {
-      map.setProjection({ type: 'mercator' });
-    };
-
-    forceProjection();
-    map.on('style.load', forceProjection);
-
-    return () => {
-      map.off('style.load', forceProjection);
-      // Restore globe — the MapTiler style's native projection
-      map.setProjection({ type: 'globe' });
-    };
-  }, [map, visible]);
-
-  // ── Layer lifecycle ────────────────────────────────────────────────────────
-  // Add / remove the layer when `visible` changes
+  // ── Unified lifecycle: projection + layer setup in one effect ─────────────
+  //
+  // WHY SINGLE EFFECT: setProjection() calls tileManagers.reload() which
+  // transitions basemap tiles to 'reloading', making isStyleLoaded() return
+  // false. If projection and layer setup are in separate effects, the layer
+  // effect sees isStyleLoaded()=false and defers to style.load — which never
+  // fires after setProjection. Merging into one effect eliminates this race.
   useEffect(() => {
     if (!map) return;
 
+    LOG('effect run — visible:', visible, 'styleReady:', !!map.getStyle());
+
     const setupLayer = () => {
+      LOG('setupLayer() called — addedRef:', addedRef.current);
+
       if (!map.getSource(SOURCE_ID)) {
+        LOG('addSource', SOURCE_ID);
         map.addSource(SOURCE_ID, {
           type: 'raster',
           tiles: [TILE_URL],
           tileSize: 256,
           attribution: ATTRIBUTION,
         });
+      } else {
+        LOG('source already exists, skipping addSource');
       }
 
       // BACKING: forces all inked pixels → white at low opacity.
       // Gives black text a soft white glow on the dark basemap.
       // Same cached source — no extra HTTP requests.
       if (!map.getLayer(BACKING_LAYER_ID)) {
+        LOG('addLayer', BACKING_LAYER_ID);
         map.addLayer({
           id: BACKING_LAYER_ID,
           type: 'raster',
@@ -140,6 +147,7 @@ export function OpenSeaMapLayerML({
       // MAIN: native PNG colors, zero raster-* adjustments.
       // This is the authoritative render — red/green markers are exact.
       if (!map.getLayer(LAYER_ID)) {
+        LOG('addLayer', LAYER_ID);
         // NOTE: intentionally no `beforeId` — navigational marks must render
         // ABOVE everything else (including base-map symbol layers).
         map.addLayer({
@@ -158,9 +166,11 @@ export function OpenSeaMapLayerML({
       }
 
       addedRef.current = true;
+      LOG('setupLayer() complete — source:', !!map.getSource(SOURCE_ID), 'layer:', !!map.getLayer(LAYER_ID));
     };
 
     const teardownLayer = () => {
+      LOG('teardownLayer()');
       try {
         if (map.getLayer(BACKING_LAYER_ID)) map.removeLayer(BACKING_LAYER_ID);
         if (map.getLayer(LAYER_ID))         map.removeLayer(LAYER_ID);
@@ -171,29 +181,51 @@ export function OpenSeaMapLayerML({
       addedRef.current = false;
     };
 
+    // Called after any style.load — re-applies projection and re-adds layers.
+    // Needed if a future setStyle() reloads the JSON (which declares globe).
+    const onStyleLoad = () => {
+      LOG('style.load fired while visible — re-applying projection + layers');
+      if (visible) {
+        map.setProjection({ type: 'mercator' });
+        setupLayer();
+      }
+    };
+
     if (visible) {
-      // Style may not be loaded yet on first mount
-      if (map.isStyleLoaded()) {
+      if (map.getStyle()) {
+        // Style JSON is parsed — safe to setProjection + addSource + addLayer
+        // immediately, regardless of tile reload state (isStyleLoaded() may be
+        // false here due to setProjection's tileManagers.reload() side effect,
+        // but that does NOT block addSource/addLayer).
+        LOG('style already parsed — setting projection + calling setupLayer immediately');
+        map.setProjection({ type: 'mercator' });
         setupLayer();
       } else {
-        const onLoad = () => {
-          setupLayer();
-          map.off('style.load', onLoad);
-        };
-        map.on('style.load', onLoad);
+        // Style JSON not yet parsed (early mount) — wait for it
+        LOG('style not yet parsed — deferring to style.load');
+        map.on('style.load', onStyleLoad);
         return () => {
-          map.off('style.load', onLoad);
+          LOG('cleanup: removing style.load listener (pre-load case)');
+          map.off('style.load', onStyleLoad);
         };
       }
+
+      // Listen for future style reloads (e.g. setStyle() call) while ENC is on
+      map.on('style.load', onStyleLoad);
+
+      return () => {
+        LOG('cleanup: visible was true — removing listener, restoring globe');
+        map.off('style.load', onStyleLoad);
+        // Restore the style's native projection (globe) on teardown
+        try { map.setProjection({ type: 'globe' }); } catch { /* map disposed */ }
+        if (addedRef.current) teardownLayer();
+      };
     } else if (addedRef.current) {
       teardownLayer();
     }
 
-    // Cleanup on unmount: always tear down so the browser stops fetching tiles
     return () => {
-      if (addedRef.current) {
-        teardownLayer();
-      }
+      if (addedRef.current) teardownLayer();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, visible]);
