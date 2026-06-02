@@ -1,17 +1,16 @@
 /**
  * OpenSeaMapSubLayerML — Generic raster sub-layer for OpenSeaMap tile overlays
  *
- * A parameterized version of the OpenSeaMapLayerML dual-layer pattern for
- * additional OpenSeaMap tile services. Accepts a tile URL, source/layer IDs,
- * visibility, and opacity — handles the rest identically to the main ENC layer:
+ * A parameterised wrapper for the monochrome OpenSeaMap tile services
+ * (Marine Profile, Compass Rose, Depth Contours). All three services produce
+ * black ink on a transparent PNG background. On a dark basemap the black lines
+ * are invisible, so we apply raster-brightness-min/max = 1 to invert them to
+ * white while keeping the transparent areas transparent.
  *
- *   1. BACKING layer — brightness forced to max at 20% opacity (white glow on
- *      black ink for dark-mode legibility, transparent pixels stay transparent)
- *   2. MAIN layer — zero raster-* adjustments (native PNG colours preserved)
- *
- * This component does NOT manage projection. It is always mounted as a child
- * of the ENC toggle which already forced mercator via OpenSeaMapLayerML.
- * If visible independently of ENC, the caller is responsible for projection.
+ * A single layer is all that is needed — no "white backing + black main" trick.
+ * That dual-layer pattern only helps when tiles contain coloured symbols (red/
+ * green buoys etc.). For purely monochrome tiles it causes the black main layer
+ * to perfectly occlude the white backing layer, leaving invisible black lines.
  *
  * Supported tile layers:
  *   Marine Profile  https://tiles.openseamap.org/marine_profile/{z}/{x}/{y}.png
@@ -32,7 +31,6 @@ export interface OpenSeaMapSubLayerMLProps {
   tileUrl: string;
   sourceId: string;
   layerId: string;
-  backingLayerId: string;
   attribution?: string;
   tileSize?: 256 | 512;
 }
@@ -45,7 +43,6 @@ export function OpenSeaMapSubLayerML({
   tileUrl,
   sourceId,
   layerId,
-  backingLayerId,
   attribution,
   tileSize = 256,
 }: OpenSeaMapSubLayerMLProps) {
@@ -66,26 +63,8 @@ export function OpenSeaMapSubLayerML({
         });
       }
 
-      // BACKING: white glow for dark-mode text legibility
-      if (!map.getLayer(backingLayerId)) {
-        map.addLayer({
-          id: backingLayerId,
-          type: 'raster',
-          source: sourceId,
-          paint: {
-            'raster-opacity': 0.85,
-            'raster-fade-duration': 0,
-            'raster-brightness-min': 1,
-            'raster-brightness-max': 1,
-          },
-          layout: { visibility: 'visible' },
-        });
-      } else {
-        map.setLayoutProperty(backingLayerId, 'visibility', 'visible');
-        map.setPaintProperty(backingLayerId, 'raster-opacity', 0.85);
-      }
-
-      // MAIN: native PNG colours, zero adjustments
+      // Single layer — brightness forced to 1 turns black ink into white lines
+      // while the transparent background remains fully transparent.
       if (!map.getLayer(layerId)) {
         map.addLayer({
           id: layerId,
@@ -94,6 +73,8 @@ export function OpenSeaMapSubLayerML({
           paint: {
             'raster-opacity': opacity,
             'raster-fade-duration': 0,
+            'raster-brightness-min': 1,
+            'raster-brightness-max': 1,
           },
           layout: { visibility: 'visible' },
         });
@@ -107,9 +88,8 @@ export function OpenSeaMapSubLayerML({
 
     const teardownLayer = () => {
       try {
-        if (map.getLayer(backingLayerId)) map.removeLayer(backingLayerId);
-        if (map.getLayer(layerId))        map.removeLayer(layerId);
-        if (map.getSource(sourceId))      map.removeSource(sourceId);
+        if (map.getLayer(layerId))   map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
       } catch {
         // Map disposed or in transition
       }
@@ -148,10 +128,8 @@ export function OpenSeaMapSubLayerML({
     try {
       if (map.getLayer(layerId))
         map.setPaintProperty(layerId, 'raster-opacity', opacity);
-      if (map.getLayer(backingLayerId))
-        map.setPaintProperty(backingLayerId, 'raster-opacity', 0.85);
     } catch { /* transitioning */ }
-  }, [map, visible, opacity, layerId, backingLayerId]);
+  }, [map, visible, opacity, layerId]);
 
   return null;
 }

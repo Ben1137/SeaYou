@@ -58,7 +58,7 @@ function escapeHtml(s: string): string {
 function buildOverpassQuery(s: number, w: number, n: number, e: number): string {
   const bbox = `${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)}`;
   return (
-    `[out:json][timeout:15][maxsize:2000000];` +
+    `[out:json][timeout:15];` +
     `(` +
     `node["seamark:type"="harbour"]["name"](${bbox});` +
     `node["seamark:type"="port"]["name"](${bbox});` +
@@ -196,8 +196,13 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
       LOG(`fetching bbox [${b.getSouth().toFixed(2)},${b.getWest().toFixed(2)},${b.getNorth().toFixed(2)},${b.getEast().toFixed(2)}]`);
 
-      fetch(`${OVERPASS_ENDPOINT}?data=${encodeURIComponent(query)}`, {
-        headers: { 'Accept': 'application/json' },
+      fetch(OVERPASS_ENDPOINT, {
+        method: 'POST',
+        body: `data=${encodeURIComponent(query)}`,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         signal: controller.signal,
       })
         .then((r) => r.json())

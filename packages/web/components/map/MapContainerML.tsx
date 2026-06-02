@@ -1752,7 +1752,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         tileUrl="https://tiles.openseamap.org/marine_profile/{z}/{x}/{y}.png"
         sourceId="osm-marine-profile-source"
         layerId="osm-marine-profile-layer"
-        backingLayerId="osm-marine-profile-backing"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
       />
       <OpenSeaMapSubLayerML
@@ -1760,7 +1759,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         tileUrl="https://tiles.openseamap.org/compass/{z}/{x}/{y}.png"
         sourceId="osm-compass-source"
         layerId="osm-compass-layer"
-        backingLayerId="osm-compass-backing"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
       />
       <OpenSeaMapSubLayerML
@@ -1768,7 +1766,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         tileUrl="https://tiles.openseamap.org/depth/{z}/{x}/{y}.png"
         sourceId="osm-depth-source"
         layerId="osm-depth-layer"
-        backingLayerId="osm-depth-backing"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
       />
 
