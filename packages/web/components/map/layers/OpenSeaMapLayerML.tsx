@@ -47,6 +47,14 @@
  *   1. BACKING layer (below) — brightness max at 20% opacity → white glow on text
  *   2. MAIN layer (above) — zero adjustments → native PNG colours exact
  *
+ * Dynamic water tint:
+ *   OpenSeaMap tiles were designed for light/white chart backgrounds. On the
+ *   near-black Dataviz Dark ocean, dark blue depth contours and black buoy
+ *   marks are invisible. When ENC is enabled we dynamically tint all basemap
+ *   water fill layers to a mid-tone nautical blue (#1a3a5c) so chart symbols
+ *   achieve the contrast they were designed for. On disable, we restore the
+ *   original colours. Pattern mirrors the land-contrast fix in MapContainerML.
+ *
  * Phase 8 — Pro Navigation Engine (ENC overlay)
  */
 
@@ -74,6 +82,12 @@ const DEFAULT_OPACITY  = 0.85;
 /** Zoom level below which globe projection is used (drift imperceptible). */
 const GLOBE_TO_MERCATOR_ZOOM = 7;
 
+/**
+ * Nautical chart blue — mid-tone so dark-blue depth contours and black ink
+ * both read clearly against it, matching Admiralty Chart paper convention.
+ */
+const NAUTICAL_WATER_COLOR = '#1a3a5c';
+
 const LOG = (...args: unknown[]) => console.log('[OpenSeaMap]', ...args);
 
 // ─── Component ───
@@ -84,6 +98,10 @@ export function OpenSeaMapLayerML({
 }: OpenSeaMapLayerMLProps) {
   const map = useMap();
   const addedRef = useRef(false);
+
+  // Tracks which water fill-layers we tinted so we can restore them on teardown.
+  const waterLayerIdsRef    = useRef<string[]>([]);
+  const waterOrigColorsRef  = useRef<Map<string, unknown>>(new Map());
 
   // ── Unified lifecycle + zoom-based projection toggle ──────────────────────
   //
@@ -108,6 +126,42 @@ export function OpenSeaMapLayerML({
       LOG('applyProjection →', proj, '(zoom:', map.getZoom().toFixed(1), ')');
       try { map.setProjection({ type: proj }); } catch { /* map disposed */ }
     };
+
+    // ── Water tint helpers ─────────────────────────────────────────────────
+
+    const applyWaterTint = () => {
+      const ids: string[] = [];
+      const origColors = new Map<string, unknown>();
+      try {
+        for (const layer of (map.getStyle()?.layers ?? [])) {
+          const srcLayer = (layer as { 'source-layer'?: string })['source-layer'];
+          if (layer.type === 'fill' && srcLayer === 'water') {
+            const orig = map.getPaintProperty(layer.id, 'fill-color');
+            origColors.set(layer.id, orig);
+            map.setPaintProperty(layer.id, 'fill-color', NAUTICAL_WATER_COLOR);
+            ids.push(layer.id);
+          }
+        }
+      } catch { /* non-critical — style may be mid-transition */ }
+      waterLayerIdsRef.current   = ids;
+      waterOrigColorsRef.current = origColors;
+      if (ids.length > 0) LOG(`tinted ${ids.length} water layer(s) to ${NAUTICAL_WATER_COLOR}`);
+    };
+
+    const restoreWater = () => {
+      try {
+        for (const id of waterLayerIdsRef.current) {
+          const orig = waterOrigColorsRef.current.get(id);
+          if (map.getLayer(id) && orig !== undefined) {
+            map.setPaintProperty(id, 'fill-color', orig);
+          }
+        }
+      } catch { /* map disposed */ }
+      waterLayerIdsRef.current   = [];
+      waterOrigColorsRef.current = new Map();
+    };
+
+    // ── Layer add/remove ────────────────────────────────────────────────────
 
     const setupLayer = () => {
       LOG('setupLayer() — addedRef:', addedRef.current);
@@ -161,12 +215,17 @@ export function OpenSeaMapLayerML({
         map.setPaintProperty(LAYER_ID, 'raster-opacity', opacity);
       }
 
+      // Tint the basemap ocean to nautical blue so chart symbols are readable.
+      applyWaterTint();
+
       addedRef.current = true;
       LOG('setupLayer() complete — source:', !!map.getSource(SOURCE_ID), 'layer:', !!map.getLayer(LAYER_ID));
     };
 
     const teardownLayer = () => {
       LOG('teardownLayer()');
+      // Restore water colours before removing layers.
+      restoreWater();
       try {
         if (map.getLayer(BACKING_LAYER_ID)) map.removeLayer(BACKING_LAYER_ID);
         if (map.getLayer(LAYER_ID))         map.removeLayer(LAYER_ID);
@@ -208,7 +267,7 @@ export function OpenSeaMapLayerML({
       map.on('style.load', onStyleLoad);
 
       return () => {
-        LOG('cleanup — removing listeners, restoring globe');
+        LOG('cleanup — removing listeners, restoring globe + water');
         map.off('zoom', applyProjection);
         map.off('style.load', onStyleLoad);
         try { map.setProjection({ type: 'globe' }); } catch { /* map disposed */ }

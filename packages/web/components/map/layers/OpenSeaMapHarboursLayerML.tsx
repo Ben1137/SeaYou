@@ -200,7 +200,6 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
         method: 'POST',
         body: `data=${encodeURIComponent(query)}`,
         headers: {
-          'Accept': 'application/json',
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         signal: controller.signal,
