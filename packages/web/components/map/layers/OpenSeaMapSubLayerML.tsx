@@ -3,14 +3,16 @@
  *
  * A parameterised wrapper for the monochrome OpenSeaMap tile services
  * (Marine Profile, Compass Rose, Depth Contours). All three services produce
- * black ink on a transparent PNG background. On a dark basemap the black lines
- * are invisible, so we apply raster-brightness-min/max = 1 to invert them to
- * white while keeping the transparent areas transparent.
+ * black ink on a transparent PNG background.
  *
- * A single layer is all that is needed — no "white backing + black main" trick.
- * That dual-layer pattern only helps when tiles contain coloured symbols (red/
- * green buoys etc.). For purely monochrome tiles it causes the black main layer
- * to perfectly occlude the white backing layer, leaving invisible black lines.
+ * Layers render natively (no raster-brightness adjustments). Black/dark-blue ink
+ * is readable because OpenSeaMapLayerML tints the basemap ocean to `#1a3a5c`
+ * nautical blue while ENC is active — matching the light chart-paper background
+ * these symbols were designed for.
+ *
+ * Note: raster-brightness-min/max = 1 must NOT be used on transparent PNGs —
+ * MapLibre's GL shader forces all channels including alpha to max, compositing
+ * the entire tile to transparent and making the layer invisible.
  *
  * Supported tile layers:
  *   Marine Profile  https://tiles.openseamap.org/marine_profile/{z}/{x}/{y}.png
@@ -63,8 +65,6 @@ export function OpenSeaMapSubLayerML({
         });
       }
 
-      // Single layer — brightness forced to 1 turns black ink into white lines
-      // while the transparent background remains fully transparent.
       if (!map.getLayer(layerId)) {
         map.addLayer({
           id: layerId,
@@ -73,8 +73,6 @@ export function OpenSeaMapSubLayerML({
           paint: {
             'raster-opacity': opacity,
             'raster-fade-duration': 0,
-            'raster-brightness-min': 1,
-            'raster-brightness-max': 1,
           },
           layout: { visibility: 'visible' },
         });

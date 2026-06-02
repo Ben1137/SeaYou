@@ -198,10 +198,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
       fetch(OVERPASS_ENDPOINT, {
         method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        body: query,
         signal: controller.signal,
       })
         .then((r) => r.json())
