@@ -41,7 +41,7 @@ const MIN_ZOOM = 8;
 /** Debounce delay after moveend/zoomend before firing the Overpass query. */
 const DEBOUNCE_MS = 400;
 
-const OVERPASS_ENDPOINT = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_ENDPOINT = 'https://overpass.private.coffee/api/interpreter';
 
 const LOG = (...args: unknown[]) => console.log('[OSM Harbours]', ...args);
 
@@ -198,7 +198,10 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
       fetch(OVERPASS_ENDPOINT, {
         method: 'POST',
-        body: query,
+        body: `data=${encodeURIComponent(query)}`,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
         signal: controller.signal,
       })
         .then((r) => r.json())

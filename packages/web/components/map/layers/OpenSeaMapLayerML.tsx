@@ -86,7 +86,7 @@ const GLOBE_TO_MERCATOR_ZOOM = 7;
  * Nautical chart blue — mid-tone so dark-blue depth contours and black ink
  * both read clearly against it, matching Admiralty Chart paper convention.
  */
-const NAUTICAL_WATER_COLOR = '#1a3a5c';
+const NAUTICAL_WATER_COLOR = '#8cb8df';
 
 const LOG = (...args: unknown[]) => console.log('[OpenSeaMap]', ...args);
 
