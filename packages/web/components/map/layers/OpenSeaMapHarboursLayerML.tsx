@@ -206,11 +206,18 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           return;
         }
         try {
+          const reqController = new AbortController();
+          const timeoutId = setTimeout(() => reqController.abort(), 6000);
+          controller.signal.addEventListener('abort', () => reqController.abort());
+
           const res = await fetch(OVERPASS_ENDPOINTS[index], {
             method: 'POST',
             body: query,
-            signal: controller.signal,
+            signal: reqController.signal,
           });
+
+          clearTimeout(timeoutId);
+
           if (!res.ok) throw new Error(`Status ${res.status}`);
           const json = await res.json();
           const elements: OverpassElement[] = json.elements ?? [];
@@ -218,9 +225,9 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           const fc = overpassToGeoJSON(elements);
           const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
           if (src) src.setData(fc);
-        } catch (err) {
-          if ((err as Error).name === 'AbortError') return;
-          LOG(`endpoint ${OVERPASS_ENDPOINTS[index]} failed, trying next...`);
+        } catch (err: unknown) {
+          if (controller.signal.aborted) return;
+          LOG(`Endpoint ${OVERPASS_ENDPOINTS[index]} failed/timed out, trying next...`);
           await tryFetch(index + 1);
         }
       };

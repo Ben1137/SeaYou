@@ -1765,11 +1765,10 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       />
       <OpenSeaMapSubLayerML
         visible={geoJSONLayers.enc && geoJSONLayers.depthContours}
-        tileUrl="https://depth.openseamap.org/geoserver/gwc/service/wmts/rest/openseamap:osm_depth/EPSG:3857/EPSG:3857:{z}/{y}/{x}?format=image/png"
+        tileUrl="https://depth.openseamap.org/geoserver/openseamap/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=openseamap:osm_depth&STYLES=&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}"
         sourceId="osm-depth-source"
         layerId="osm-depth-layer"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
-        maxzoom={16}
       />
 
       {/* NOAA ENC — official US navigational charts (free tier) */}
