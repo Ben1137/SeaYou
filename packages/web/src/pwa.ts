@@ -1,32 +1,36 @@
-/**
- * PWA Registration
- *
- * Registers the service worker and handles updates.
- */
-
 import { registerSW } from 'virtual:pwa-register';
 import { UI_CONSTANTS } from '@seame/core';
+import { toast } from '../components/ui/Toast';
 
-// Register service worker
+let _updateSW: ((reloadPage?: boolean) => Promise<void>) | undefined;
+
 const updateSW = registerSW({
   onNeedRefresh() {
-    if (confirm('New content available. Reload to update?')) {
-      updateSW(true);
-    }
+    const id = toast.info('Update available — reload to get the latest SeaYou.', {
+      title: 'App Update',
+      duration: 0, // persistent until user dismisses
+    });
+    // Escape hatch for DevTools: window.__seayouUpdate() triggers the reload.
+    (window as Window & { __seayouUpdate?: () => void }).__seayouUpdate = () => {
+      toast.dismiss(id);
+      _updateSW?.(true);
+    };
   },
   onOfflineReady() {
-    console.log('App ready to work offline');
-    // Could show a toast notification here
+    toast.success('SeaYou is ready to work offline.', { duration: 4000 });
   },
   onRegistered(registration) {
-    console.log('Service Worker registered:', registration);
+    if (import.meta.env.DEV) {
+      console.log('Service Worker registered:', registration);
+    }
   },
   onRegisterError(error) {
     console.error('Service Worker registration error:', error);
   },
 });
 
-// Check for updates every hour
+_updateSW = updateSW;
+
 setInterval(() => {
   updateSW(false);
 }, UI_CONSTANTS.SW_UPDATE_CHECK_INTERVAL_MS);
