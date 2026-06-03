@@ -313,13 +313,12 @@ export async function initOneSignalWeb(appId?: string): Promise<void> {
     await OneSignal.init({
       appId: id,
       allowLocalhostAsSecureOrigin: true,
-      // NOTE: we previously tried pointing OneSignal at VitePWA's merged
-      // `sw.js` via `serviceWorkerPath`/`serviceWorkerParam`. In practice
-      // the v16 SDK still probes for `/OneSignalSDKWorker.js` before it
-      // reads those options — when that file is missing, Vercel's SPA
-      // fallback returns `index.html` with `text/html`, which hard-aborts
-      // the SDK with a MIME error. We now keep the default path and
-      // ship `public/OneSignalSDKWorker.js` so the file resolves cleanly.
+      // Point OneSignal at VitePWA's generated sw.js, which already merges
+      // the OneSignal SDK worker via importScripts (see vite.config.ts).
+      // The public/OneSignalSDKWorker.js stub satisfies the v16 SDK's probe
+      // for that path, so no MIME error occurs — safe to set these now.
+      serviceWorkerParam: { scope: '/' },
+      serviceWorkerPath: 'sw.js',
     });
     initialized = true;
     console.log('[OneSignalWeb] Initialized successfully with appId:', id);
