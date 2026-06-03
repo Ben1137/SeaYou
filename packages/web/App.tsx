@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { RouteProvider } from './src/contexts/RouteContext';
 import { ToastHost, toast } from './components/ui/Toast';
 import { DialogHost } from './components/ui/Dialog';
+import { PWAInstallBanner } from './src/components/PWAInstallBanner';
 import { TsunamiBanner } from './components/TsunamiBanner';
 import { LayoutDashboard, Map as MapIcon, Cloud, Navigation, Anchor, MapPin, Plus, Search, X, Check, User, ChevronDown, Globe, LogOut, Heart, Clock, Star } from 'lucide-react';
 import { searchLocations, reverseGeocode, SavedLocation } from '@seame/core';
@@ -1110,6 +1111,7 @@ const App: React.FC = () => (
               the root so any module (including non-React services) can
               call toast.success() / confirmDialog() etc. */}
           <ToastHost />
+          <PWAInstallBanner />
           <DialogHost />
         </RouteProvider>
       </AlertProvider>
