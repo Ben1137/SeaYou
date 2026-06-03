@@ -129,10 +129,8 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           type: 'circle',
           source: SOURCE_ID,
           paint: {
-            // Invisible but hittable — radius matches the rendered harbour icon size
-            'circle-radius': 14,
-            'circle-opacity': 0,
-            'circle-stroke-width': 0,
+            'circle-radius': 15,
+            'circle-color': 'rgba(0,0,0,0)',
           },
           minzoom: MIN_ZOOM,
         });
@@ -222,6 +220,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           const elements: OverpassElement[] = json.elements ?? [];
           LOG(`received ${elements.length} harbour nodes from ${OVERPASS_ENDPOINTS[index]}`);
           const fc = overpassToGeoJSON(elements);
+          console.log('[OSM Harbours] GeoJSON generated with feature count:', fc.features.length);
           const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
           if (src) src.setData(fc);
         } catch (err: unknown) {
@@ -257,6 +256,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
     if (!map || !visible) return;
 
     const handleClick = (e: maplibregl.MapLayerMouseEvent) => {
+      console.log('[OSM Harbours] Click detected!', e.features);
       const feature = e.features?.[0];
       if (!feature || feature.geometry.type !== 'Point') return;
 
