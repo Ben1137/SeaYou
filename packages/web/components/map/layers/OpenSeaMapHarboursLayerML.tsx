@@ -41,7 +41,11 @@ const MIN_ZOOM = 8;
 /** Debounce delay after moveend/zoomend before firing the Overpass query. */
 const DEBOUNCE_MS = 400;
 
-const OVERPASS_ENDPOINT = 'https://overpass.private.coffee/api/interpreter';
+const OVERPASS_ENDPOINTS = [
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
 
 const LOG = (...args: unknown[]) => console.log('[OSM Harbours]', ...args);
 
@@ -196,27 +200,32 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
       LOG(`fetching bbox [${b.getSouth().toFixed(2)},${b.getWest().toFixed(2)},${b.getNorth().toFixed(2)},${b.getEast().toFixed(2)}]`);
 
-      fetch(OVERPASS_ENDPOINT, {
-        method: 'POST',
-        body: `data=${encodeURIComponent(query)}`,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        signal: controller.signal,
-      })
-        .then((r) => r.json())
-        .then((json) => {
+      const tryFetch = async (index: number): Promise<void> => {
+        if (index >= OVERPASS_ENDPOINTS.length) {
+          console.warn('[OSM Harbours] All Overpass endpoints failed.');
+          return;
+        }
+        try {
+          const res = await fetch(OVERPASS_ENDPOINTS[index], {
+            method: 'POST',
+            body: query,
+            signal: controller.signal,
+          });
+          if (!res.ok) throw new Error(`Status ${res.status}`);
+          const json = await res.json();
           const elements: OverpassElement[] = json.elements ?? [];
-          LOG(`received ${elements.length} harbour nodes`);
+          LOG(`received ${elements.length} harbour nodes from ${OVERPASS_ENDPOINTS[index]}`);
           const fc = overpassToGeoJSON(elements);
           const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
           if (src) src.setData(fc);
-        })
-        .catch((err) => {
-          if (err.name !== 'AbortError') {
-            console.warn('[OSM Harbours] fetch error:', err);
-          }
-        });
+        } catch (err) {
+          if ((err as Error).name === 'AbortError') return;
+          LOG(`endpoint ${OVERPASS_ENDPOINTS[index]} failed, trying next...`);
+          await tryFetch(index + 1);
+        }
+      };
+
+      tryFetch(0);
     };
 
     const handleViewChange = () => {

@@ -1753,6 +1753,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         sourceId="osm-marine-profile-source"
         layerId="osm-marine-profile-layer"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
+        maxzoom={10}
       />
       <OpenSeaMapSubLayerML
         visible={geoJSONLayers.enc && geoJSONLayers.compassRose}
@@ -1760,13 +1761,15 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         sourceId="osm-compass-source"
         layerId="osm-compass-layer"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
+        maxzoom={12}
       />
       <OpenSeaMapSubLayerML
         visible={geoJSONLayers.enc && geoJSONLayers.depthContours}
-        tileUrl="https://tiles.openseamap.org/depth/{z}/{x}/{y}.png"
+        tileUrl="https://depth.openseamap.org/geoserver/gwc/service/wmts/rest/openseamap:osm_depth/EPSG:3857/EPSG:3857:{z}/{y}/{x}?format=image/png"
         sourceId="osm-depth-source"
         layerId="osm-depth-layer"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
+        maxzoom={16}
       />
 
       {/* NOAA ENC — official US navigational charts (free tier) */}

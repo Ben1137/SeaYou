@@ -35,6 +35,8 @@ export interface OpenSeaMapSubLayerMLProps {
   layerId: string;
   attribution?: string;
   tileSize?: 256 | 512;
+  /** Tile server max zoom — MapLibre overzooms above this level instead of requesting blank tiles */
+  maxzoom?: number;
 }
 
 // ─── Component ───
@@ -47,6 +49,7 @@ export function OpenSeaMapSubLayerML({
   layerId,
   attribution,
   tileSize = 256,
+  maxzoom,
 }: OpenSeaMapSubLayerMLProps) {
   const map = useMap();
   const addedRef = useRef(false);
@@ -62,6 +65,7 @@ export function OpenSeaMapSubLayerML({
           tiles: [tileUrl],
           tileSize,
           ...(attribution ? { attribution } : {}),
+          ...(maxzoom !== undefined ? { maxzoom } : {}),
         });
       }
 
