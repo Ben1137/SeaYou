@@ -67,12 +67,12 @@ export default defineConfig(({ mode }) => {
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon-180x180.png', 'pwa-64x64.png'],
       manifest: {
         name: 'SeaYou - Marine Weather Dashboard',
         short_name: 'SeaYou',
         description: 'Real-time marine weather forecasts for sailors, surfers, and ocean enthusiasts',
-        theme_color: '#0ea5e9',
+        theme_color: '#082d5d',
         background_color: '#0f172a',
         display: 'standalone',
         orientation: 'portrait',
@@ -80,20 +80,26 @@ export default defineConfig(({ mode }) => {
         start_url: base,
         icons: [
           {
-            src: `${base}pwa-192x192.svg`,
+            src: `${base}pwa-64x64.png`,
+            sizes: '64x64',
+            type: 'image/png'
+          },
+          {
+            src: `${base}pwa-192x192.png`,
             sizes: '192x192',
-            type: 'image/svg+xml'
+            type: 'image/png'
           },
           {
-            src: `${base}pwa-512x512.svg`,
+            src: `${base}pwa-512x512.png`,
             sizes: '512x512',
-            type: 'image/svg+xml'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
-            src: `${base}pwa-512x512.svg`,
+            src: `${base}maskable-icon-512x512.png`,
             sizes: '512x512',
-            type: 'image/svg+xml',
-            purpose: 'any maskable'
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       },
@@ -104,6 +110,8 @@ export default defineConfig(({ mode }) => {
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
+        navigateFallback: 'index.html',
+        navigateFallbackDenylist: [/^\/api\//, /^\/OneSignal/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB to accommodate WebGL shaders
         // Merge OneSignal Web SDK v16 worker logic into Vite's generated sw.js.
@@ -191,6 +199,46 @@ export default defineConfig(({ mode }) => {
               expiration: {
                 maxEntries: 500,
                 maxAgeSeconds: 7 * 24 * 60 * 60 // 1 week
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            // MapTiler basemap style JSON — stale-while-revalidate (style changes infrequently)
+            urlPattern: /^https:\/\/api\.maptiler\.com\/maps\/.*\/style\.json.*/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'maptiler-style',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 24 * 60 * 60 // 1 day
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            // MapTiler vector/raster tiles — cache-first, tiles are content-addressed
+            urlPattern: /^https:\/\/api\.maptiler\.com\/tiles\/.*/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'maptiler-tiles',
+              expiration: {
+                maxEntries: 1000,
+                maxAgeSeconds: 7 * 24 * 60 * 60 // 1 week
+              },
+              cacheableResponse: { statuses: [0, 200] }
+            }
+          },
+          {
+            // Overpass API harbour fetch — network-first, data changes regularly
+            urlPattern: /^https:\/\/overpass\.private\.coffee\/api\/.*/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'overpass-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 // 1 hour
               },
               cacheableResponse: { statuses: [0, 200] }
             }
