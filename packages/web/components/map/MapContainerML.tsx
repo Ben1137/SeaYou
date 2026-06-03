@@ -421,9 +421,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   }, []);
 
   /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
-  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc' | 'linz' | 'marineProfile' | 'compassRose' | 'depthContours') => {
+  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc' | 'linz' | 'marineProfile' | 'compassRose') => {
     // Free-tier layers: navigational chart overlays (public/open data) and NOAA/LINZ official charts
-    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz', 'marineProfile', 'compassRose', 'depthContours'];
+    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz', 'marineProfile', 'compassRose'];
     if (isFreeUser && !freeLayers.includes(key)) {
       setShowPaywall(true);
       return;
@@ -491,7 +491,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     linz: false, // LINZ NZMariner official charts (New Zealand waters)
     marineProfile: false, // OpenSeaMap Marine Profile (1:920,000 overview)
     compassRose: false,   // OpenSeaMap Compass Rose overlay
-    depthContours: false, // OpenSeaMap Depth Contours (beta)
+
   });
 
   // AIS vessel traffic toggle (default on — can be disabled by user)
@@ -1356,13 +1356,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                 >
                   <Compass size={10} /> <span className="flex-1">Compass Rose</span>
                 </button>
-                <button
-                  onClick={() => tryToggleOverlay('depthContours')}
-                  className={`w-full text-left px-2 py-1 rounded flex items-center gap-2 transition-colors text-[11px] ${geoJSONLayers.depthContours ? 'bg-rose-700/80 text-white' : 'text-white/35 hover:bg-white/10'}`}
-                  title="OpenSeaMap Depth Contours (beta)"
-                >
-                  <Droplets size={10} /> <span className="flex-1">Depth Contours</span>
-                </button>
               </div>
             )}
             <button
@@ -1762,13 +1755,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         layerId="osm-compass-layer"
         attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
         maxzoom={12}
-      />
-      <OpenSeaMapSubLayerML
-        visible={geoJSONLayers.enc && geoJSONLayers.depthContours}
-        tileUrl="https://depth.openseamap.org/geoserver/openseamap/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=openseamap:osm_depth&STYLES=&SRS=EPSG:3857&WIDTH=256&HEIGHT=256&BBOX={bbox-epsg-3857}"
-        sourceId="osm-depth-source"
-        layerId="osm-depth-layer"
-        attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
       />
 
       {/* NOAA ENC — official US navigational charts (free tier) */}
