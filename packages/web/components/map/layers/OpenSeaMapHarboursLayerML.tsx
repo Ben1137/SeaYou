@@ -210,9 +210,8 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           const timeoutId = setTimeout(() => reqController.abort(), 6000);
           controller.signal.addEventListener('abort', () => reqController.abort());
 
-          const res = await fetch(OVERPASS_ENDPOINTS[index], {
-            method: 'POST',
-            body: query,
+          const res = await fetch(`${OVERPASS_ENDPOINTS[index]}?data=${encodeURIComponent(query)}`, {
+            method: 'GET',
             signal: reqController.signal,
           });
 
