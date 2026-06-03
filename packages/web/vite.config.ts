@@ -114,13 +114,6 @@ export default defineConfig(({ mode }) => {
         navigateFallbackDenylist: [/^\/api\//, /^\/OneSignal/],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB to accommodate WebGL shaders
-        // Merge OneSignal Web SDK v16 worker logic into Vite's generated sw.js.
-        // Without this, VitePWA's sw.js claims the root scope and immediately
-        // marks OneSignalSDKWorker.js as redundant, breaking push subscription
-        // (`[WM] No SW registration for postMessage`, 409 Conflict, undefined
-        // Player ID). Hosting a single merged worker at /sw.js lets OneSignal
-        // reuse VitePWA's registration via `serviceWorkerPath: 'sw.js'`.
-        importScripts: ['https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js'],
         runtimeCaching: [
           {
             // Cache Open-Meteo API calls
