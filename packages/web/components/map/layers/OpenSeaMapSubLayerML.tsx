@@ -59,6 +59,7 @@ export function OpenSeaMapSubLayerML({
     if (!map) return;
 
     const setupLayer = () => {
+      console.log(`[SubLayer] ${layerId} mounted. Visible: ${visible}`);
       if (!map.getSource(sourceId)) {
         map.addSource(sourceId, {
           type: 'raster',

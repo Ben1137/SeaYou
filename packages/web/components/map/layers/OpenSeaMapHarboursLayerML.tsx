@@ -42,9 +42,9 @@ const MIN_ZOOM = 8;
 const DEBOUNCE_MS = 400;
 
 const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://lz4.overpass-api.de/api/interpreter',
-  'https://overpass.private.coffee/api/interpreter',
 ];
 
 const LOG = (...args: unknown[]) => console.log('[OSM Harbours]', ...args);
@@ -210,6 +210,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
           const res = await fetch(`${OVERPASS_ENDPOINTS[index]}?data=${encodeURIComponent(query)}`, {
             method: 'GET',
+            headers: { 'Accept': 'application/json' },
             signal: reqController.signal,
           });
 
