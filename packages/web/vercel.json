@@ -1,4 +1,18 @@
 {
+  "headers": [
+    {
+      "source": "/(sw\\.js|workbox-.*\\.js|OneSignalSDK.*\\.js)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(index\\.html|manifest\\.webmanifest)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/places/:path*",

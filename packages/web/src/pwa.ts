@@ -6,15 +6,9 @@ let _updateSW: ((reloadPage?: boolean) => Promise<void>) | undefined;
 
 const updateSW = registerSW({
   onNeedRefresh() {
-    const id = toast.info('Update available — reload to get the latest SeaYou.', {
-      title: 'App Update',
-      duration: 0, // persistent until user dismisses
-    });
-    // Escape hatch for DevTools: window.__seayouUpdate() triggers the reload.
-    (window as Window & { __seayouUpdate?: () => void }).__seayouUpdate = () => {
-      toast.dismiss(id);
+    if (window.confirm('A new version of SeaYou is available. Reload to update?')) {
       _updateSW?.(true);
-    };
+    }
   },
   onOfflineReady() {
     toast.success('SeaYou is ready to work offline.', { duration: 4000 });
