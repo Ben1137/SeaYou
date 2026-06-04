@@ -712,6 +712,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <p className="text-xs text-center">{t('forecast.noTideData', 'No tide data available for this location')}</p>
             </div>
           ) : (
+            <div style={{ width: '100%', height: '100%', minHeight: 256 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               {activeGraph === 'tide' ? (
                 <AreaChart data={tideChartData}>
@@ -748,6 +749,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 </ComposedChart>
               )}
             </ResponsiveContainer>
+            </div>
           )}
         </div>
       </section>
