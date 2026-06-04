@@ -97,9 +97,9 @@ class ApiRateLimiter {
       const task = this.queue.shift();
       if (!task) break;
 
-      // Check if task is stale (>15 seconds old)
+      // Check if task is stale (>60 seconds old — must exceed timeout × maxRetries)
       const taskAge = Date.now() - task.addedAt;
-      if (taskAge > 15000) {
+      if (taskAge > 60000) {
         console.log(`[ApiRateLimiter] Dropping stale request (age: ${taskAge}ms)`);
         task.reject(new Error('Request timeout - viewport changed'));
         continue;

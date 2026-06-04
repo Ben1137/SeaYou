@@ -88,7 +88,7 @@ export const CACHE_CONFIG = {
 // ==================== API REQUEST CONFIGURATION ====================
 export const REQUEST_CONFIG = {
   /** Default timeout for fetch requests (in milliseconds) */
-  DEFAULT_TIMEOUT_MS: 10000,      // 10 seconds
+  DEFAULT_TIMEOUT_MS: 30000,      // 30 seconds — Open-Meteo 10-day payloads can be 3MB+
 
   /** Overpass API specific timeout (in seconds) */
   OVERPASS_TIMEOUT_SECONDS: 25,
