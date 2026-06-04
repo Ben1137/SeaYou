@@ -7,7 +7,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  ResponsiveContainer,
   Legend,
 } from 'recharts';
 
@@ -30,7 +29,7 @@ function parseHourly(json: any): HourlyPoint[] {
   const winds: (number | null)[] = json.hourly?.wind_speed_10m ?? [];
   const precips: (number | null)[] = json.hourly?.precipitation ?? [];
 
-  // Keep one point every 6 hours (28 points over 7 days)
+  // One point every 6 hours → 28 points over 7 days
   return times
     .filter((_, i) => i % 6 === 0)
     .map((t, i) => {
@@ -84,11 +83,11 @@ export const MeteogramChart: React.FC<MeteogramChartProps> = ({ lat, lon }) => {
     return (
       <div
         style={{
-          height: '180px',
+          width: 280,
+          height: 180,
           background: '#1e293b',
           borderRadius: '6px',
           margin: '8px 0',
-          animation: 'pulse 1.5s ease-in-out infinite',
         }}
       />
     );
@@ -96,76 +95,78 @@ export const MeteogramChart: React.FC<MeteogramChartProps> = ({ lat, lon }) => {
 
   return (
     <div style={{ marginTop: '8px', background: '#0f172a', borderRadius: '6px', padding: '4px' }}>
-      <ResponsiveContainer width="100%" height={180} minWidth={1} minHeight={1}>
-        <ComposedChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -8 }}>
-          <XAxis
-            dataKey="label"
-            stroke="#475569"
-            tick={{ fill: '#64748b', fontSize: 9 }}
-            interval={3}
-            tickLine={false}
-          />
-          <YAxis
-            yAxisId="wind"
-            orientation="left"
-            stroke="#475569"
-            tick={{ fill: '#64748b', fontSize: 9 }}
-            tickLine={false}
-            axisLine={false}
-            width={28}
-          />
-          <YAxis
-            yAxisId="temp"
-            orientation="right"
-            stroke="#475569"
-            tick={{ fill: '#64748b', fontSize: 9 }}
-            tickLine={false}
-            axisLine={false}
-            width={28}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: '#1e293b',
-              border: '1px solid #334155',
-              borderRadius: '6px',
-              fontSize: '11px',
-              color: '#cbd5e1',
-            }}
-            labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: '9px', color: '#64748b', paddingTop: '2px' }}
-          />
-          <Bar
-            yAxisId="wind"
-            dataKey="precip"
-            name="Precip (mm)"
-            fill="#3b82f6"
-            opacity={0.7}
-            maxBarSize={6}
-          />
-          <Area
-            yAxisId="wind"
-            type="monotone"
-            dataKey="wind"
-            name="Wind (km/h)"
-            stroke="#22d3ee"
-            fill="#22d3ee"
-            fillOpacity={0.15}
-            dot={false}
-            strokeWidth={1.5}
-          />
-          <Line
-            yAxisId="temp"
-            type="monotone"
-            dataKey="temp"
-            name="Temp (°C)"
-            stroke="#f97316"
-            dot={false}
-            strokeWidth={1.5}
-          />
-        </ComposedChart>
-      </ResponsiveContainer>
+      {/* Fixed dimensions — no ResponsiveContainer because popup DOM has no layout at mount time */}
+      <ComposedChart
+        width={280}
+        height={180}
+        data={data}
+        margin={{ top: 4, right: 8, bottom: 0, left: -8 }}
+      >
+        <XAxis
+          dataKey="label"
+          stroke="#475569"
+          tick={{ fill: '#64748b', fontSize: 9 }}
+          interval={3}
+          tickLine={false}
+        />
+        <YAxis
+          yAxisId="wind"
+          orientation="left"
+          stroke="#475569"
+          tick={{ fill: '#64748b', fontSize: 9 }}
+          tickLine={false}
+          axisLine={false}
+          width={28}
+        />
+        <YAxis
+          yAxisId="temp"
+          orientation="right"
+          stroke="#475569"
+          tick={{ fill: '#64748b', fontSize: 9 }}
+          tickLine={false}
+          axisLine={false}
+          width={28}
+        />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: '6px',
+            fontSize: '11px',
+            color: '#cbd5e1',
+          }}
+          labelStyle={{ color: '#94a3b8', marginBottom: '4px' }}
+        />
+        <Legend wrapperStyle={{ fontSize: '9px', color: '#64748b', paddingTop: '2px' }} />
+        <Bar
+          yAxisId="wind"
+          dataKey="precip"
+          name="Precip (mm)"
+          fill="#3b82f6"
+          opacity={0.7}
+          maxBarSize={6}
+        />
+        <Area
+          yAxisId="wind"
+          type="monotone"
+          dataKey="wind"
+          name="Wind (km/h)"
+          stroke="#22d3ee"
+          fill="#22d3ee"
+          fillOpacity={0.15}
+          dot={false}
+          strokeWidth={1.5}
+        />
+        <Line
+          yAxisId="temp"
+          type="monotone"
+          dataKey="temp"
+          name="Temp (°C)"
+          stroke="#f97316"
+          dot={false}
+          strokeWidth={1.5}
+        />
+      </ComposedChart>
     </div>
   );
 };

@@ -213,9 +213,15 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           const timeoutId = setTimeout(() => reqController.abort(), 6000);
           controller.signal.addEventListener('abort', () => reqController.abort());
 
-          const res = await fetch(`${OVERPASS_ENDPOINTS[index]}?data=${encodeURIComponent(query)}`, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
+          // POST avoids 406 rejections caused by long URL-encoded GET query strings
+          // on Overpass CDN nodes. Body uses the standard x-www-form-urlencoded format.
+          const res = await fetch(OVERPASS_ENDPOINTS[index], {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/json',
+            },
+            body: `data=${encodeURIComponent(query)}`,
             signal: reqController.signal,
           });
 
