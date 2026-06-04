@@ -7,7 +7,7 @@
  * 3. Updates UI when fresh data arrives
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchMarineWeather, cacheService } from '@seame/core';
 import type { MarineWeatherData } from '@seame/core';
 
@@ -22,6 +22,7 @@ interface UseCachedWeatherReturn {
   data: MarineWeatherData | null;
   isLoading: boolean;
   isStale: boolean;
+  isOfflineFallback: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
   lastUpdated: Date | null;
@@ -36,8 +37,10 @@ export function useCachedWeather({
   const [data, setData] = useState<MarineWeatherData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStale, setIsStale] = useState(false);
+  const [isOfflineFallback, setIsOfflineFallback] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const dataRef = useRef<MarineWeatherData | null>(null);
 
   const fetchData = useCallback(async (showLoading = true) => {
     if (!enabled) return;
@@ -58,10 +61,9 @@ export function useCachedWeather({
 
       if (cachedMarine && cachedCurrent) {
         // We have cached data - show it immediately
-        setData({
-          ...cachedMarine,
-          current: cachedCurrent,
-        });
+        const cachedData = { ...cachedMarine, current: cachedCurrent };
+        setData(cachedData);
+        dataRef.current = cachedData;
         setIsStale(true); // Mark as potentially stale
         setIsLoading(false);
         setLastUpdated(new Date(cachedCurrent.timestamp || Date.now()));
@@ -86,13 +88,22 @@ export function useCachedWeather({
 
       // Update UI with fresh data
       setData(freshData);
+      dataRef.current = freshData;
       setIsStale(false);
+      setIsOfflineFallback(false);
       setLastUpdated(new Date());
       setIsLoading(false);
     } catch (err) {
       console.error('Weather fetch error:', err);
-      setError(err as Error);
-      setIsLoading(false);
+      if (dataRef.current !== null) {
+        // Cached data available — show offline banner instead of crashing
+        setIsOfflineFallback(true);
+        setIsLoading(false);
+      } else {
+        // No cache — surface the error so Dashboard shows <ErrorState>
+        setError(err as Error);
+        setIsLoading(false);
+      }
     }
   }, [lat, lon, enabled]);
 
@@ -120,6 +131,7 @@ export function useCachedWeather({
     data,
     isLoading,
     isStale,
+    isOfflineFallback,
     error,
     refetch,
     lastUpdated,

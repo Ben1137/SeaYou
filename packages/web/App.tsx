@@ -225,6 +225,7 @@ const AppContent: React.FC = () => {
     error,
     refetch,
     isStale,
+    isOfflineFallback,
     lastUpdated
   } = useCachedWeather({
     lat: currentLocation.lat,
@@ -931,7 +932,7 @@ const AppContent: React.FC = () => {
                   console.error('Dashboard error:', error, errorInfo);
                 }}
               >
-                <Dashboard weatherData={weatherData} loading={isLoading} error={error} locationName={currentLocation.name} currentLat={currentLocation.lat} currentLng={currentLocation.lng} onRetry={refetch} onLocationClick={() => setShowLocationModal(true)} />
+                <Dashboard weatherData={weatherData} loading={isLoading} error={error} isOfflineFallback={isOfflineFallback} lastUpdated={lastUpdated} locationName={currentLocation.name} currentLat={currentLocation.lat} currentLng={currentLocation.lng} onRetry={refetch} onLocationClick={() => setShowLocationModal(true)} />
               </ErrorBoundary>
             )}
             {view === ViewState.MAP && (

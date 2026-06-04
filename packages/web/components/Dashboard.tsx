@@ -33,6 +33,8 @@ interface DashboardProps {
   currentLng?: number;
   onRetry?: () => void;
   onLocationClick?: () => void;
+  isOfflineFallback?: boolean;
+  lastUpdated?: Date | null;
 }
 
 
@@ -70,7 +72,7 @@ const getWeatherConditionKey = (code: number): string => {
   return codeMap[code] || 'unknown';
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick }) => {
+const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick, isOfflineFallback, lastUpdated }) => {
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
@@ -382,6 +384,21 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   return (
     <div className="px-5 space-y-6 pb-8 max-w-6xl mx-auto relative">
+
+      {/* ─── Offline Fallback Banner ─── */}
+      {isOfflineFallback && (
+        <div className="flex items-center gap-2 px-4 py-2.5 -mx-5 bg-amber-500/15 border-b border-amber-500/30 text-amber-300 text-sm">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          <span>
+            Offline Mode — showing last saved forecast
+            {lastUpdated && (
+              <span className="ml-1 text-amber-300/70">
+                (saved {format(lastUpdated, 'HH:mm, MMM d')})
+              </span>
+            )}
+          </span>
+        </div>
+      )}
 
       {/* ─── Location Pill (centered) ─── */}
       <div className="flex justify-center">
