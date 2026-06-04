@@ -422,7 +422,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
   const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc' | 'linz') => {
     // Free-tier layers: navigational chart overlays (public/open data) and NOAA/LINZ official charts
-    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz'];
+    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz', 'bathymetry'];
     if (isFreeUser && !freeLayers.includes(key)) {
       setShowPaywall(true);
       return;
@@ -524,7 +524,10 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     });
 
     // Add navigation controls
-    map.addControl(new maplibregl.NavigationControl(), 'top-left');
+    map.addControl(
+      new maplibregl.NavigationControl({ showCompass: true, showZoom: true, visualizePitch: true }),
+      'top-right'
+    );
     map.addControl(
       new maplibregl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
@@ -1302,7 +1305,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               onClick={() => tryToggleOverlay('bathymetry')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.bathymetry ? 'bg-blue-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
-              <Droplets size={12} /> <span className="flex-1">{t('map.depthCharts') || 'Depth Charts'}</span> <span aria-hidden="true">🔒</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+              <Droplets size={12} /> <span className="flex-1">{t('map.depthCharts') || 'Depth Charts'}</span>
             </button>
             <button
               onClick={() => tryToggleOverlay('reefs')}

@@ -4,8 +4,8 @@
  * Fetches OpenStreetMap harbour/port nodes from the public Overpass API for
  * the current map viewport (debounced 400ms, min zoom 8) and adds an invisible
  * GeoJSON circle layer as a click target. Clicking a harbour opens a MapLibre
- * popup containing the port name and its 5-day Meteogramm weather image from
- * weather.openportguide.de (no API key required — pure lat/lon URL).
+ * popup containing the port name and a native 7-day meteogram chart (Recharts +
+ * Open-Meteo API) rendered via React createRoot inside the popup DOM node.
  *
  * Why this exists: The OpenSeaMap raster tiles are pre-rendered PNGs — MapLibre
  * sees them as pixels, not geographic features. An invisible vector overlay is
@@ -21,14 +21,17 @@
  *   node["harbour"="yes"]["name"](S,W,N,E)
  * Endpoint: https://overpass-api.de/api/interpreter (CORS: *)
  *
- * Meteogramm URL: https://weather.openportguide.de/meteogram.php?lat=X&lon=Y&lang=en
+ * Meteogram data: https://api.open-meteo.com/v1/forecast (hourly temp, wind, precip)
  *
  * Phase 8 — Pro Navigation Engine (ENC overlay)
  */
 
+import React from 'react';
+import { createRoot, Root } from 'react-dom/client';
 import maplibregl from 'maplibre-gl';
 import { useEffect, useRef } from 'react';
 import { useMap } from '../useMap';
+import { MeteogramChart } from '../../../src/components/charts/MeteogramChart';
 
 // ─── Constants ───
 
@@ -50,14 +53,6 @@ const OVERPASS_ENDPOINTS = [
 const LOG = (...args: unknown[]) => console.log('[OSM Harbours]', ...args);
 
 // ─── Helpers ───
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function buildOverpassQuery(s: number, w: number, n: number, e: number): string {
   const bbox = `${s.toFixed(5)},${w.toFixed(5)},${n.toFixed(5)},${e.toFixed(5)}`;
@@ -109,6 +104,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
   const abortRef     = useRef<AbortController | null>(null);
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popupRef     = useRef<maplibregl.Popup | null>(null);
+  const popupRootRef = useRef<Root | null>(null);
   const layerReadyRef = useRef(false);
   // Survives style.load cycles triggered by setProjection — re-applied after source recreation.
   const lastFcRef    = useRef<GeoJSON.FeatureCollection | null>(null);
@@ -273,43 +269,51 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
 
       const [lon, lat] = feature.geometry.coordinates as [number, number];
       const name = (feature.properties?.name as string) || 'Harbour';
-      const imgUrl =
-        `https://weather.openportguide.de/meteogram.php` +
-        `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&lang=en`;
 
-      // Close any existing harbour popup
+      // Unmount any previous React root and close previous popup
+      if (popupRootRef.current) {
+        popupRootRef.current.unmount();
+        popupRootRef.current = null;
+      }
       if (popupRef.current) {
         popupRef.current.remove();
         popupRef.current = null;
       }
 
-      const html = `
-        <div class="seayou-harbour-popup">
-          <div class="seayou-harbour-name">${escapeHtml(name)}</div>
-          <div class="seayou-harbour-coords">${lat.toFixed(4)}°, ${lon.toFixed(4)}°</div>
-          <img
-            src="${escapeHtml(imgUrl)}"
-            loading="lazy"
-            width="320"
-            alt="5-day weather forecast for ${escapeHtml(name)}"
-            style="display:block;border-radius:6px;margin-top:8px;max-width:100%;"
-            onerror="this.style.display='none';this.nextElementSibling.style.display='block';"
-          />
-          <div style="display:none;padding:8px;color:#94a3b8;font-size:12px;">
-            Weather data unavailable for this location.
-          </div>
-        </div>`;
+      const container = document.createElement('div');
+      container.style.cssText = 'min-width:280px;';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'seayou-harbour-name';
+      nameEl.textContent = name;
+      container.appendChild(nameEl);
+
+      const coordEl = document.createElement('div');
+      coordEl.className = 'seayou-harbour-coords';
+      coordEl.textContent = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+      container.appendChild(coordEl);
+
+      const chartContainer = document.createElement('div');
+      container.appendChild(chartContainer);
+
+      const root = createRoot(chartContainer);
+      root.render(<MeteogramChart lat={lat} lon={lon} name={name} />);
+      popupRootRef.current = root;
 
       const popup = new maplibregl.Popup({
-        maxWidth: '340px',
+        maxWidth: '320px',
         closeButton: true,
         className: 'seayou-harbour-popup-container',
       })
         .setLngLat([lon, lat])
-        .setHTML(html)
+        .setDOMContent(container)
         .addTo(map);
 
-      popup.on('close', () => { popupRef.current = null; });
+      popup.on('close', () => {
+        popupRootRef.current?.unmount();
+        popupRootRef.current = null;
+        popupRef.current = null;
+      });
       popupRef.current = popup;
     };
 
@@ -328,6 +332,8 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
       map.off('click', LAYER_ID, handleClick);
       map.off('mouseenter', LAYER_ID, handleMouseEnter);
       map.off('mouseleave', LAYER_ID, handleMouseLeave);
+      popupRootRef.current?.unmount();
+      popupRootRef.current = null;
       if (popupRef.current) {
         popupRef.current.remove();
         popupRef.current = null;
