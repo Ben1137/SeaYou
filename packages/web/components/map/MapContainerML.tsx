@@ -33,7 +33,6 @@ import { CoastlineLayerML } from './layers/CoastlineLayerML';
 import { MarineAreasLayerML } from './layers/MarineAreasLayerML';
 import { OpenSeaMapLayerML } from './layers/OpenSeaMapLayerML';
 import { OpenSeaMapHarboursLayerML } from './layers/OpenSeaMapHarboursLayerML';
-import { OpenSeaMapSubLayerML } from './layers/OpenSeaMapSubLayerML';
 
 // Custom WebGL Layers (Phase 2)
 import { WaveHeatmapLayerML } from './layers/WaveHeatmapLayerML';
@@ -421,9 +420,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   }, []);
 
   /** Toggle a GeoJSON overlay — gated by subscription tier (free = paywall). Auto-closes panel. */
-  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc' | 'linz' | 'marineProfile' | 'compassRose') => {
+  const tryToggleOverlay = useCallback((key: 'coastline' | 'bathymetry' | 'reefs' | 'ports' | 'marineAreas' | 'radar' | 'enc' | 'noaaEnc' | 'linz') => {
     // Free-tier layers: navigational chart overlays (public/open data) and NOAA/LINZ official charts
-    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz', 'marineProfile', 'compassRose'];
+    const freeLayers: typeof key[] = ['enc', 'noaaEnc', 'linz'];
     if (isFreeUser && !freeLayers.includes(key)) {
       setShowPaywall(true);
       return;
@@ -489,9 +488,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     enc: false, // OpenSeaMap navigational charts
     noaaEnc: false, // NOAA ENC Online raster (US waters)
     linz: false, // LINZ NZMariner official charts (New Zealand waters)
-    marineProfile: false, // OpenSeaMap Marine Profile (1:920,000 overview)
-    compassRose: false,   // OpenSeaMap Compass Rose overlay
-
   });
 
   // AIS vessel traffic toggle (default on — can be disabled by user)
@@ -1339,25 +1335,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             >
               <Compass size={12} /> <span className="flex-1">{t('map.navCharts') || 'Navigational Charts (ENC)'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
-            {/* ENC sub-layers — only visible when main ENC is active */}
-            {geoJSONLayers.enc && (
-              <div className="pl-3 flex flex-col gap-0.5 border-l border-rose-600/40 ml-2">
-                <button
-                  onClick={() => tryToggleOverlay('marineProfile')}
-                  className={`w-full text-left px-2 py-1 rounded flex items-center gap-2 transition-colors text-[11px] ${geoJSONLayers.marineProfile ? 'bg-rose-700/80 text-white' : 'text-white/35 hover:bg-white/10'}`}
-                  title="OpenSeaMap Marine Profile — small-scale overview chart (1:920,000)"
-                >
-                  <Compass size={10} /> <span className="flex-1">Marine Profile</span>
-                </button>
-                <button
-                  onClick={() => tryToggleOverlay('compassRose')}
-                  className={`w-full text-left px-2 py-1 rounded flex items-center gap-2 transition-colors text-[11px] ${geoJSONLayers.compassRose ? 'bg-rose-700/80 text-white' : 'text-white/35 hover:bg-white/10'}`}
-                  title="OpenSeaMap Compass Rose overlay"
-                >
-                  <Compass size={10} /> <span className="flex-1">Compass Rose</span>
-                </button>
-              </div>
-            )}
             <button
               onClick={() => tryToggleOverlay('noaaEnc')}
               className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.noaaEnc ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
@@ -1739,23 +1716,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       {/* OpenSeaMap Harbours — interactive vector overlay (Overpass + Meteogramm popups) */}
       <OpenSeaMapHarboursLayerML visible={geoJSONLayers.enc} />
 
-      {/* OpenSeaMap sub-layers — gated on ENC being active (projection already mercator) */}
-      <OpenSeaMapSubLayerML
-        visible={geoJSONLayers.enc && geoJSONLayers.marineProfile}
-        tileUrl="https://tiles.openseamap.org/marine_profile/{z}/{x}/{y}.png"
-        sourceId="osm-marine-profile-source"
-        layerId="osm-marine-profile-layer"
-        attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
-        maxzoom={10}
-      />
-      <OpenSeaMapSubLayerML
-        visible={geoJSONLayers.enc && geoJSONLayers.compassRose}
-        tileUrl="https://tiles.openseamap.org/compass/{z}/{x}/{y}.png"
-        sourceId="osm-compass-source"
-        layerId="osm-compass-layer"
-        attribution='<a href="https://www.openseamap.org" target="_blank" rel="noopener">OpenSeaMap</a>'
-        maxzoom={12}
-      />
 
       {/* NOAA ENC — official US navigational charts (free tier) */}
       <NOAAEncLayerML enabled={geoJSONLayers.noaaEnc} opacity={0.85} />

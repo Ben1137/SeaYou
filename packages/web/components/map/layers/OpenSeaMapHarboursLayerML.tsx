@@ -110,6 +110,8 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const popupRef     = useRef<maplibregl.Popup | null>(null);
   const layerReadyRef = useRef(false);
+  // Survives style.load cycles triggered by setProjection — re-applied after source recreation.
+  const lastFcRef    = useRef<GeoJSON.FeatureCollection | null>(null);
 
   // ── GeoJSON source + circle layer lifecycle ──────────────────────────────
   useEffect(() => {
@@ -149,7 +151,14 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
     };
 
     const onStyleLoad = () => {
-      if (visible) setupLayer();
+      if (!visible) return;
+      setupLayer();
+      // Re-apply last known harbour data — setProjection fires style.load which
+      // recreates the source as empty, wiping any data that arrived before the reload.
+      if (lastFcRef.current) {
+        const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+        if (src) src.setData(lastFcRef.current);
+      }
     };
 
     if (visible) {
@@ -222,6 +231,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           LOG(`received ${elements.length} harbour nodes from ${OVERPASS_ENDPOINTS[index]}`);
           const fc = overpassToGeoJSON(elements);
           console.log('[OSM Harbours] GeoJSON generated with feature count:', fc.features.length);
+          lastFcRef.current = fc;
           const src = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
           if (src) src.setData(fc);
         } catch (err: unknown) {
