@@ -200,9 +200,6 @@ importers:
       lucide-react:
         specifier: ^0.555.0
         version: 0.555.0(react@19.2.3)
-      maplibre-compass-pro:
-        specifier: ^0.6.0
-        version: 0.6.0(maplibre-gl@5.18.0)
       maplibre-gl:
         specifier: ^5.0.0
         version: 5.18.0
@@ -4011,12 +4008,6 @@ packages:
 
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
-
-  maplibre-compass-pro@0.6.0:
-    resolution: {integrity: sha512-Qc/LUgUHss75sXkO0kt3ZdRHXVfqJSCkVRkbEDtIGVfOhheI9lr4EhEIQjGSkIjPSlxcksfAziNG0fO0IwOchA==}
-    engines: {node: '>=20', npm: '>=10'}
-    peerDependencies:
-      maplibre-gl: '>3.0.0'
 
   maplibre-gl@5.18.0:
     resolution: {integrity: sha512-UtWxPBpHuFvEkM+5FVfcFG9ZKEWZQI6+PZkvLErr8Zs5ux+O7/KQ3JjSUvAfOlMeMgd/77qlHpOw0yHL7JU5cw==}
@@ -10090,10 +10081,6 @@ snapshots:
   makeerror@1.0.12:
     dependencies:
       tmpl: 1.0.5
-
-  maplibre-compass-pro@0.6.0(maplibre-gl@5.18.0):
-    dependencies:
-      maplibre-gl: 5.18.0
 
   maplibre-gl@5.18.0:
     dependencies:

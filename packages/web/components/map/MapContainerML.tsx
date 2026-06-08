@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { Compass as CompassPro } from 'maplibre-compass-pro';
-import 'maplibre-compass-pro/dist/style.css';
+import { CustomCompassControl } from './controls/CustomCompassControl';
 import { useMapContext } from './MapProvider';
 import { Coordinate, PointForecast, DetailedPointForecast, fetchPointForecast, fetchHourlyPointForecast, fetchBulkPointForecast, fetchMarinaDetails, fetchDepth, toTelHref, offlineNavigation } from '@seame/core';
 import { FollowModeController } from './FollowModeController';
@@ -526,10 +525,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     });
 
     // Add navigation controls
-    map.addControl(
-      new CompassPro({ size: 'xl', visualizePitch: true, displayDirection: true }),
-      'top-right'
-    );
+    map.addControl(new CustomCompassControl(), 'bottom-right');
     map.addControl(
       new maplibregl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
