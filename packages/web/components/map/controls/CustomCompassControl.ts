@@ -1,6 +1,6 @@
 import maplibregl from 'maplibre-gl';
 
-const COMPASS_SVG = `<svg fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 49.978 49.978" width="28" height="28" xml:space="preserve">
+const COMPASS_SVG = `<svg fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 49.978 49.978" width="44" height="44" xml:space="preserve">
 <g><g>
 <path d="M45.578,24.516l-4.286-0.635c-0.193-3.89-1.81-7.405-4.356-10.029l4.039-4.038l-0.279-0.28l-4.037,4.036
 c-2.713-2.656-6.392-4.318-10.453-4.422l-0.568-3.837v3.825l0,0V5.311l-0.57,3.854c-3.899,0.187-7.425,1.804-10.055,4.355
@@ -89,7 +89,8 @@ export class CustomCompassControl implements maplibregl.IControl {
     btn.title = 'Reset North';
     btn.setAttribute('aria-label', 'Reset North');
     btn.style.cssText = [
-      'width:44px;height:44px;',
+      'position:absolute;bottom:30px;right:10px;z-index:10;',
+      'width:64px;height:64px;',
       'background:rgba(15,23,42,0.85);',
       'border:1px solid rgba(100,116,139,0.4);',
       'border-radius:50%;',
