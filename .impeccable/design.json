@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-08T00:00:00Z",
+  "title": "Design System: SeaYou",
+  "extensions": {
+    "colorMeta": {
+      "ocean-midnight":          { "role": "primary",   "displayName": "Ocean Midnight",        "canonical": "oklch(14% 0.07 234)",  "theme": "deep-ocean" },
+      "ocean-base":              { "role": "primary",   "displayName": "Madison Blue",          "canonical": "oklch(22% 0.09 234)",  "theme": "deep-ocean" },
+      "ocean-elevated":          { "role": "primary",   "displayName": "Ocean Elevated",        "canonical": "oklch(18% 0.08 234)",  "theme": "deep-ocean" },
+      "ocean-border-strong":     { "role": "primary",   "displayName": "Harbour Blue",          "canonical": "oklch(38% 0.12 225)",  "theme": "deep-ocean" },
+      "teal-primary":            { "role": "primary",   "displayName": "Teal Primary",          "canonical": "oklch(52% 0.14 194)",  "theme": "deep-ocean" },
+      "aqua-accent":             { "role": "secondary", "displayName": "Bioluminescent Aqua",   "canonical": "oklch(83% 0.13 177)",  "theme": "deep-ocean" },
+      "night-deepest":           { "role": "primary",   "displayName": "Night Deepest",         "canonical": "oklch(7%  0.02 242)",  "theme": "night-watch" },
+      "night-surface":           { "role": "primary",   "displayName": "Night Surface",         "canonical": "oklch(14% 0.04 242)",  "theme": "night-watch" },
+      "night-elevated":          { "role": "primary",   "displayName": "Night Elevated",        "canonical": "oklch(21% 0.04 242)",  "theme": "night-watch" },
+      "night-accent-blue":       { "role": "secondary", "displayName": "Passage Blue",          "canonical": "oklch(47% 0.19 264)",  "theme": "night-watch" },
+      "night-accent-light":      { "role": "secondary", "displayName": "Horizon Blue",          "canonical": "oklch(68% 0.16 254)",  "theme": "night-watch" },
+      "alert-orange":            { "role": "semantic",  "displayName": "Alert Orange",          "canonical": "oklch(62% 0.17 42)",   "theme": "all" },
+      "success-green":           { "role": "semantic",  "displayName": "Safe Green",            "canonical": "oklch(75% 0.16 162)",  "theme": "all" },
+      "error-red":               { "role": "semantic",  "displayName": "Danger Red",            "canonical": "oklch(67% 0.18 22)",   "theme": "all" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Section headers, modal titles, major view headings. One per screen." },
+      "headline": { "displayName": "Headline", "purpose": "Card titles, panel headers, major data labels." },
+      "title":    { "displayName": "Title",   "purpose": "Sub-panel labels, chip text, navigation items." },
+      "body":     { "displayName": "Body",    "purpose": "Supporting descriptions. Cap at 65ch." },
+      "label":    { "displayName": "Label",   "purpose": "Badges, metadata, coordinate lines, overline categories." },
+      "data":     { "displayName": "Data (Monospace)", "purpose": "All numerical instrument readouts: wind, waves, bearing, coordinates. Tabular alignment is the function." }
+    },
+    "shadows": [
+      { "name": "glass-panel",    "value": "none (blur handles depth)", "purpose": "Primary floating panel over map. Depth via backdrop-filter, not shadow." },
+      { "name": "dark-card",      "value": "0 8px 32px rgba(0,0,0,0.4)", "purpose": "Night Watch card elevation." },
+      { "name": "popup",          "value": "0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)", "purpose": "Map popups and modals. Highest elevation." },
+      { "name": "alert-glow",     "value": "0 4px 15px rgba(230,122,50,0.3)", "purpose": "Orange ambient under alert banners only." }
+    ],
+    "motion": [
+      { "name": "state-change",     "value": "0.15s ease",    "purpose": "Button hover, active states. The shortest transition." },
+      { "name": "theme-transition", "value": "0.2s ease",     "purpose": "Global `transition-property` for background-color, border-color, color." },
+      { "name": "panel-open",       "value": "0.3s ease",     "purpose": "Nav item active, panel slide. The outer limit for UI chrome transitions." },
+      { "name": "theme-swap",       "value": "0.4s ease",     "purpose": "Full theme switch (bg + text + borders). The longest transition in the system." }
+    ],
+    "breakpoints": [
+      { "name": "mobile",  "value": "480px",  "notes": "Bottom nav replaces sidebar. Single column." },
+      { "name": "tablet",  "value": "768px",  "notes": "Sidebar navigation appears. 2-column possible." },
+      { "name": "desktop", "value": "1024px", "notes": "Full sidebar, expanded panels, wider data tables." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action. Teal in Deep Ocean, blue in Night Watch.",
+      "html": "<button class=\"ds-btn-primary\">Set Location</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 6px; background: #008d8d; color: #ffffff; padding: 8px 16px; border: none; border-radius: 10px; font-family: system-ui, -apple-system, sans-serif; font-size: 0.875rem; font-weight: 600; line-height: 1.35; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-primary:hover { background: #00a5a5; } .ds-btn-primary:focus-visible { outline: 2px solid #54e0ca; outline-offset: 2px; } .ds-btn-primary:active { background: #007575; transform: translateY(1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Subordinate actions within panels. Dark navy background.",
+      "html": "<button class=\"ds-btn-secondary\">View Details</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; gap: 6px; background: #074873; color: #cbd5e1; padding: 8px 14px; border: none; border-radius: 10px; font-family: system-ui, -apple-system, sans-serif; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-secondary:hover { background: #085a91; color: #ffffff; } .ds-btn-secondary:focus-visible { outline: 2px solid #008d8d; outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Panel",
+      "kind": "card",
+      "refersTo": "glass-panel",
+      "description": "Primary floating container over the map. The signature component.",
+      "html": "<div class=\"ds-glass-panel\"><div class=\"ds-glass-inner\"><span class=\"ds-data-label\">Wind Speed</span><span class=\"ds-data-value\">18 kt</span></div></div>",
+      "css": ".ds-glass-panel { background: rgba(255,255,255,0.1); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.2); border-radius: 20px; padding: 20px; } .ds-glass-inner { background: rgba(255,255,255,0.2); border-radius: 12px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; } .ds-data-label { font-family: system-ui, -apple-system, sans-serif; font-size: 0.6875rem; font-weight: 500; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.04em; } .ds-data-value { font-family: ui-monospace, 'SF Mono', monospace; font-size: 1rem; font-weight: 700; color: #54e0ca; letter-spacing: 0.01em; }"
+    },
+    {
+      "name": "Dark Card (Night Watch)",
+      "kind": "card",
+      "refersTo": "card-night",
+      "description": "Opaque card used in Night Watch mode. Flat dark with subtle border.",
+      "html": "<div class=\"ds-card-night\"><p class=\"ds-card-title\">Wave Height</p><p class=\"ds-card-data\">1.4 m</p></div>",
+      "css": ".ds-card-night { background: rgba(15,23,42,0.75); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); } .ds-card-title { font-family: system-ui, -apple-system, sans-serif; font-size: 0.6875rem; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 6px 0; } .ds-card-data { font-family: ui-monospace, 'SF Mono', monospace; font-size: 1.5rem; font-weight: 700; color: #60a5fa; margin: 0; letter-spacing: -0.01em; }"
+    },
+    {
+      "name": "Map Popup (Query)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Tap/click popup showing weather data at a map location.",
+      "html": "<div class=\"ds-popup\"><div class=\"ds-popup-coords\">32.08°N  34.78°E</div><div class=\"ds-popup-rows\"><div class=\"ds-popup-row\"><span class=\"ds-popup-label\">Wind</span><span class=\"ds-popup-value\">14 kt</span></div><div class=\"ds-popup-row\"><span class=\"ds-popup-label\">Waves</span><span class=\"ds-popup-value\">0.8 m</span></div></div><button class=\"ds-popup-action\">Full Forecast</button></div>",
+      "css": ".ds-popup { background: rgba(15,23,42,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 16px; min-width: 170px; font-family: system-ui, -apple-system, sans-serif; box-shadow: 0 12px 40px rgba(0,0,0,0.5); } .ds-popup-coords { font-size: 0.625rem; color: #64748b; margin-bottom: 6px; font-variant-numeric: tabular-nums; letter-spacing: 0.3px; font-family: ui-monospace, monospace; } .ds-popup-rows { border-top: 1px solid rgba(255,255,255,0.06); padding-top: 4px; } .ds-popup-row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; } .ds-popup-label { color: #94a3b8; font-size: 0.6875rem; } .ds-popup-value { color: #e2e8f0; font-weight: 700; font-size: 0.75rem; font-family: ui-monospace, monospace; } .ds-popup-action { width: 100%; margin-top: 8px; padding: 6px 0; background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); border-radius: 8px; color: #60a5fa; font-size: 0.6875rem; font-weight: 600; cursor: pointer; font-family: inherit; } .ds-popup-action:hover { background: rgba(59,130,246,0.2); }"
+    },
+    {
+      "name": "Navigation Item",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Bottom bar / sidebar nav item. Two states: default (muted) and active (white + glass).",
+      "html": "<nav class=\"ds-nav-bar\"><button class=\"ds-nav-item\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M3 12l9-9 9 9\"/><path d=\"M9 21V12h6v9\"/></svg><span>Home</span></button><button class=\"ds-nav-item ds-nav-item--active\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 8v4l3 3\"/></svg><span>Forecast</span></button></nav>",
+      "css": ".ds-nav-bar { display: flex; gap: 4px; padding: 8px; background: rgba(15,23,42,0.85); backdrop-filter: blur(12px); border-radius: 16px; } .ds-nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 16px; color: rgba(255,255,255,0.6); background: transparent; border: none; border-radius: 12px; cursor: pointer; font-family: system-ui, -apple-system, sans-serif; font-size: 0.6875rem; font-weight: 500; transition: all 0.3s ease; } .ds-nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.08); } .ds-nav-item--active { color: #ffffff; background: rgba(255,255,255,0.2); } .ds-nav-item svg { flex-shrink: 0; }"
+    },
+    {
+      "name": "Alert Banner",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Safety warning: wind/wave threshold exceeded or hazard detected.",
+      "html": "<div class=\"ds-alert-banner\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M12 2L1 21h22L12 2zm0 3.5L20.5 19H3.5L12 5.5zM11 10v4h2v-4h-2zm0 6v2h2v-2h-2z\"/></svg><span>Strong winds forecast. Small craft advisory in effect.</span></div>",
+      "css": ".ds-alert-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: linear-gradient(90deg, #e67a32 0%, #cd8b4e 100%); border-radius: 12px; box-shadow: 0 4px 15px rgba(230,122,50,0.3); color: #ffffff; font-family: system-ui, -apple-system, sans-serif; font-size: 0.8125rem; font-weight: 600; line-height: 1.4; } .ds-alert-banner svg { flex-shrink: 0; }"
+    },
+    {
+      "name": "Data Row",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Standard weather data row inside a panel or card. Label + monospace value.",
+      "html": "<div class=\"ds-data-row\"><span class=\"ds-data-row__label\">Swell Period</span><span class=\"ds-data-row__value\">9 s</span></div>",
+      "css": ".ds-data-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); } .ds-data-row:last-child { border-bottom: none; } .ds-data-row__label { font-family: system-ui, -apple-system, sans-serif; font-size: 0.6875rem; font-weight: 500; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.03em; } .ds-data-row__value { font-family: ui-monospace, 'SF Mono', monospace; font-size: 0.875rem; font-weight: 700; color: #ffffff; letter-spacing: 0.01em; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Chart Room at Sea",
+    "overview": "SeaYou's design language is built for a specific human being: the person who knows the difference between a 15-knot breeze and a 25-knot gale, and needs that information without ceremony. The Chart Room at Sea captures it: dense precision arranged for instant reading, every element present because it must be, nothing decorative, the ocean making the rules.\n\nThe result is a dark-dominant, high-contrast instrument interface. The three themes are not stylistic choices but environmental responses: Deep Ocean for outdoor daylight use with blue glare-resistant surfaces, Night Watch for night passages and low-light conditions in pure slate, Bright Deck for direct-sunlight operation where maximum contrast is the only acceptable answer.\n\nColor strategy is committed: the ocean blue-teal palette carries 40-60% of every surface in Deep Ocean mode. When the scene sentence is 'sailor checking wind speed on a phone in the cockpit at 0700,' the answer is committed ocean blue, not neutral gray with a touch of teal.",
+    "keyCharacteristics": [
+      "Three environment-matched themes: Deep Ocean (blue, outdoor), Night Watch (slate, night), Bright Deck (white, maximum contrast)",
+      "Glassmorphism panels are purposeful: they frame the map without obscuring it",
+      "Committed ocean palette; teal is the primary action color across all light themes",
+      "System-native typography for instrument-grade legibility at every size",
+      "Tabular data in monospace; all other content in system-ui",
+      "Functional motion only: state changes; no choreography",
+      "prefers-reduced-motion supported"
+    ],
+    "rules": [
+      { "name": "The Environment Rule",     "body": "Never choose a theme based on aesthetic preference. Deep Ocean is for outdoor daylight. Night Watch is for night passages. Bright Deck is for direct sun. The theme follows the environment.",       "section": "colors" },
+      { "name": "The Teal Sovereignty Rule","body": "Teal (#008d8d) is the one action color in Deep Ocean mode. Reserve Aqua (#54e0ca) for data emphasis only. Two chromatic roles; no exceptions.",                                         "section": "colors" },
+      { "name": "The Glass Transparency Rule","body": "Every panel using backdrop-filter: blur() must reveal the map behind it. If a panel's background is fully opaque, remove the blur. The product is the ocean; the UI is the glass.", "section": "elevation" },
+      { "name": "The Blur-or-Nothing Rule", "body": "A panel either uses backdrop-filter blur to reveal the map, or it uses a flat opaque background. Never a blurred background so opaque the map is invisible.",                                "section": "elevation" },
+      { "name": "The Bright Deck Exception","body": "In Bright Deck theme, all glass effects are disabled (--glass-blur: 0px). Replace with opaque white backgrounds and dark borders.",                                                        "section": "elevation" },
+      { "name": "The Monospace Gate",       "body": "If the value has a unit and is compared against other values (wind speed, wave height, bearing, coordinates), use the Data role and monospace. Everything else is system-ui.",            "section": "typography" },
+      { "name": "The Weight Cliff Rule",    "body": "Body is 400; everything above jumps to 600 or 700. No 500 weight in the hierarchy. Contrast between data and label must be legible at a glance in low-light conditions.",                 "section": "typography" }
+    ],
+    "dos": [
+      "Do use var(--app-bg-base), var(--app-bg-card), var(--app-border) and semantic tokens for every new component. Never hardcode hex directly.",
+      "Do use monospace (Data role) for all numerical instrument readouts: wind speed, wave height, bearing, coordinates, time, scores.",
+      "Do keep glassmorphism purposeful. backdrop-filter: blur() only on panels floating over the map where the map is visible behind.",
+      "Do disable glass effects in Bright Deck mode via --glass-blur: 0px and backdrop-filter: none.",
+      "Do respect prefers-reduced-motion. Particle animations and theme transitions must respond to the media query.",
+      "Do maintain WCAG AA contrast on all text in all three themes.",
+      "Do use Alert Orange gradient only for genuine safety warnings."
+    ],
+    "donts": [
+      "Don't build anything that looks like a generic SaaS dashboard (Linear, Notion, shadcn defaults). SeaYou is a marine instrument, not a project management tool.",
+      "Don't use consumer weather app visual patterns (Weather.com gradients, iOS weather bubbles, oversized decorative weather icons).",
+      "Don't use glassmorphism decoratively. A glass panel with nothing visible behind it is just a blurry opaque box.",
+      "Don't use border-left greater than 1px as a colored stripe accent on cards, list items, or alerts.",
+      "Don't use gradient text (background-clip: text). All text is a solid token color.",
+      "Don't add choreographed entrance animations, scroll-driven sequences, or bounce/elastic easing.",
+      "Don't hardcode hex colors for any themed surface. Use the semantic CSS custom property tokens.",
+      "Don't introduce a fourth color role to the action color system. Teal (Deep Ocean), Blue (Night Watch), Navy Blue (Bright Deck). No exceptions."
+    ]
+  }
+}

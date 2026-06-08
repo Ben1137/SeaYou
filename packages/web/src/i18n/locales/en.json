@@ -32,7 +32,12 @@
     "windThreshold": "Wind Threshold (km/h)",
     "tsunamiSimulation": "Tsunami Alert Simulation",
     "noData": "No weather data available.",
-    "alertSettings": "Alert Settings"
+    "alertSettings": "Alert Settings",
+    "offlineMode": "Offline mode, showing last saved forecast",
+    "savedAt": "saved {{time}}",
+    "enterFullscreen": "Enter fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "doubleClickFullscreen": "Double-click to toggle fullscreen"
   },
   "settings": {
     "alertConfig": "Alert Config",

@@ -396,6 +396,19 @@ html {
   min-height: 160px;
 }
 
+/* Bright Deck: override hardcoded dark chart tooltip background */
+.bright-deck .recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: var(--text-primary) !important;
+}
+.bright-deck .recharts-tooltip-wrapper .recharts-tooltip-item {
+  color: var(--text-primary) !important;
+}
+.bright-deck .recharts-tooltip-wrapper .recharts-tooltip-label {
+  color: var(--text-muted) !important;
+}
+
 /* ================================================
    Glassmorphism Design System
    Premium glass-panel styling for SeaYou redesign

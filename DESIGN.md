@@ -1,312 +1,332 @@
-# Design System Inspired by Claude (Anthropic)
+---
+name: SeaYou
+description: Real-time marine weather intelligence for sailors, surfers, kiters, and coastal professionals
+colors:
+  # Deep Ocean theme (default / "light" class)
+  ocean-midnight: "#031e3d"
+  ocean-base: "#082d5d"
+  ocean-elevated: "#052549"
+  ocean-border-strong: "#01658d"
+  ocean-border-subtle: "#074873"
+  teal-primary: "#008d8d"
+  teal-hover: "#00a5a5"
+  aqua-accent: "#54e0ca"
+  button-secondary: "#074873"
+  button-secondary-hover: "#085a91"
+  # Night Watch theme (dark class)
+  night-deepest: "#020617"
+  night-surface: "#0f172a"
+  night-elevated: "#1e293b"
+  night-border: "#334155"
+  night-accent-blue: "#2563eb"
+  night-accent-blue-hover: "#3b82f6"
+  night-accent-light: "#60a5fa"
+  # Bright Deck theme (sun / high contrast)
+  bright-surface: "#ffffff"
+  bright-card: "#f4f4f5"
+  bright-elevated-el: "#e4e4e7"
+  bright-border: "#18181b"
+  bright-accent: "#0066cc"
+  # Text
+  text-on-dark: "#ffffff"
+  text-secondary-slate: "#cbd5e1"
+  text-muted-slate: "#94a3b8"
+  text-dim-slate: "#64748b"
+  # Semantic
+  alert-orange: "#e67a32"
+  success-green: "#34d399"
+  error-red: "#f87171"
+  warning-amber: "#fbbf24"
+  chart-blue: "#3b82f6"
+typography:
+  display:
+    fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontSize: "clamp(1.5rem, 3vw, 2.25rem)"
+    fontWeight: 700
+    lineHeight: 1.15
+    letterSpacing: "-0.02em"
+  headline:
+    fontFamily: "system-ui, -apple-system, sans-serif"
+    fontSize: "clamp(1.125rem, 2vw, 1.5rem)"
+    fontWeight: 600
+    lineHeight: 1.25
+    letterSpacing: "-0.01em"
+  title:
+    fontFamily: "system-ui, -apple-system, sans-serif"
+    fontSize: "1rem"
+    fontWeight: 600
+    lineHeight: 1.35
+    letterSpacing: "normal"
+  body:
+    fontFamily: "system-ui, -apple-system, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    letterSpacing: "normal"
+  label:
+    fontFamily: "system-ui, -apple-system, sans-serif"
+    fontSize: "0.6875rem"
+    fontWeight: 500
+    lineHeight: 1.4
+    letterSpacing: "0.02em"
+  data:
+    fontFamily: "ui-monospace, 'SF Mono', 'Fira Code', monospace"
+    fontSize: "0.75rem"
+    fontWeight: 600
+    lineHeight: 1.2
+    letterSpacing: "0.01em"
+rounded:
+  sm: "6px"
+  md: "10px"
+  lg: "14px"
+  xl: "20px"
+spacing:
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "24px"
+  "2xl": "32px"
+components:
+  button-primary:
+    backgroundColor: "{colors.teal-primary}"
+    textColor: "{colors.text-on-dark}"
+    rounded: "{rounded.md}"
+    padding: "8px 16px"
+  button-primary-hover:
+    backgroundColor: "{colors.teal-hover}"
+    textColor: "{colors.text-on-dark}"
+  button-secondary:
+    backgroundColor: "{colors.button-secondary}"
+    textColor: "{colors.text-secondary-slate}"
+    rounded: "{rounded.md}"
+    padding: "8px 14px"
+  button-secondary-hover:
+    backgroundColor: "{colors.button-secondary-hover}"
+    textColor: "{colors.text-on-dark}"
+  glass-panel:
+    backgroundColor: "rgba(255,255,255,0.1)"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.xl}"
+  card-night:
+    backgroundColor: "rgba(15,23,42,0.75)"
+    rounded: "{rounded.xl}"
+    padding: "{spacing.lg}"
+  input-field:
+    backgroundColor: "rgba(255,255,255,0.08)"
+    textColor: "{colors.text-on-dark}"
+    rounded: "{rounded.md}"
+    padding: "8px 12px"
+---
 
-## 1. Visual Theme & Atmosphere
+# Design System: SeaYou
 
-Claude's interface is a literary salon reimagined as a product page — warm, unhurried, and quietly intellectual. The entire experience is built on a parchment-toned canvas (`#f5f4ed`) that deliberately evokes the feeling of high-quality paper rather than a digital surface. Where most AI product pages lean into cold, futuristic aesthetics, Claude's design radiates human warmth, as if the AI itself has good taste in interior design.
+## 1. Overview
 
-The signature move is the custom Anthropic Serif typeface — a medium-weight serif with generous proportions that gives every headline the gravitas of a book title. Combined with organic, hand-drawn-feeling illustrations in terracotta (`#c96442`), black, and muted green, the visual language says "thoughtful companion" rather than "powerful tool." The serif headlines breathe at tight-but-comfortable line-heights (1.10–1.30), creating a cadence that feels more like reading an essay than scanning a product page.
+**Creative North Star: "The Chart Room at Sea"**
 
-What makes Claude's design truly distinctive is its warm neutral palette. Every gray has a yellow-brown undertone (`#5e5d59`, `#87867f`, `#4d4c48`) — there are no cool blue-grays anywhere. Borders are cream-tinted (`#f0eee6`, `#e8e6dc`), shadows use warm transparent blacks, and even the darkest surfaces (`#141413`, `#30302e`) carry a barely perceptible olive warmth. This chromatic consistency creates a space that feels lived-in and trustworthy.
+SeaYou's design language is built for a specific human being: the person who knows the difference between a 15-knot breeze and a 25-knot gale, and needs that information without ceremony. The Chart Room at Sea captures it: dense precision arranged for instant reading, every element present because it must be, nothing decorative, the ocean making the rules.
+
+The result is a dark-dominant, high-contrast instrument interface. The three themes are not stylistic choices but environmental responses: Deep Ocean for outdoor daylight use with blue glare-resistant surfaces, Night Watch for night passages and low-light conditions in pure slate, Bright Deck for direct-sunlight operation where maximum contrast is the only acceptable answer. The glassmorphism panels are not aesthetic flourishes; they are a technical decision that lets the map (the product) breathe through every layer of chrome. The interface is made of glass because the horizon must always be visible.
+
+Color strategy is **committed**: the ocean blue-teal palette carries 40-60% of every surface in Deep Ocean mode. This is not a restrained accent system; the chromatic identity is the product's nautical credibility. When the scene sentence is "sailor checking wind speed on a phone in the cockpit at 0700," the answer is committed ocean blue, not neutral gray with a touch of teal.
+
+Typography is system-native: system-ui delivers familiarity, legibility at small sizes, and zero load overhead. Instrument data uses monospace for tabular alignment. Hierarchy is achieved through weight contrast (400 body / 600-700 title/headline) and size steps of at least 1.25x between roles.
 
 **Key Characteristics:**
-- Warm parchment canvas (`#f5f4ed`) evoking premium paper, not screens
-- Custom Anthropic type family: Serif for headlines, Sans for UI, Mono for code
-- Terracotta brand accent (`#c96442`) — warm, earthy, deliberately un-tech
-- Exclusively warm-toned neutrals — every gray has a yellow-brown undertone
-- Organic, editorial illustrations replacing typical tech iconography
-- Ring-based shadow system (`0px 0px 0px 1px`) creating border-like depth without visible borders
-- Magazine-like pacing with generous section spacing and serif-driven hierarchy
+- Three environment-matched themes: Deep Ocean (blue, outdoor), Night Watch (slate, night), Bright Deck (white, maximum contrast)
+- Glassmorphism panels are purposeful: they frame the map without obscuring it
+- Committed ocean palette; teal is the primary action color across all light themes
+- System-native typography for instrument-grade legibility at every size
+- Tabular data in monospace; all other content in system-ui
+- Functional motion only: no choreography, no entrance animations; state changes only
+- Reduced-motion respects `prefers-reduced-motion` without degrading information density
 
-## 2. Color Palette & Roles
+## 2. Colors: The Three-Sea Palette
 
-### Primary
-- **Anthropic Near Black** (`#141413`): The primary text color and dark-theme surface — not pure black but a warm, almost olive-tinted dark that's gentler on the eyes. The warmest "black" in any major tech brand.
-- **Terracotta Brand** (`#c96442`): The core brand color — a burnt orange-brown used for primary CTA buttons, brand moments, and the signature accent. Deliberately earthy and un-tech.
-- **Coral Accent** (`#d97757`): A lighter, warmer variant of the brand color used for text accents, links on dark surfaces, and secondary emphasis.
+Three named themes, each a direct response to a physical environment.
 
-### Secondary & Accent
-- **Error Crimson** (`#b53333`): A deep, warm red for error states — serious without being alarming.
-- **Focus Blue** (`#3898ec`): Standard blue for input focus rings — the only cool color in the entire system, used purely for accessibility.
+### Primary (Deep Ocean — default daylight mode)
 
-### Surface & Background
-- **Parchment** (`#f5f4ed`): The primary page background — a warm cream with a yellow-green tint that feels like aged paper. The emotional foundation of the entire design.
-- **Ivory** (`#faf9f5`): The lightest surface — used for cards and elevated containers on the Parchment background. Barely distinguishable but creates subtle layering.
-- **Pure White** (`#ffffff`): Reserved for specific button surfaces and maximum-contrast elements.
-- **Warm Sand** (`#e8e6dc`): Button backgrounds and prominent interactive surfaces — a noticeably warm light gray.
-- **Dark Surface** (`#30302e`): Dark-theme containers, nav borders, and elevated dark elements — warm charcoal.
-- **Deep Dark** (`#141413`): Dark-theme page background and primary dark surface.
+- **Ocean Midnight** (`#031e3d`): Card and panel backgrounds in Deep Ocean mode. The deepest surface; conveys depth below the map layer.
+- **Ocean Base / Madison Blue** (`#082d5d`): Primary app background in Deep Ocean mode. A compressed, dark navy that reads well under outdoor ambient light without washing out.
+- **Ocean Elevated** (`#052549`): Elevated container surfaces sitting above the base.
+- **Teal Primary** (`#008d8d`): The primary action color. Buttons, active nav items, interactive affordances. A desaturated teal that reads "instrument active" without neon aggression.
+- **Aqua Accent** (`#54e0ca`): Text highlights, data readouts, chart lines, icon accents. Higher chroma than Teal; reserved for information emphasis only.
 
-### Neutrals & Text
-- **Charcoal Warm** (`#4d4c48`): Button text on light warm surfaces — the go-to dark-on-light text.
-- **Olive Gray** (`#5e5d59`): Secondary body text — a distinctly warm medium-dark gray.
-- **Stone Gray** (`#87867f`): Tertiary text, footnotes, and de-emphasized metadata.
-- **Dark Warm** (`#3d3d3a`): Dark text links and emphasized secondary text.
-- **Warm Silver** (`#b0aea5`): Text on dark surfaces — a warm, parchment-tinted light gray.
+### Secondary (Night Watch — dark/night mode)
 
-### Semantic & Accent
-- **Border Cream** (`#f0eee6`): Standard light-theme border — barely visible warm cream, creating the gentlest possible containment.
-- **Border Warm** (`#e8e6dc`): Prominent borders, section dividers, and emphasized containment on light surfaces.
-- **Border Dark** (`#30302e`): Standard border on dark surfaces — maintains the warm tone.
-- **Ring Warm** (`#d1cfc5`): Shadow ring color for button hover/focus states.
-- **Ring Subtle** (`#dedc01`): Secondary ring variant for lighter interactive surfaces.
-- **Ring Deep** (`#c2c0b6`): Deeper ring for active/pressed states.
+- **Night Deepest** (`#020617`): Main app background at night. Slate-950; slightly cooler than pure black, retains readability under red cockpit lighting.
+- **Night Surface** (`#0f172a`): Card backgrounds. Elevated from Deepest; slate-900.
+- **Night Elevated** (`#1e293b`): Panels and modals. Slate-800.
+- **Night Accent Blue** (`#2563eb`): Primary action color in night mode. Shifted from teal to blue to maintain WCAG AA contrast on dark slate backgrounds.
+- **Night Accent Light** (`#60a5fa`): Data readouts and text emphasis in night mode. High contrast on near-black.
 
-### Gradient System
-- Claude's design is **gradient-free** in the traditional sense. Depth and visual richness come from the interplay of warm surface tones, organic illustrations, and light/dark section alternation. The warm palette itself creates a "gradient" effect as the eye moves through cream → sand → stone → charcoal → black sections.
+### Tertiary (Bright Deck — direct sunlight mode)
 
-## 3. Typography Rules
+- **Bright Surface** (`#ffffff`): Page background. Stark white; maximum contrast is the only design goal in this mode.
+- **Bright Accent** (`#0066cc`): Primary actions in sunlight mode. A confident navy-blue that passes AA on white at all sizes.
 
-### Font Family
-- **Headline**: `Anthropic Serif`, with fallback: `Georgia`
-- **Body / UI**: `Anthropic Sans`, with fallback: `Arial`
-- **Code**: `Anthropic Mono`, with fallback: `Arial`
+### Neutral
 
-*Note: These are custom typefaces. For external implementations, Georgia serves as the serif substitute and system-ui/Inter as the sans substitute.*
+- **Text On Dark** (`#ffffff`): Primary text on all dark surfaces.
+- **Slate Secondary** (`#cbd5e1`): Secondary text, subtitles, supporting data.
+- **Slate Muted** (`#94a3b8`): Tertiary text, labels, placeholder copy.
+- **Slate Dim** (`#64748b`): Least-prominent text; coordinates, footnotes, disabled states.
+
+### Semantic
+
+- **Alert Orange** (`#e67a32`): Wind/wave threshold warnings. The alert banner uses a horizontal gradient from this to `#cd8b4e`.
+- **Success Green** (`#34d399`): Open/active facility status, safe condition indicators.
+- **Error Red** (`#f87171`): Closed status, danger conditions, form errors.
+- **Warning Amber** (`#fbbf24`): Marginal conditions, star ratings, caution.
+
+### Named Rules
+
+**The Environment Rule.** Never choose a theme based on aesthetic preference. Deep Ocean is for outdoor daylight. Night Watch is for night passages and low-light. Bright Deck is for direct sun where glare eliminates all middle-ground contrast. The theme follows the environment; the environment does not follow the designer.
+
+**The Teal Sovereignty Rule.** Teal (`#008d8d`) is the one action color in Deep Ocean mode. It appears on primary buttons, active nav items, and interactive indicators. It does not appear decoratively. Reserve Aqua (`#54e0ca`) for data and emphasis; reserve Teal for action. Two chromatic roles; no exceptions.
+
+**The Glass Transparency Rule.** Glassmorphism is not decorative. Every panel using `backdrop-filter: blur()` must reveal the map behind it. If a panel's background is fully opaque, remove the blur. The product is the ocean; the UI is the glass.
+
+## 3. Typography: Instrument Grade
+
+**Display / Body Font:** system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
+**Data / Tabular Font:** ui-monospace, 'SF Mono', 'Fira Code', monospace
+
+**Character:** System-native sans for zero load latency and maximum screen legibility. Monospace reserved exclusively for numerical instrument data where tabular alignment is a functional requirement (wind speed, wave height, coordinates, bearings). The pairing is not aesthetic; it is a distinction between interface copy and instrument readout.
 
 ### Hierarchy
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Display / Hero | Anthropic Serif | 64px (4rem) | 500 | 1.10 (tight) | normal | Maximum impact, book-title presence |
-| Section Heading | Anthropic Serif | 52px (3.25rem) | 500 | 1.20 (tight) | normal | Feature section anchors |
-| Sub-heading Large | Anthropic Serif | 36–36.8px (~2.3rem) | 500 | 1.30 | normal | Secondary section markers |
-| Sub-heading | Anthropic Serif | 32px (2rem) | 500 | 1.10 (tight) | normal | Card titles, feature names |
-| Sub-heading Small | Anthropic Serif | 25–25.6px (~1.6rem) | 500 | 1.20 | normal | Smaller section titles |
-| Feature Title | Anthropic Serif | 20.8px (1.3rem) | 500 | 1.20 | normal | Small feature headings |
-| Body Serif | Anthropic Serif | 17px (1.06rem) | 400 | 1.60 (relaxed) | normal | Serif body text (editorial passages) |
-| Body Large | Anthropic Sans | 20px (1.25rem) | 400 | 1.60 (relaxed) | normal | Intro paragraphs |
-| Body / Nav | Anthropic Sans | 17px (1.06rem) | 400–500 | 1.00–1.60 | normal | Navigation links, UI text |
-| Body Standard | Anthropic Sans | 16px (1rem) | 400–500 | 1.25–1.60 | normal | Standard body, button text |
-| Body Small | Anthropic Sans | 15px (0.94rem) | 400–500 | 1.00–1.60 | normal | Compact body text |
-| Caption | Anthropic Sans | 14px (0.88rem) | 400 | 1.43 | normal | Metadata, descriptions |
-| Label | Anthropic Sans | 12px (0.75rem) | 400–500 | 1.25–1.60 | 0.12px | Badges, small labels |
-| Overline | Anthropic Sans | 10px (0.63rem) | 400 | 1.60 | 0.5px | Uppercase overline labels |
-| Micro | Anthropic Sans | 9.6px (0.6rem) | 400 | 1.60 | 0.096px | Smallest text |
-| Code | Anthropic Mono | 15px (0.94rem) | 400 | 1.60 | -0.32px | Inline code, terminal |
+- **Display** (700, `clamp(1.5rem, 3vw, 2.25rem)`, lh 1.15, ls -0.02em): Section headers, modal titles, major view headings. Used sparingly; one per screen.
+- **Headline** (600, `clamp(1.125rem, 2vw, 1.5rem)`, lh 1.25, ls -0.01em): Card titles, panel headers, major data labels.
+- **Title** (600, `1rem`, lh 1.35): Sub-panel labels, chip text, navigation items.
+- **Body** (400, `0.875rem`, lh 1.5): Supporting descriptions, longer text blocks. Cap at 65ch for readability in wider panels.
+- **Label** (500, `0.6875rem`, lh 1.4, ls 0.02em): Badges, metadata, coordinate lines, overline categories.
+- **Data** (600, `0.75rem`, monospace, lh 1.2, ls 0.01em): All numerical readouts: wind speed (kt), wave height (m), bearing (°), lat/lon. Tabular alignment is the function; monospace is non-negotiable.
 
-### Principles
-- **Serif for authority, sans for utility**: Anthropic Serif carries all headline content with medium weight (500), giving every heading the gravitas of a published title. Anthropic Sans handles all functional UI text — buttons, labels, navigation — with quiet efficiency.
-- **Single weight for serifs**: All Anthropic Serif headings use weight 500 — no bold, no light. This creates a consistent "voice" across all headline sizes, as if the same author wrote every heading.
-- **Relaxed body line-height**: Most body text uses 1.60 line-height — significantly more generous than typical tech sites (1.4–1.5). This creates a reading experience closer to a book than a dashboard.
-- **Tight-but-not-compressed headings**: Line-heights of 1.10–1.30 for headings are tight but never claustrophobic. The serif letterforms need breathing room that sans-serif fonts don't.
-- **Micro letter-spacing on labels**: Small sans text (12px and below) uses deliberate letter-spacing (0.12px–0.5px) to maintain readability at tiny sizes.
+### Named Rules
 
-## 4. Component Stylings
+**The Monospace Gate.** If the value has a unit and is compared against other values in a column or row (wind speed, wave height, temperature, bearing), it is instrument data: use the Data role and monospace. Everything else is interface copy: system-ui.
+
+**The Weight Cliff Rule.** There is no 500-weight in the hierarchy. Body is 400; everything above it jumps to 600 or 700. Flat-weight scales blur the instrument hierarchy. Contrast between the data and its label must be legible at a glance in low-light conditions.
+
+## 4. Elevation: Glass Over Ocean
+
+SeaYou does not use traditional drop shadows. Depth is conveyed through two mechanisms: **tonal layering** (darker = deeper; the map is always deepest) and **glass panels** (blur + transparency = floating above the map). The elevation system describes which components use which approach.
+
+Three light themes have different layering depths, but the principle is consistent: surfaces are dark and layered in Ocean/Night modes; the Bright Deck mode inverts to pure white with borders replacing blur.
+
+### Shadow Vocabulary
+
+- **Flat (Level 0)**: No shadow. The map itself; full-screen backgrounds.
+- **Glass Panel (Level 1)**: `backdrop-filter: blur(12px)` with `rgba(255,255,255,0.1)` background and `rgba(255,255,255,0.2)` border. Used for floating information panels over the map.
+- **Glass Inner (Level 2)**: `background: rgba(255,255,255,0.2)`, `border-radius: 0.75rem`. Nested elements within glass panels.
+- **Dark Card (Level 1, Night Watch)**: `background: rgba(15,23,42,0.75)`, `box-shadow: 0 8px 32px rgba(0,0,0,0.4)`, `border: 1px solid rgba(255,255,255,0.06)`.
+- **Popup / Modal (Level 3)**: `box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)`. Used for map popups, drawers, modals. Highest elevation.
+- **Alert Glow**: `box-shadow: 0 4px 15px rgba(230,122,50,0.3)`. Orange ambient glow under alert banners only.
+
+### Named Rules
+
+**The Blur-or-Nothing Rule.** A panel either uses `backdrop-filter: blur()` to reveal the map behind it, or it uses a fully opaque flat background with no blur. Never set a blurred background so opaque that the map is invisible; that defeats the entire glass architecture.
+
+**The Bright Deck Exception.** In the Bright Deck theme, all glass effects are disabled (`--glass-blur: 0px`; `backdrop-filter: none`). In direct sunlight, frosted blur is imperceptible and wastes render budget. Replace with opaque white backgrounds and dark borders.
+
+## 5. Components
 
 ### Buttons
 
-**Warm Sand (Secondary)**
-- Background: Warm Sand (`#e8e6dc`)
-- Text: Charcoal Warm (`#4d4c48`)
-- Padding: 0px 12px 0px 8px (asymmetric — icon-first layout)
-- Radius: comfortably rounded (8px)
-- Shadow: ring-based (`#e8e6dc 0px 0px 0px 0px, #d1cfc5 0px 0px 0px 1px`)
-- The workhorse button — warm, unassuming, clearly interactive
+The primary action color tracks the theme: Teal in Deep Ocean, Blue in Night Watch, Navy Blue in Bright Deck.
 
-**White Surface**
-- Background: Pure White (`#ffffff`)
-- Text: Anthropic Near Black (`#141413`)
-- Padding: 8px 16px 8px 12px
-- Radius: generously rounded (12px)
-- Hover: shifts to secondary background color
-- Clean, elevated button for light surfaces
+- **Shape:** Gently rounded (10px radius). Not pill-shaped; not squared. A nautical object, not a consumer app bubble.
+- **Primary:** Background `#008d8d` (or theme-appropriate), text `#ffffff`, padding `8px 16px`. On hover: `#00a5a5`. Transition: `background-color 0.15s ease`.
+- **Secondary:** Background `#074873`, text `#cbd5e1`, padding `8px 14px`. On hover: `#085a91`.
+- **Ghost / Icon:** Transparent background, `rgba(255,255,255,0.15)` on hover. Used for map control buttons and toolbar actions.
+- **Disabled:** 40% opacity, `cursor: not-allowed`. No color change.
 
-**Dark Charcoal**
-- Background: Dark Surface (`#30302e`)
-- Text: Ivory (`#faf9f5`)
-- Padding: 0px 12px 0px 8px
-- Radius: comfortably rounded (8px)
-- Shadow: ring-based (`#30302e 0px 0px 0px 0px, ring 0px 0px 0px 1px`)
-- The inverted variant for dark-on-light emphasis
+### Glass Panels
 
-**Brand Terracotta**
-- Background: Terracotta Brand (`#c96442`)
-- Text: Ivory (`#faf9f5`)
-- Radius: 8–12px
-- Shadow: ring-based (`#c96442 0px 0px 0px 0px, #c96442 0px 0px 0px 1px`)
-- The primary CTA — the only button with chromatic color
+The signature container. Used for all information overlays that float above the map.
 
-**Dark Primary**
-- Background: Anthropic Near Black (`#141413`)
-- Text: Warm Silver (`#b0aea5`)
-- Padding: 9.6px 16.8px
-- Radius: generously rounded (12px)
-- Border: thin solid Dark Surface (`1px solid #30302e`)
-- Used on dark theme surfaces
+- **Background:** `rgba(255,255,255,0.1)` (Deep Ocean/Night Watch); `rgba(255,255,255,0.92)` (Bright Deck, no blur)
+- **Border:** `1px solid rgba(255,255,255,0.2)` (dark themes); `1px solid rgba(0,0,0,0.08)` (Bright Deck)
+- **Blur:** `backdrop-filter: blur(12px)` (disabled in Bright Deck)
+- **Radius:** 20px (`rounded-xl`)
+- **Internal Padding:** 24px standard; 16px compact (used in sidebar panels and popups)
 
-### Cards & Containers
-- Background: Ivory (`#faf9f5`) or Pure White (`#ffffff`) on light surfaces; Dark Surface (`#30302e`) on dark
-- Border: thin solid Border Cream (`1px solid #f0eee6`) on light; `1px solid #30302e` on dark
-- Radius: comfortably rounded (8px) for standard cards; generously rounded (16px) for featured; very rounded (32px) for hero containers and embedded media
-- Shadow: whisper-soft (`rgba(0,0,0,0.05) 0px 4px 24px`) for elevated content
-- Ring shadow: `0px 0px 0px 1px` patterns for interactive card states
-- Section borders: `1px 0px 0px` (top-only) for list item separators
+Night Watch variant: `background: rgba(15,23,42,0.75)`, `box-shadow: 0 8px 32px rgba(0,0,0,0.4)`, `border: 1px solid rgba(255,255,255,0.06)`.
 
-### Inputs & Forms
-- Text: Anthropic Near Black (`#141413`)
-- Padding: 1.6px 12px (very compact vertical)
-- Border: standard warm borders
-- Focus: ring with Focus Blue (`#3898ec`) border-color — the only cool color moment
-- Radius: generously rounded (12px)
+### Map Popups
+
+Three distinct popup types with shared structure: minimal padding, dark glass background, rounded corners, no title bar.
+
+- **Query Popup (tap/click):** `background: rgba(15,23,42,0.92)`, `border: 1px solid rgba(255,255,255,0.1)`, `border-radius: 14px`, `backdrop-filter: blur(16px)`, `padding: 14px 16px`.
+- **Hover Mini-Popup:** Lighter treatment, `pointer-events: none`, `background: rgba(15,23,42,0.85)`, no border, `border-radius: 10px`, `padding: 8px 12px`.
+- **Marina/Harbour Popup:** Richest variant; header section, divider, data rows, action buttons. `min-width: 240px`. Buttons use gradient fills (teal-to-green for phone, blue-to-cyan for website).
 
 ### Navigation
-- Sticky top nav with warm background
-- Logo: Claude wordmark in Anthropic Near Black
-- Links: mix of Near Black (`#141413`), Olive Gray (`#5e5d59`), and Dark Warm (`#3d3d3a`)
-- Nav border: `1px solid #30302e` (dark) or `1px solid #f0eee6` (light)
-- CTA: Terracotta Brand button or White Surface button
-- Hover: text shifts to foreground-primary, no decoration
 
-### Image Treatment
-- Product screenshots showing the Claude chat interface
-- Generous border-radius on media (16–32px)
-- Embedded video players with rounded corners
-- Dark UI screenshots provide contrast against warm light canvas
-- Organic, hand-drawn illustrations for conceptual sections
+Two layouts: sidebar (desktop, ≥768px) and bottom bar (mobile). Shared treatment:
 
-### Distinctive Components
+- **Nav Items:** `color: rgba(255,255,255,0.6)` at rest; `color: #ffffff` and `background: rgba(255,255,255,0.2)` when active.
+- **Typography:** Title role (600, 1rem) for labels; Label role for secondary descriptions.
+- **Active Transition:** `all 0.3s ease`. The transition is visible but not theatrical; 300ms ease is the outer limit.
 
-**Model Comparison Cards**
-- Opus 4.5, Sonnet 4.5, Haiku 4.5 presented in a clean card grid
-- Each model gets a bordered card with name, description, and capability badges
-- Border Warm (`#e8e6dc`) separation between items
+### Data Cards / Dashboard Panels
 
-**Organic Illustrations**
-- Hand-drawn-feeling vector illustrations in terracotta, black, and muted green
-- Abstract, conceptual rather than literal product diagrams
-- The primary visual personality — no other AI company uses this style
+Used for weather data, activity scores, forecast rows.
 
-**Dark/Light Section Alternation**
-- The page alternates between Parchment light and Near Black dark sections
-- Creates a reading rhythm like chapters in a book
-- Each section feels like a distinct environment
+- **Background:** `var(--app-bg-card)` (theme-tracked).
+- **Border:** `1px solid var(--app-border)`.
+- **Radius:** 14px for standard cards; 10px for compact rows.
+- **Internal Padding:** 16px standard.
+- **Data Row:** Flexbox, `justify-content: space-between`. Label in Body/Muted role, value in Data (monospace) role.
 
-## 5. Layout Principles
+### Inputs / Fields
 
-### Spacing System
-- Base unit: 8px
-- Scale: 3px, 4px, 6px, 8px, 10px, 12px, 16px, 20px, 24px, 30px
-- Button padding: asymmetric (0px 12px 0px 8px) or balanced (8px 16px)
-- Card internal padding: approximately 24–32px
-- Section vertical spacing: generous (estimated 80–120px between major sections)
+- **Background:** `rgba(255,255,255,0.08)` (dark themes); `#f4f4f5` (Bright Deck).
+- **Border:** `1px solid rgba(255,255,255,0.15)` at rest; `1px solid var(--teal-primary)` on focus.
+- **Focus ring:** 2px offset `box-shadow: 0 0 0 2px rgba(0,141,141,0.4)`.
+- **Radius:** 10px.
+- **Padding:** `8px 12px`.
 
-### Grid & Container
-- Max container width: approximately 1200px, centered
-- Hero: centered with editorial layout
-- Feature sections: single-column or 2–3 column card grids
-- Model comparison: clean 3-column grid
-- Full-width dark sections breaking the container for emphasis
+### Signature: Activity Score Chip
 
-### Whitespace Philosophy
-- **Editorial pacing**: Each section breathes like a magazine spread — generous top/bottom margins create natural reading pauses.
-- **Serif-driven rhythm**: The serif headings establish a literary cadence that demands more whitespace than sans-serif designs.
-- **Content island approach**: Sections alternate between light and dark environments, creating distinct "rooms" for each message.
+A compact pill combining a letter grade and numerical score. Used throughout the dashboard.
 
-### Border Radius Scale
-- Sharp (4px): Minimal inline elements
-- Subtly rounded (6–7.5px): Small buttons, secondary interactive elements
-- Comfortably rounded (8–8.5px): Standard buttons, cards, containers
-- Generously rounded (12px): Primary buttons, input fields, nav elements
-- Very rounded (16px): Featured containers, video players, tab lists
-- Highly rounded (24px): Tag-like elements, highlighted containers
-- Maximum rounded (32px): Hero containers, embedded media, large cards
+- **Background:** `rgba(X,Y,Z,0.15)` tinted by score tier (green for high, amber for marginal, red for low).
+- **Text:** Score in Data role (monospace, 700); grade letter at Headline weight.
+- **Radius:** 8px (compact).
+- **No border.** Tinted background conveys status; a border would double the signal.
 
-## 6. Depth & Elevation
+### Alert Banner
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Flat (Level 0) | No shadow, no border | Parchment background, inline text |
-| Contained (Level 1) | `1px solid #f0eee6` (light) or `1px solid #30302e` (dark) | Standard cards, sections |
-| Ring (Level 2) | `0px 0px 0px 1px` ring shadows using warm grays | Interactive cards, buttons, hover states |
-| Whisper (Level 3) | `rgba(0,0,0,0.05) 0px 4px 24px` | Elevated feature cards, product screenshots |
-| Inset (Level 4) | `inset 0px 0px 0px 1px` at 15% opacity | Active/pressed button states |
+- **Background:** `linear-gradient(90deg, #e67a32 0%, #cd8b4e 100%)`.
+- **Radius:** 12px.
+- **Shadow:** `0 4px 15px rgba(230,122,50,0.3)` (orange ambient glow, purpose-built).
+- **Content:** Icon left-aligned, text body, optional dismiss button. Never nests inside a glass panel; it floats above.
 
-**Shadow Philosophy**: Claude communicates depth through **warm-toned ring shadows** rather than traditional drop shadows. The signature `0px 0px 0px 1px` pattern creates a border-like halo that's softer than an actual border — it's a shadow pretending to be a border, or a border that's technically a shadow. When drop shadows do appear, they're extremely soft (0.05 opacity, 24px blur) — barely visible lifts that suggest floating rather than casting.
+## 6. Do's and Don'ts
 
-### Decorative Depth
-- **Light/Dark alternation**: The most dramatic depth effect comes from alternating between Parchment (`#f5f4ed`) and Near Black (`#141413`) sections — entire sections shift elevation by changing the ambient light level.
-- **Warm ring halos**: Button and card interactions use ring shadows that match the warm palette — never cool-toned or generic gray.
+### Do:
 
-## 7. Do's and Don'ts
+- **Do** use `var(--app-bg-base)`, `var(--app-bg-card)`, `var(--app-border)`, and the other semantic tokens for every new component. Never hardcode `#0f172a` or `#082d5d` directly; the three-theme architecture requires every surface to track the active theme.
+- **Do** use monospace (Data role) for all numerical instrument readouts: wind speed, wave height, bearing, coordinates, time, scores. Legibility under adverse conditions depends on tabular alignment.
+- **Do** keep glassmorphism purposeful. `backdrop-filter: blur()` only on panels floating over the map where the map behind is visible. Opaque containers get flat backgrounds.
+- **Do** disable glass effects in Bright Deck mode via the `--glass-blur: 0px` token and `backdrop-filter: none` override.
+- **Do** respect `prefers-reduced-motion`. Particle animations and theme transitions must respond to the media query. The `* { transition: 0.2s }` global should be disabled or reduced.
+- **Do** maintain WCAG AA contrast on all text in all three themes. White on Ocean Base (`#082d5d`) is the minimum bar; verify any new surface/text pairing before shipping.
+- **Do** use the Alert Orange gradient only for genuine safety warnings (wind/wave threshold exceedances, hazard alerts). Its visual weight demands restraint.
 
-### Do
-- Use Parchment (`#f5f4ed`) as the primary light background — the warm cream tone IS the Claude personality
-- Use Anthropic Serif at weight 500 for all headlines — the single-weight consistency is intentional
-- Use Terracotta Brand (`#c96442`) only for primary CTAs and the highest-signal brand moments
-- Keep all neutrals warm-toned — every gray should have a yellow-brown undertone
-- Use ring shadows (`0px 0px 0px 1px`) for interactive element states instead of drop shadows
-- Maintain the editorial serif/sans hierarchy — serif for content headlines, sans for UI
-- Use generous body line-height (1.60) for a literary reading experience
-- Alternate between light and dark sections to create chapter-like page rhythm
-- Apply generous border-radius (12–32px) for a soft, approachable feel
+### Don't:
 
-### Don't
-- Don't use cool blue-grays anywhere — the palette is exclusively warm-toned
-- Don't use bold (700+) weight on Anthropic Serif — weight 500 is the ceiling for serifs
-- Don't introduce saturated colors beyond Terracotta — the palette is deliberately muted
-- Don't use sharp corners (< 6px radius) on buttons or cards — softness is core to the identity
-- Don't apply heavy drop shadows — depth comes from ring shadows and background color shifts
-- Don't use pure white (`#ffffff`) as a page background — Parchment (`#f5f4ed`) or Ivory (`#faf9f5`) are always warmer
-- Don't use geometric/tech-style illustrations — Claude's illustrations are organic and hand-drawn-feeling
-- Don't reduce body line-height below 1.40 — the generous spacing supports the editorial personality
-- Don't use monospace fonts for non-code content — Anthropic Mono is strictly for code
-- Don't mix in sans-serif for headlines — the serif/sans split is the typographic identity
-
-## 8. Responsive Behavior
-
-### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Small Mobile | <479px | Minimum layout, stacked everything, compact typography |
-| Mobile | 479–640px | Single column, hamburger nav, reduced heading sizes |
-| Large Mobile | 640–767px | Slightly wider content area |
-| Tablet | 768–991px | 2-column grids begin, condensed nav |
-| Desktop | 992px+ | Full multi-column layout, expanded nav, maximum hero typography (64px) |
-
-### Touch Targets
-- Buttons use generous padding (8–16px vertical minimum)
-- Navigation links adequately spaced for thumb navigation
-- Card surfaces serve as large touch targets
-- Minimum recommended: 44x44px
-
-### Collapsing Strategy
-- **Navigation**: Full horizontal nav collapses to hamburger on mobile
-- **Feature sections**: Multi-column → stacked single column
-- **Hero text**: 64px → 36px → ~25px progressive scaling
-- **Model cards**: 3-column → stacked vertical
-- **Section padding**: Reduces proportionally but maintains editorial rhythm
-- **Illustrations**: Scale proportionally, maintain aspect ratios
-
-### Image Behavior
-- Product screenshots scale proportionally within rounded containers
-- Illustrations maintain quality at all sizes
-- Video embeds maintain 16:9 aspect ratio with rounded corners
-- No art direction changes between breakpoints
-
-## 9. Agent Prompt Guide
-
-### Quick Color Reference
-- Brand CTA: "Terracotta Brand (#c96442)"
-- Page Background: "Parchment (#f5f4ed)"
-- Card Surface: "Ivory (#faf9f5)"
-- Primary Text: "Anthropic Near Black (#141413)"
-- Secondary Text: "Olive Gray (#5e5d59)"
-- Tertiary Text: "Stone Gray (#87867f)"
-- Borders (light): "Border Cream (#f0eee6)"
-- Dark Surface: "Dark Surface (#30302e)"
-
-### Example Component Prompts
-- "Create a hero section on Parchment (#f5f4ed) with a headline at 64px Anthropic Serif weight 500, line-height 1.10. Use Anthropic Near Black (#141413) text. Add a subtitle in Olive Gray (#5e5d59) at 20px Anthropic Sans with 1.60 line-height. Place a Terracotta Brand (#c96442) CTA button with Ivory text, 12px radius."
-- "Design a feature card on Ivory (#faf9f5) with a 1px solid Border Cream (#f0eee6) border and comfortably rounded corners (8px). Title in Anthropic Serif at 25px weight 500, description in Olive Gray (#5e5d59) at 16px Anthropic Sans. Add a whisper shadow (rgba(0,0,0,0.05) 0px 4px 24px)."
-- "Build a dark section on Anthropic Near Black (#141413) with Ivory (#faf9f5) headline text in Anthropic Serif at 52px weight 500. Use Warm Silver (#b0aea5) for body text. Borders in Dark Surface (#30302e)."
-- "Create a button in Warm Sand (#e8e6dc) with Charcoal Warm (#4d4c48) text, 8px radius, and a ring shadow (0px 0px 0px 1px #d1cfc5). Padding: 0px 12px 0px 8px."
-- "Design a model comparison grid with three cards on Ivory surfaces. Each card gets a Border Warm (#e8e6dc) top border, model name in Anthropic Serif at 25px, and description in Olive Gray at 15px Anthropic Sans."
-
-### Iteration Guide
-1. Focus on ONE component at a time
-2. Reference specific color names — "use Olive Gray (#5e5d59)" not "make it gray"
-3. Always specify warm-toned variants — no cool grays
-4. Describe serif vs sans usage explicitly — "Anthropic Serif for the heading, Anthropic Sans for the label"
-5. For shadows, use "ring shadow (0px 0px 0px 1px)" or "whisper shadow" — never generic "drop shadow"
-6. Specify the warm background — "on Parchment (#f5f4ed)" or "on Near Black (#141413)"
-7. Keep illustrations organic and conceptual — describe "hand-drawn-feeling" style
+- **Don't** build anything that looks like a generic SaaS dashboard. SeaYou is a marine instrument, not a project management tool. Flat white cards, purple accents, and the default Tailwind/shadcn aesthetic are explicitly prohibited. If it could be confused with Linear or Notion, rework it.
+- **Don't** use consumer weather app visual patterns (Weather.com gradients, iOS weather bubbles, oversized weather icons as decoration). SeaYou users are practitioners who distrust data that looks simplified.
+- **Don't** use glassmorphism decoratively. A glass panel with nothing visible behind it is just a blurry opaque box. If the map cannot breathe through the component, use a flat dark background.
+- **Don't** use border-left greater than 1px as a colored stripe accent on cards, list items, or alerts. Use background tints, full borders, or leading icons instead.
+- **Don't** use gradient text (`background-clip: text`). All text is a solid color from the token system.
+- **Don't** add choreographed entrance animations, scroll-driven sequences, or bounce/elastic easing to any element. Motion in SeaYou is limited to state changes (hover, active, selection, data update). The particle animations on the map are the motion identity; the UI chrome must be still.
+- **Don't** hardcode hex colors for any themed surface. Every component that changes between Deep Ocean, Night Watch, and Bright Deck must use the semantic CSS custom property tokens (`--app-bg-base`, `--text-primary`, `--bg-button`, etc.).
+- **Don't** use legacy Navionics or Garmin desktop visual patterns (beveled chrome, blue-gradient title bars, Windows XP-era form controls). The reference is the instrument, not the instrument's 2010-era software wrapper.
+- **Don't** introduce a fourth color role to the action color system. There are three action colors: Teal (Deep Ocean), Blue (Night Watch), Navy Blue (Bright Deck). No purple, no green, no red for actions.
+- **Don't** use `overflow: hidden` on glass panels that float over the map. Clipping the blur boundary creates visible artifact edges. Use `border-radius` on the panel itself.

@@ -40,16 +40,19 @@ export const TsunamiBanner: React.FC<TsunamiBannerProps> = ({ risks }) => {
   return (
     <div
       className={`fixed top-0 left-0 right-0 z-[9999] ${style.bg} ${style.border} border-b-2 backdrop-blur-sm shadow-2xl ${
-        style.pulse ? 'animate-pulse' : ''
+        style.pulse ? 'motion-safe:animate-pulse' : ''
       }`}
       role="alert"
       aria-live="assertive"
     >
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex items-start gap-3">
-          {/* Icon */}
-          <div className={`shrink-0 mt-0.5 ${isHigh ? 'animate-bounce' : ''}`}>
-            <AlertTriangle size={24} className="text-white drop-shadow-lg" />
+          {/* Icon — sonar ring on HIGH, static on MODERATE/LOW */}
+          <div className="shrink-0 mt-0.5 relative">
+            {isHigh && (
+              <span className="absolute inset-0 rounded-full bg-red-400/40 motion-safe:animate-ping" aria-hidden="true" />
+            )}
+            <AlertTriangle size={24} className="relative text-white drop-shadow-lg" />
           </div>
 
           {/* Content */}

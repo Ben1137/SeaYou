@@ -110,7 +110,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   }, [isChartExpanded, isTableExpanded]);
 
   const EXPANDED_SECTION_CLASS =
-    'fixed inset-0 z-[100] w-screen h-screen bg-white dark:bg-slate-900 text-slate-900 dark:text-white p-4 sm:p-8 flex flex-col overflow-y-auto rounded-none';
+    'fixed inset-0 z-[100] w-screen h-screen bg-app-base text-primary p-4 sm:p-8 flex flex-col overflow-y-auto rounded-none';
 
   const getCardinalDirection = (angle: number): string => {
     const keys = ['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest'];
@@ -387,10 +387,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="flex items-center gap-2 px-4 py-2.5 -mx-5 bg-amber-500/15 border-b border-amber-500/30 text-amber-300 text-sm">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span>
-            Offline Mode — showing last saved forecast
+            {t('dashboard.offlineMode', 'Offline mode, showing last saved forecast')}
             {lastUpdated && (
               <span className="ml-1 text-amber-300/70">
-                (saved {format(lastUpdated, 'HH:mm, MMM d')})
+                ({t('dashboard.savedAt', { time: format(lastUpdated, 'HH:mm, MMM d'), defaultValue: `saved ${format(lastUpdated, 'HH:mm, MMM d')}` })})
               </span>
             )}
           </span>
@@ -399,7 +399,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Location Pill (centered) ─── */}
       <div className="flex justify-center">
-        <button id="tour-search-bar" onClick={onLocationClick} className="glass-panel flex items-center px-4 py-1.5 space-x-2 rounded-full! cursor-pointer hover:bg-white/20 transition-colors">
+        <button id="tour-search-bar" onClick={onLocationClick} className="glass-panel flex items-center px-4 py-1.5 space-x-2 !rounded-full cursor-pointer hover:bg-white/20 transition-colors">
           <Navigation size={14} className="text-white" />
           <span className="text-sm font-semibold">{locationName}</span>
           <ChevronDown size={12} className="opacity-70" />
@@ -445,9 +445,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button onClick={() => setShowSettings(!showSettings)} className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10">
-            <Settings size={16} />
-            <span className="text-xs font-bold hidden sm:inline">{t('dashboard.alertConfig')}</span>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10"
+            aria-label={t('dashboard.alertConfig')}
+          >
+            <Settings size={16} aria-hidden="true" />
+            <span className="text-xs font-bold hidden sm:inline" aria-hidden="true">{t('dashboard.alertConfig')}</span>
           </button>
         </div>
       </div>
@@ -630,7 +634,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[11px] text-teal-400 font-mono">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
+            <p className="text-[11px] text-accent font-mono">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
           </div>
           <div className="absolute bottom-0 right-0 w-full h-16 opacity-50 z-0 pointer-events-none">
             <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 300 100">
@@ -655,7 +659,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Waves size={11} className="mr-1.5" /> {t('weather.swell')}</h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[11px] text-teal-400 font-mono flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} /> {getCardinalDirection(currentConditions.swellDirection ?? 0)} <span className="ml-2 opacity-70">{t('weather.period')}: {(currentConditions.swellPeriod ?? 0).toFixed(1)}s</span></p>
+            <p className="text-[11px] text-accent font-mono flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} /> {getCardinalDirection(currentConditions.swellDirection ?? 0)} <span className="ml-2 opacity-70">{t('weather.period')}: {(currentConditions.swellPeriod ?? 0).toFixed(1)}s</span></p>
           </div>
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
         </div>
@@ -702,7 +706,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 <span className="text-lg ml-1 mb-1 font-medium">m</span>
               </div>
               <p
-                className={`text-[11px] font-mono flex items-center gap-1 ${weatherData.tides.rising ? 'text-teal-400' : 'text-amber-500'}`}
+                className={`text-[11px] font-mono flex items-center gap-1 ${weatherData.tides.rising ? 'text-accent' : 'text-amber-500'}`}
                 title={weatherData.tides.rising ? t('forecast.rising') : t('forecast.falling')}
               >
                 {weatherData.tides.rising
@@ -737,14 +741,15 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex space-x-1 bg-black/20 p-1 rounded-lg" onDoubleClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setActiveGraph('wave')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'wave' ? 'bg-blue-600/80 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.waves')}</button>
-            <button onClick={() => setActiveGraph('swell')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'swell' ? 'bg-teal-600/80 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.swell')}</button>
+            <button onClick={() => setActiveGraph('wave')} style={activeGraph === 'wave' ? { backgroundColor: 'var(--chart-primary)', opacity: 0.85 } : undefined} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'wave' ? 'text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.waves')}</button>
+            <button onClick={() => setActiveGraph('swell')} style={activeGraph === 'swell' ? { backgroundColor: 'var(--chart-secondary)', opacity: 0.85 } : undefined} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'swell' ? 'text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.swell')}</button>
             <button onClick={() => setActiveGraph('tide')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'tide' ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.tides')}</button>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); setIsChartExpanded((v) => !v); }}
               className="w-7 h-7 rounded-lg glass-inner flex items-center justify-center hover:bg-white/20 transition-colors"
               aria-label={isChartExpanded ? t('dashboard.exitFullscreen', 'Exit fullscreen') : t('dashboard.enterFullscreen', 'Enter fullscreen')}
+              title={isChartExpanded ? t('dashboard.exitFullscreen', 'Exit fullscreen') : t('dashboard.enterFullscreen', 'Enter fullscreen')}
             >
               {isChartExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
@@ -842,6 +847,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               onClick={(e) => { e.stopPropagation(); setIsTableExpanded((v) => !v); }}
               className="w-7 h-7 rounded-lg glass-inner flex items-center justify-center hover:bg-white/20 transition-colors"
               aria-label={isTableExpanded ? t('dashboard.exitFullscreen', 'Exit fullscreen') : t('dashboard.enterFullscreen', 'Enter fullscreen')}
+              title={isTableExpanded ? t('dashboard.exitFullscreen', 'Exit fullscreen') : t('dashboard.enterFullscreen', 'Enter fullscreen')}
             >
               {isTableExpanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
             </button>
@@ -871,9 +877,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 })() : null;
                 return (
                 <tr key={idx} className="hover:bg-white/5 transition-colors">
-                  <td className="px-4 py-3 font-bold">{row.period}<br /><span className="text-[10px] font-normal text-white/50">{row.date}</span></td>
-                  {forecastTab === 'mariner' && (<><td className="px-4 py-3 text-white/80">{row.pressure}</td><td className="px-4 py-3 text-white/80">{row.seaStatus}</td><td className="px-4 py-3 font-bold">{row.wind}</td><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3 text-teal-400 font-bold">{row.swell} ({row.swellHeight}m)</td></>)}
-                  {forecastTab === 'wave_surfer' && (<><td className="px-4 py-3 font-bold text-blue-300">{row.waveHeight}</td><td className="px-4 py-3">{row.wavePeriod}s</td><td className="px-4 py-3 font-medium text-teal-300">{row.swellHeight}m</td><td className="px-4 py-3">{row.swellPeriod}s</td><td className="px-4 py-3">{row.swell}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
+                  <td className="px-4 py-3 font-bold">{row.period}<br /><span className="text-[11px] font-mono font-normal text-white/50">{row.date}</span></td>
+                  {forecastTab === 'mariner' && (<><td className="px-4 py-3 text-white/80">{row.pressure}</td><td className="px-4 py-3 text-white/80">{row.seaStatus}</td><td className="px-4 py-3 font-bold">{row.wind}</td><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3 text-accent font-bold">{row.swell} ({row.swellHeight}m)</td></>)}
+                  {forecastTab === 'wave_surfer' && (<><td className="px-4 py-3 font-bold text-blue-300">{row.waveHeight}</td><td className="px-4 py-3">{row.wavePeriod}s</td><td className="px-4 py-3 font-medium text-accent">{row.swellHeight}m</td><td className="px-4 py-3">{row.swellPeriod}s</td><td className="px-4 py-3">{row.swell}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
                   {forecastTab === 'wind_surfer' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3">{row.temp}°C</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
                   {forecastTab === 'kite_surfer' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
 
@@ -888,7 +894,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         {FORECAST_TABS.length > 1 && (
           <div className="p-2 flex gap-1 justify-center">
             {FORECAST_TABS.map((tab) => (
-              <button key={tab} onClick={() => setForecastTab(tab)} className={`w-2 h-2 rounded-full transition-colors ${forecastTab === tab ? 'bg-blue-500' : 'bg-white/20 hover:bg-white/40'}`} />
+              <button key={tab} onClick={() => setForecastTab(tab)} className={`w-2 h-2 rounded-full transition-colors ${forecastTab === tab ? 'bg-button' : 'bg-white/20 hover:bg-white/40'}`} />
             ))}
           </div>
         )}
@@ -896,7 +902,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* Phase 6 — Past Voyages / Logbook. Auto-saves completed navigation
           sessions, shows cloud-synced trips when signed in. */}
-      <section className="px-2">
+      <section>
         <VoyageLogbookCard />
       </section>
 
