@@ -1,6 +1,8 @@
 import maplibregl from 'maplibre-gl';
 
-const COMPASS_SVG = `<svg fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 49.978 49.978" width="72" height="72" xml:space="preserve">
+// fill="currentColor" → inherits text-slate-300 from btn className
+// class="w-full h-full p-2" → scales to button size with inner breathing room
+const COMPASS_SVG = `<svg fill="currentColor" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 49.978 49.978" class="w-full h-full p-2" xml:space="preserve">
 <g><g>
 <path d="M45.578,24.516l-4.286-0.635c-0.193-3.89-1.81-7.405-4.356-10.029l4.039-4.038l-0.279-0.28l-4.037,4.036
 c-2.713-2.656-6.392-4.318-10.453-4.422l-0.568-3.837v3.825l0,0V5.311l-0.57,3.854c-3.899,0.187-7.425,1.804-10.055,4.355
@@ -88,18 +90,21 @@ export class CustomCompassControl implements maplibregl.IControl {
     btn.type = 'button';
     btn.title = 'Reset North';
     btn.setAttribute('aria-label', 'Reset North');
-    btn.style.cssText = [
-      'position:absolute;bottom:40px;right:20px;z-index:10;',
-      'width:96px;height:96px;',
-      'background:rgba(15,23,42,0.85);',
-      'border:1px solid rgba(100,116,139,0.4);',
-      'border-radius:50%;',
-      'cursor:pointer;',
-      'display:flex;align-items:center;justify-content:center;',
-      'color:#cbd5e1;',
-      'transition:background 0.2s,transform 0.1s;',
-      'margin:0;padding:0;',
-    ].join('');
+
+    // Responsive: mobile w-14/bottom-28, desktop md:w-24/md:bottom-10
+    // position:absolute breaks out of MapLibre's flex control stack
+    btn.className = [
+      'absolute z-10',
+      'flex items-center justify-center',
+      'rounded-full cursor-pointer',
+      'm-0 p-0',
+      'w-14 h-14 bottom-28 right-4',
+      'md:w-24 md:h-24 md:bottom-10 md:right-6',
+      'bg-slate-900/85 border border-slate-500/40 text-slate-300',
+    ].join(' ');
+
+    // Two-property transition — keep as inline style (custom timing values)
+    btn.style.transition = 'background-color 0.2s, transform 0.1s';
 
     btn.innerHTML = COMPASS_SVG;
 
