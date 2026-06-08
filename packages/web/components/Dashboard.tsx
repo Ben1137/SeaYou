@@ -17,7 +17,6 @@ import { ErrorState } from './ErrorState';
 import { useTranslation } from 'react-i18next';
 import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
-import { useTheme } from '../src/hooks/useTheme';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
@@ -39,12 +38,12 @@ interface DashboardProps {
 
 
 const WeatherAnimation: React.FC<{ code: number }> = ({ code }) => {
-  if (code === 0 || code === 1) return <Sun className="text-yellow-400 animate-[spin_10s_linear_infinite]" size={20} />;
-  if (code === 2 || code === 3) return <Cloud className="text-white/60 animate-pulse" size={20} />;
-  if (code === 45 || code === 48) return <CloudFog className="text-white/40 animate-pulse" size={20} />;
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain className="text-blue-300 animate-bounce" size={20} />;
-  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return <CloudSnow className="text-white animate-bounce" size={20} />;
-  if (code >= 95 && code <= 99) return <CloudLightning className="text-yellow-500 animate-pulse" size={20} />;
+  if (code === 0 || code === 1) return <Sun className="text-yellow-400 motion-safe:animate-[spin_10s_linear_infinite]" size={20} />;
+  if (code === 2 || code === 3) return <Cloud className="text-white/60 motion-safe:animate-pulse" size={20} />;
+  if (code === 45 || code === 48) return <CloudFog className="text-white/40 motion-safe:animate-pulse" size={20} />;
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return <CloudRain className="text-blue-300 motion-safe:animate-pulse" size={20} />;
+  if ((code >= 71 && code <= 77) || code === 85 || code === 86) return <CloudSnow className="text-white motion-safe:animate-pulse" size={20} />;
+  if (code >= 95 && code <= 99) return <CloudLightning className="text-yellow-500 motion-safe:animate-pulse" size={20} />;
   return <Sun className="text-yellow-400" size={20} />;
 };
 
@@ -76,8 +75,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
-  const { theme, setTheme } = useTheme();
-  const isBrightDeck = theme === 'bright-deck';
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
@@ -442,24 +439,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               </span>
             )}
             <span className="text-white/30">•</span>
-            {weatherData.latitude.toFixed(4)}°N, {weatherData.longitude.toFixed(4)}°E
+            <span className="font-mono">{weatherData.latitude.toFixed(4)}°N, {weatherData.longitude.toFixed(4)}°E</span>
             <span className="text-white/30">•</span>
             {format(new Date(), 'EEE, MMM d')}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={() => setTheme(isBrightDeck ? 'system' : 'bright-deck')}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isBrightDeck
-                ? 'bg-amber-400 text-black'
-                : 'bg-white/10 text-white/60 hover:text-white hover:bg-white/20'
-            }`}
-            title={isBrightDeck ? t('settings.theme.brightDeckOff') : t('settings.theme.brightDeckOn')}
-            aria-label={isBrightDeck ? t('settings.theme.brightDeckOff') : t('settings.theme.brightDeckOn')}
-          >
-            <Sun size={16} />
-          </button>
           <button onClick={() => setShowSettings(!showSettings)} className="glass-inner flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-white/20 transition-colors border border-white/10">
             <Settings size={16} />
             <span className="text-xs font-bold hidden sm:inline">{t('dashboard.alertConfig')}</span>
@@ -472,89 +457,150 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Activity Report (Persona-filtered Grid with Scores) ─── */}
       <section id="tour-dashboard-scores">
-        <h3 className="text-xs font-bold tracking-widest text-white/70 mb-3 uppercase flex items-center"><Flag size={12} className="mr-2" /> {t('activity.report')}</h3>
-        <div className={`grid gap-3 ${!persona ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
-          {(() => {
-            const ALL_CARDS: { persona: ActivityPersona; icon: typeof Sailboat; iconColor: string; labelKey: string }[] = [
-              { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
-              { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
-              { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
-              { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
-              { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
-              { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
-            ];
+        <h3 className="text-sm font-semibold text-white/90 mb-3 uppercase tracking-wider flex items-center"><Flag size={13} className="mr-2" /> {t('activity.report')}</h3>
+        {(() => {
+          const ALL_CARDS: { persona: ActivityPersona; icon: typeof Sailboat; iconColor: string; labelKey: string }[] = [
+            { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
+            { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
+            { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
+            { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
+            { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
+            { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
+          ];
 
-            // selectedActivities (from AlertConfigModal) takes priority.
-            // Falls back to onboarding persona → card map, then all cards.
-            if (selectedActivities.length > 0) {
-              return ALL_CARDS.filter(c => selectedActivities.includes(c.persona));
-            }
-
-            // Map onboarding persona → which ActivityPersona cards to show
+          // selectedActivities (from AlertConfigModal) takes priority.
+          // Falls back to onboarding persona → card map, then all cards.
+          let cards = ALL_CARDS;
+          if (selectedActivities.length > 0) {
+            cards = ALL_CARDS.filter(c => selectedActivities.includes(c.persona));
+          } else if (persona) {
             const PERSONA_CARD_MAP: Record<OnboardingPersona, ActivityPersona[]> = {
               mariner: [ActivityPersona.SAILOR],
               surfer: [ActivityPersona.WAVE_SURFER, ActivityPersona.WIND_SURFER, ActivityPersona.KITE_SURFER, ActivityPersona.BEACHGOER],
               diver: [ActivityPersona.DIVER],
               beachgoer: [ActivityPersona.BEACHGOER],
             };
+            const allowed = PERSONA_CARD_MAP[persona] ?? null;
+            if (Array.isArray(allowed) && allowed.length > 0) {
+              cards = ALL_CARDS.filter(c => allowed.includes(c.persona));
+            }
+          }
 
-            const allowed = persona ? (PERSONA_CARD_MAP[persona] ?? null) : null;
-            const cards = Array.isArray(allowed) && allowed.length > 0
-              ? ALL_CARDS.filter(c => allowed.includes(c.persona))
-              : ALL_CARDS;
-            return cards;
-          })().map(({ persona: cardPersona, icon: Icon, iconColor, labelKey }) => {
+          // Highest-scoring card gets featured treatment (only meaningful with 2+ cards)
+          const topPersona = cards.length > 1 && activityScores
+            ? cards.reduce((best, card) => {
+                const bScore = activityScores[best.persona]?.overall ?? 0;
+                const cScore = activityScores[card.persona]?.overall ?? 0;
+                return cScore > bScore ? card : best;
+              }, cards[0]).persona
+            : null;
+
+          // Single card: horizontal strip — never a lone grid cell
+          if (cards.length === 1) {
+            const { persona: cardPersona, icon: Icon, iconColor, labelKey } = cards[0];
             const score = activityScores?.[cardPersona];
             const bw = bestWindows?.[cardPersona];
             return (
               <div
-                key={cardPersona}
-                className="glass-panel p-3 sm:p-4 flex flex-col justify-between min-h-30 cursor-pointer hover:bg-white/5 hover:border-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                className="glass-panel p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 hover:border-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/50"
                 onClick={() => score && setBreakdownPersona(cardPersona)}
-                onKeyDown={(e) => {
-                  if ((e.key === 'Enter' || e.key === ' ') && score) {
-                    e.preventDefault();
-                    setBreakdownPersona(cardPersona);
-                  }
-                }}
+                onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && score) { e.preventDefault(); setBreakdownPersona(cardPersona); } }}
                 role="button"
                 tabIndex={score ? 0 : -1}
                 aria-label={t('scoring.openBreakdown', { label: t(labelKey), defaultValue: `Open breakdown for ${t(labelKey)}` })}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="w-9 h-9 rounded-lg glass-inner flex items-center justify-center">
-                    <Icon size={18} className={iconColor} />
-                  </div>
-                  {score && (
-                    <div className={`text-2xl font-bold leading-none ${score.color}`}>
-                      {score.overall}
-                    </div>
+                <div className="w-10 h-10 rounded-lg glass-inner flex items-center justify-center shrink-0">
+                  <Icon size={20} className={iconColor} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-sm uppercase tracking-wide">{t(labelKey)}</h4>
+                  {score ? (
+                    <>
+                      <p className={`text-xs font-bold mt-0.5 ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
+                      {bw && (
+                        <p className="text-[11px] text-white/50 font-mono mt-1">
+                          {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-white/40">--</p>
                   )}
                 </div>
-                <h4 className="font-bold text-xs uppercase tracking-wide mb-1">{t(labelKey)}</h4>
-                {score ? (
-                  <>
-                    <p className={`text-xs font-bold ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
-                    {bw && (
-                      <p className="text-[9px] text-white/50 mt-1">
-                        {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
-                      </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-xs text-white/40">--</p>
+                {score && (
+                  <span className={`text-4xl font-bold font-mono tabular-nums leading-none shrink-0 ${score.color}`}>{score.overall}</span>
                 )}
                 {weatherData && (
-                  <ActivityTimeline
-                    persona={cardPersona}
-                    weatherData={weatherData}
-                    startHourIndex={currentHourIndex}
-                  />
+                  <div className="hidden sm:block w-24 shrink-0">
+                    <ActivityTimeline persona={cardPersona} weatherData={weatherData} startHourIndex={currentHourIndex} />
+                  </div>
                 )}
               </div>
             );
-          })}
-        </div>
+          }
+
+          // Multiple cards: 2-3 column grid, top scorer visually distinguished
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {cards.map(({ persona: cardPersona, icon: Icon, iconColor, labelKey }) => {
+                const score = activityScores?.[cardPersona];
+                const bw = bestWindows?.[cardPersona];
+                const isFeatured = cardPersona === topPersona;
+                return (
+                  <div
+                    key={cardPersona}
+                    className={`glass-panel flex flex-col justify-between cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/50 ${
+                      isFeatured
+                        ? 'col-span-2 sm:col-span-1 p-4 min-h-36 ring-1 ring-white/25 bg-white/[0.04] hover:bg-white/[0.07]'
+                        : 'p-3 sm:p-4 min-h-30 hover:bg-white/5 hover:border-white/20'
+                    }`}
+                    onClick={() => score && setBreakdownPersona(cardPersona)}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && score) {
+                        e.preventDefault();
+                        setBreakdownPersona(cardPersona);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={score ? 0 : -1}
+                    aria-label={t('scoring.openBreakdown', { label: t(labelKey), defaultValue: `Open breakdown for ${t(labelKey)}` })}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`rounded-lg glass-inner flex items-center justify-center ${isFeatured ? 'w-10 h-10' : 'w-9 h-9'}`}>
+                        <Icon size={isFeatured ? 20 : 18} className={iconColor} />
+                      </div>
+                      {score && (
+                        <div className={`font-bold leading-none font-mono tabular-nums ${score.color} ${isFeatured ? 'text-3xl' : 'text-2xl'}`}>
+                          {score.overall}
+                        </div>
+                      )}
+                    </div>
+                    <h4 className="font-bold text-xs uppercase tracking-wide mb-1">{t(labelKey)}</h4>
+                    {score ? (
+                      <>
+                        <p className={`text-xs font-bold ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
+                        {bw && (
+                          <p className="text-[11px] text-white/50 font-mono mt-1">
+                            {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-xs text-white/40">--</p>
+                    )}
+                    {weatherData && (
+                      <ActivityTimeline
+                        persona={cardPersona}
+                        weatherData={weatherData}
+                        startHourIndex={currentHourIndex}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </section>
 
       {/* ─── Explainable UI: Score Breakdown Modal ─── */}
@@ -581,10 +627,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       <section className={`grid grid-cols-2 gap-4 ${weatherData.tides ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}>
         {/* Wave Height */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
-          <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center"><Activity size={12} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
+          <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[10px] text-teal-400 font-medium">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
+            <p className="text-[11px] text-teal-400 font-mono">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
           </div>
           <div className="absolute bottom-0 right-0 w-full h-16 opacity-50 z-0 pointer-events-none">
             <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 300 100">
@@ -596,20 +642,20 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
         {/* Wind Speed */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
-          <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center"><Wind size={12} className="mr-1.5" /> {t('weather.windSpeed')}</h3>
+          <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Wind size={11} className="mr-1.5" /> {t('weather.windSpeed')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{currentConditions.wind.toFixed(0)}</span><span className="text-lg ml-1 mb-1 font-medium">km/h</span></div>
-            <p className="text-[10px] text-white/80 font-medium flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /> {getCardinalDirection(currentConditions.windDirection)} ({currentConditions.windDirection}°)</p>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{currentConditions.wind.toFixed(0)}</span><span className="text-lg ml-1 mb-1 font-medium">km/h</span></div>
+            <p className="text-[11px] text-white/80 font-mono flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /> {getCardinalDirection(currentConditions.windDirection)} (<span className="tabular-nums">{currentConditions.windDirection}°</span>)</p>
           </div>
           <Wind className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
         </div>
 
         {/* Swell */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
-          <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center"><Waves size={12} className="mr-1.5" /> {t('weather.swell')}</h3>
+          <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Waves size={11} className="mr-1.5" /> {t('weather.swell')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[10px] text-teal-400 font-medium flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} /> {getCardinalDirection(currentConditions.swellDirection ?? 0)} <span className="ml-2 opacity-70">{t('weather.period')}: {(currentConditions.swellPeriod ?? 0).toFixed(1)}s</span></p>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
+            <p className="text-[11px] text-teal-400 font-mono flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} /> {getCardinalDirection(currentConditions.swellDirection ?? 0)} <span className="ml-2 opacity-70">{t('weather.period')}: {(currentConditions.swellPeriod ?? 0).toFixed(1)}s</span></p>
           </div>
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
         </div>
@@ -618,26 +664,26 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="glass-panel p-3 h-full flex flex-col justify-between">
           {/* Header row */}
           <div className="grid grid-cols-2 divide-x divide-white/10">
-            <h3 className="text-[10px] font-bold tracking-widest text-white/70 uppercase flex items-center justify-center pb-1">
+            <h3 className="text-[10px] font-medium tracking-widest text-white/50 uppercase flex items-center justify-center pb-1">
               <Thermometer size={11} className="mr-1 shrink-0" /> {t('weather.air')}
             </h3>
-            <h3 className="text-[10px] font-bold tracking-widest text-white/70 uppercase flex items-center justify-center pb-1">
+            <h3 className="text-[10px] font-medium tracking-widest text-white/50 uppercase flex items-center justify-center pb-1">
               <Thermometer size={11} className="mr-1 shrink-0 text-orange-400" /> {t('weather.sea')}
             </h3>
           </div>
           {/* Values row — always same font size, always aligned */}
           <div className="grid grid-cols-2 divide-x divide-white/10 mt-2">
             <div className="flex items-baseline justify-center px-1">
-              <span className="text-3xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
+              <span className="text-3xl font-bold leading-none font-mono tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
               <span className="text-sm ml-0.5">°C</span>
             </div>
             <div className="flex items-baseline justify-center px-1">
-              <span className="text-3xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
+              <span className="text-3xl font-bold leading-none font-mono tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
               <span className="text-sm ml-0.5">°C</span>
             </div>
           </div>
           {/* Feels like — full width, no truncation */}
-          <p className="text-[10px] text-white/60 mt-2 text-center leading-tight">
+          <p className="text-[11px] text-white/60 font-mono mt-2 text-center leading-tight">
             {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
           </p>
         </div>
@@ -645,18 +691,18 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         {/* Sea Level / Tidal Trend — only rendered when real tide data is available */}
         {weatherData.tides && (
           <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
-            <h3 className="text-xs font-bold tracking-widest text-white/70 mb-2 uppercase relative z-10 flex items-center">
-              <Waves size={12} className="mr-1.5" /> {t('forecast.tideHeight')}
+            <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
+              <Waves size={11} className="mr-1.5" /> {t('forecast.tideHeight')}
             </h3>
             <div className="relative z-10 mt-2">
               <div className="flex items-end mb-1">
-                <span className="text-4xl font-bold leading-none tabular-nums">
+                <span className="text-4xl font-bold leading-none font-mono tabular-nums">
                   {weatherData.tides.currentHeight.toFixed(2)}
                 </span>
                 <span className="text-lg ml-1 mb-1 font-medium">m</span>
               </div>
               <p
-                className={`text-[10px] font-medium flex items-center gap-1 ${weatherData.tides.rising ? 'text-teal-400' : 'text-amber-500'}`}
+                className={`text-[11px] font-mono flex items-center gap-1 ${weatherData.tides.rising ? 'text-teal-400' : 'text-amber-500'}`}
                 title={weatherData.tides.rising ? t('forecast.rising') : t('forecast.falling')}
               >
                 {weatherData.tides.rising
@@ -681,7 +727,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           className="flex justify-between items-center mb-4 border-b border-white/10 pb-3"
           onDoubleClick={(e) => { e.stopPropagation(); setIsChartExpanded((v) => !v); }}
         >
-          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
+          <h3 className="text-sm font-semibold text-white/90 uppercase tracking-wider flex items-center">
             {activeGraph === 'tide' && <Waves size={14} className="mr-1.5" />}
             {activeGraph === 'wave' && <Activity size={14} className="mr-1.5" />}
             {activeGraph === 'swell' && <Layers size={14} className="mr-1.5" />}
@@ -781,7 +827,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           className="flex justify-between items-center p-4 border-b border-white/10 bg-black/10"
           onDoubleClick={(e) => { e.stopPropagation(); setIsTableExpanded((v) => !v); }}
         >
-          <h3 className="text-xs font-bold tracking-widest text-white/70 uppercase flex items-center">
+          <h3 className="text-sm font-semibold text-white/90 uppercase tracking-wider flex items-center">
             <Compass size={14} className="mr-1.5" />
             {forecastTabLabel(forecastTab)}
           </h3>
