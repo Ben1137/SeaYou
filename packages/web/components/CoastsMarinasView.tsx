@@ -410,7 +410,7 @@ const MarinaCard: React.FC<{
   }, [userLocation, marina.lat, marina.lon]);
 
   return (
-    <div className={`glass-panel p-6 hover:shadow-xl transition-shadow ${marina.type === 'beach' ? 'border-l-4 border-l-orange-500' : marina.type === 'marina' ? 'border-l-4 border-l-blue-500' : ''}`}>
+    <div className={`glass-panel p-6 hover:shadow-xl transition-shadow ${marina.type === 'beach' ? 'border-t border-t-orange-500/60' : marina.type === 'marina' ? 'border-t border-t-blue-500/60' : ''}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
