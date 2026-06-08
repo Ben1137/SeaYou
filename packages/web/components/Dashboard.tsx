@@ -73,7 +73,7 @@ const getWeatherConditionKey = (code: number): string => {
 
 const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick, isOfflineFallback, lastUpdated }) => {
   const { t } = useTranslation();
-  const { thresholds, isDismissed, dismiss, persona, selectedActivities } = useAlertConfig();
+  const { thresholds, isDismissed, dismiss, resetDismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
@@ -416,10 +416,28 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             <h2 className="font-bold text-base sm:text-lg leading-tight uppercase text-white/95">{roughWeatherAlert.title}</h2>
             <p className="text-xs sm:text-sm opacity-90 leading-snug mt-0.5">{roughWeatherAlert.message}</p>
           </div>
-          <button onClick={dismiss} className="shrink-0 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
+          <button
+            onClick={dismiss}
+            className="shrink-0 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
+            aria-label={t('common.close', 'Dismiss alert')}
+          >
             <X size={14} />
           </button>
         </div>
+      )}
+
+      {/* ─── Dismissed alert recovery strip ─── */}
+      {roughWeatherAlert && isDismissed && (
+        <button
+          onClick={resetDismiss}
+          className="flex items-center gap-2 px-3 py-2 -mx-5 w-[calc(100%+2.5rem)] bg-amber-500/10 border-y border-amber-500/20 text-amber-300/80 text-xs hover:bg-amber-500/15 hover:text-amber-200 transition-colors text-left"
+          aria-label={t('alerts.showDismissed', 'Show dismissed weather alert')}
+        >
+          <roughWeatherAlert.icon size={13} className="shrink-0" />
+          <span className="font-medium">{roughWeatherAlert.title}</span>
+          <span className="text-amber-300/40 mx-1">·</span>
+          <span className="opacity-70">{t('alerts.tapToReview', 'Tap to review')}</span>
+        </button>
       )}
 
       {/* ─── Weather Hero Section ─── */}

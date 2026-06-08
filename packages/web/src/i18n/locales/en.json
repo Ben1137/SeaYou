@@ -88,7 +88,9 @@
     "pushDenied": "Blocked by browser",
     "pushEnable": "Enable",
     "pushGranted": "Enabled",
-    "instantUpdate": "Changes take effect instantly — no save needed"
+    "instantUpdate": "Changes take effect instantly — no save needed",
+    "showDismissed": "Show dismissed weather alert",
+    "tapToReview": "Tap to review"
   },
   "tsunami": {
     "evacuate": "TSUNAMI WARNING — SEEK HIGH GROUND",
