@@ -26,7 +26,6 @@
  * Phase 8 — Pro Navigation Engine (ENC overlay)
  */
 
-import React from 'react';
 import { createRoot, Root } from 'react-dom/client';
 import maplibregl from 'maplibre-gl';
 import { useEffect, useRef } from 'react';
@@ -218,7 +217,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
           const res = await fetch(OVERPASS_ENDPOINTS[index], {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
               'Accept': 'application/json',
             },
             body: `data=${encodeURIComponent(query)}`,
