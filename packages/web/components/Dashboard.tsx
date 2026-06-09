@@ -550,7 +550,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   )}
                 </div>
                 {score && (
-                  <span className={`text-4xl font-bold font-mono tabular-nums leading-none shrink-0 ${score.color}`}>{score.overall}</span>
+                  <span className={`text-4xl font-bold tabular-nums leading-none shrink-0 ${score.color}`}>{score.overall}</span>
                 )}
                 {weatherData && (
                   <div className="hidden sm:block w-24 shrink-0">
@@ -592,7 +592,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                         <Icon size={isFeatured ? 20 : 18} className={iconColor} />
                       </div>
                       {score && (
-                        <div className={`font-bold leading-none font-mono tabular-nums ${score.color} ${isFeatured ? 'text-3xl' : 'text-2xl'}`}>
+                        <div className={`font-bold leading-none tabular-nums ${score.color} ${isFeatured ? 'text-3xl' : 'text-2xl'}`}>
                           {score.overall}
                         </div>
                       )}
@@ -651,7 +651,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
             <p className="text-[11px] text-accent font-mono">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
           </div>
           <div className="absolute bottom-0 right-0 w-full h-16 opacity-50 z-0 pointer-events-none">
@@ -666,7 +666,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Wind size={11} className="mr-1.5" /> {t('weather.windSpeed')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{currentConditions.wind.toFixed(0)}</span><span className="text-lg ml-1 mb-1 font-medium">km/h</span></div>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{currentConditions.wind.toFixed(0)}</span><span className="text-lg ml-1 mb-1 font-medium">km/h</span></div>
             <p className="text-[11px] text-white/80 font-mono flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /> {getCardinalDirection(currentConditions.windDirection)} (<span className="tabular-nums">{currentConditions.windDirection}°</span>)</p>
           </div>
           <Wind className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
@@ -676,7 +676,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Waves size={11} className="mr-1.5" /> {t('weather.swell')}</h3>
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none font-mono tabular-nums">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
+            <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
             <p className="text-[11px] text-accent font-mono flex items-center gap-1">
               <Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} />
               {getCardinalDirection(currentConditions.swellDirection ?? 0)}
@@ -701,11 +701,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           {/* Values row — text-4xl to match other cards, items-end for unit baseline */}
           <div className="grid grid-cols-2 divide-x divide-white/10 mt-2">
             <div className="flex items-end justify-center px-1">
-              <span className="text-4xl font-bold leading-none font-mono tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
+              <span className="text-4xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
               <span className="text-lg ml-1 mb-1 font-medium">°C</span>
             </div>
             <div className="flex items-end justify-center px-1">
-              <span className="text-4xl font-bold leading-none font-mono tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
+              <span className="text-4xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
               <span className="text-lg ml-1 mb-1 font-medium">°C</span>
             </div>
           </div>
@@ -723,7 +723,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             </h3>
             <div className="relative z-10 mt-2">
               <div className="flex items-end mb-1">
-                <span className="text-4xl font-bold leading-none font-mono tabular-nums">
+                <span className="text-4xl font-bold leading-none tabular-nums">
                   {weatherData.tides.currentHeight.toFixed(2)}
                 </span>
                 <span className="text-lg ml-1 mb-1 font-medium">m</span>
