@@ -54,13 +54,32 @@ export function BathymetryLayerML({ visible, opacity = 0.75 }: BathymetryLayerML
       }
 
       if (!map.getLayer(LAYER_ID)) {
-        // Insert below the first symbol layer so labels stay on top
+        // Insert above all water fill layers (so depth colours are visible over the
+        // basemap ocean) but before the first symbol layer (labels stay on top).
+        // Strategy: walk the style layer list, track the last fill layer whose
+        // source-layer or id indicates water/ocean, then use the layer immediately
+        // after it as beforeId. Fall back to first symbol layer if none found.
         const layers = map.getStyle()?.layers || [];
         let beforeId: string | undefined;
-        for (const l of layers) {
-          if (l.type === 'symbol') {
-            beforeId = l.id;
-            break;
+        let lastWaterIdx = -1;
+        for (let i = 0; i < layers.length; i++) {
+          const l = layers[i];
+          const srcLayer = (l as { 'source-layer'?: string })['source-layer'] ?? '';
+          const idLc = l.id.toLowerCase();
+          if (
+            l.type === 'fill' &&
+            (srcLayer === 'water' || srcLayer === 'waterway' ||
+              idLc.includes('water') || idLc.includes('ocean'))
+          ) {
+            lastWaterIdx = i;
+          }
+        }
+        if (lastWaterIdx >= 0 && lastWaterIdx + 1 < layers.length) {
+          beforeId = layers[lastWaterIdx + 1].id;
+        } else {
+          // Fallback: first symbol layer keeps labels above depth layer
+          for (const l of layers) {
+            if (l.type === 'symbol') { beforeId = l.id; break; }
           }
         }
 
