@@ -103,10 +103,10 @@ export const LanguageSelector: React.FC = () => {
                 <button
                   key={lang.code}
                   onClick={() => handleLanguageChange(lang.code)}
-                  className={`w-full px-4 py-3 flex items-center justify-between transition-colors text-left ${
+                  className={`w-full px-4 py-3 flex items-center justify-between transition-colors text-left rounded-lg ${
                     isSelected
-                      ? 'bg-blue-500/20 border-l-4 border-blue-400'
-                      : 'hover:bg-white/10 border-l-4 border-transparent'
+                      ? 'bg-white/10'
+                      : 'hover:bg-white/5'
                   }`}
                   role="option"
                   aria-selected={isSelected}

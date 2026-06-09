@@ -522,11 +522,11 @@ const Atmosphere: React.FC<AtmosphereProps> = ({ weatherData }) => {
                   {/* Moonrise / Moonset labels */}
                   <div className="absolute bottom-0 left-0 text-[11px] text-white/40 flex flex-col items-center">
                      <span className="uppercase flex items-center gap-0.5"><ArrowUp size={10}/> {t('atmosphere.rise')}</span>
-                     <span className="font-mono text-white/60">{general.moonrise ? format(parseISO(general.moonrise), 'HH:mm') : '--:--'}</span>
+                     <span className="tabular-nums text-white/60">{general.moonrise ? format(parseISO(general.moonrise), 'HH:mm') : '--:--'}</span>
                   </div>
                   <div className="absolute bottom-0 right-0 text-[11px] text-white/40 flex flex-col items-center">
                      <span className="uppercase flex items-center gap-0.5"><ArrowDown size={10}/> {t('atmosphere.set')}</span>
-                     <span className="font-mono text-white/60">{general.moonset ? format(parseISO(general.moonset), 'HH:mm') : '--:--'}</span>
+                     <span className="tabular-nums text-white/60">{general.moonset ? format(parseISO(general.moonset), 'HH:mm') : '--:--'}</span>
                   </div>
                </div>
 
@@ -545,7 +545,7 @@ const Atmosphere: React.FC<AtmosphereProps> = ({ weatherData }) => {
 
                    <div className="text-right">
                        <div className="text-[10px] text-white/40 uppercase">{t('atmosphere.nextFullMoon')}</div>
-                       <div className="text-white text-xs font-mono">
+                       <div className="text-white text-xs tabular-nums">
                          {general.nextFullMoon ? format(parseISO(general.nextFullMoon), 'dd MMM') : '--'}
                        </div>
                    </div>

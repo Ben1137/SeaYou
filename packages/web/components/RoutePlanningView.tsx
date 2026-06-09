@@ -931,7 +931,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                           key={idx}
                           className="flex items-center justify-between gap-3 p-2 rounded bg-indigo-900/30 border border-indigo-500/20 text-xs"
                         >
-                          <span className="font-mono text-indigo-200 w-16">
+                          <span className="tabular-nums text-indigo-200 w-16">
                             #{idx + 1} {relLabel}
                           </span>
                           <span className="flex-1 text-white/80 truncate">
@@ -998,7 +998,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                       <span className="flex-1 text-sm text-white/80 truncate">
                         {wp.name || '(unnamed)'}
                       </span>
-                      <span className="text-[11px] text-white/40 font-mono">
+                      <span className="text-[11px] text-white/40 tabular-nums">
                         {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
                       </span>
                       {!isStart && !isEnd && (

@@ -1,0 +1,498 @@
+{
+  "nodes": [
+    {
+      "id": "analyze_god_nodes",
+      "label": "god_nodes()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L68-87",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_surprising_connections",
+      "label": "surprising_connections()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L90-119",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_suggest_questions",
+      "label": "suggest_questions()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L372-491",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_graph_diff",
+      "label": "graph_diff()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L494-575",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_cross_file_surprises",
+      "label": "_cross_file_surprises()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L222-281",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_cross_community_surprises",
+      "label": "_cross_community_surprises()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L284-369",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_surprise_score",
+      "label": "_surprise_score()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L160-219",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_is_file_node",
+      "label": "_is_file_node()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L40-65",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_is_concept_node",
+      "label": "_is_concept_node()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L122-138",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_cross_language",
+      "label": "_cross_language()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L24-32",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_node_community_map",
+      "label": "_node_community_map()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L35-37",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_file_category",
+      "label": "_file_category()",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L144-152",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_lang_family",
+      "label": "_LANG_FAMILY dict",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L9-21",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_build_edge_data",
+      "label": "edge_data (from graphify.build)",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_detect_extensions",
+      "label": "Extension sets (CODE_EXTENSIONS, DOC_EXTENSIONS, etc.)",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L141",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_cluster_cohesion_score",
+      "label": "cohesion_score (from graphify.cluster)",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L468",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_leiden_community",
+      "label": "Leiden Community Detection (networkx)",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_betweenness_centrality",
+      "label": "Betweenness Centrality (networkx)",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L302",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "analyze_confidence_levels",
+      "label": "Confidence Levels (EXTRACTED/INFERRED/AMBIGUOUS)",
+      "file_type": "code",
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "analyze_god_nodes",
+      "target": "analyze_is_file_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_god_nodes",
+      "target": "analyze_is_concept_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L78",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_surprising_connections",
+      "target": "analyze_cross_file_surprises",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L117",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_surprising_connections",
+      "target": "analyze_cross_community_surprises",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L119",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_file_surprises",
+      "target": "analyze_surprise_score",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L254",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_file_surprises",
+      "target": "analyze_is_concept_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L243",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_file_surprises",
+      "target": "analyze_is_file_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L245",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_file_surprises",
+      "target": "analyze_node_community_map",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L236",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_file_surprises",
+      "target": "analyze_cross_community_surprises",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L281",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_community_surprises",
+      "target": "analyze_is_file_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L330",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_community_surprises",
+      "target": "analyze_node_community_map",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L321",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_community_surprises",
+      "target": "analyze_build_edge_data",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L307",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_community_surprises",
+      "target": "analyze_betweenness_centrality",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L302",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_node_community_map",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L384",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_is_file_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L404",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_is_concept_node",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L404",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_cluster_cohesion_score",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L469",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_confidence_levels",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L386-396",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_betweenness_centrality",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L401",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_surprise_score",
+      "target": "analyze_cross_language",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L179",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_surprise_score",
+      "target": "analyze_file_category",
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L187-188",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_surprise_score",
+      "target": "analyze_confidence_levels",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L174-176",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_cross_language",
+      "target": "analyze_lang_family",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L28-29",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_file_category",
+      "target": "analyze_detect_extensions",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L146-150",
+      "weight": 1.0
+    },
+    {
+      "source": "analyze_is_file_node",
+      "target": "analyze_is_concept_node",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L40-138",
+      "weight": 0.85
+    },
+    {
+      "source": "analyze_surprising_connections",
+      "target": "analyze_leiden_community",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L92-119",
+      "weight": 0.95
+    },
+    {
+      "source": "analyze_suggest_questions",
+      "target": "analyze_leiden_community",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L372-491",
+      "weight": 0.95
+    },
+    {
+      "source": "analyze_god_nodes",
+      "target": "analyze_confidence_levels",
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.75,
+      "source_file": "graphify/graphify/analyze.py",
+      "source_location": "L68-87",
+      "weight": 0.75
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

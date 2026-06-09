@@ -167,7 +167,7 @@ export const PortSearchBar: React.FC = () => {
                 <Anchor className="w-4 h-4 text-blue-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{p.name}</p>
-                  <p className="text-[11px] text-white/40 font-mono">
+                  <p className="text-[11px] text-white/40 tabular-nums">
                     {p.lat.toFixed(3)}, {p.lon.toFixed(3)}
                   </p>
                 </div>

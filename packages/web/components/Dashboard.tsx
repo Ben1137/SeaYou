@@ -452,12 +452,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <p className="text-white/60 text-sm mt-1 flex items-center gap-1.5 flex-wrap">
             <span className="font-semibold text-white">{locationName}</span>
             {preferences?.selectedModel && (
-              <span className="text-xs text-cyan-400/70 bg-cyan-400/10 border border-cyan-400/20 rounded px-2 py-0.5 font-mono">
+              <span className="text-xs text-cyan-400/70 bg-cyan-400/10 border border-cyan-400/20 rounded px-2 py-0.5 tabular-nums">
                 {WEATHER_MODELS[preferences.selectedModel]?.name ?? preferences.selectedModel}
               </span>
             )}
             <span className="text-white/30">•</span>
-            <span className="font-mono">{weatherData.latitude.toFixed(4)}°N, {weatherData.longitude.toFixed(4)}°E</span>
+            <span className="tabular-nums">{weatherData.latitude.toFixed(4)}°N, {weatherData.longitude.toFixed(4)}°E</span>
             <span className="text-white/30">•</span>
             {format(new Date(), 'EEE, MMM d')}
           </p>
@@ -540,7 +540,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                     <>
                       <p className={`text-xs font-bold mt-0.5 ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
                       {bw && (
-                        <p className="text-[11px] text-white/50 font-mono mt-1">
+                        <p className="text-[11px] text-white/50 mt-1">
                           {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
                         </p>
                       )}
@@ -602,7 +602,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                       <>
                         <p className={`text-xs font-bold ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
                         {bw && (
-                          <p className="text-[11px] text-white/50 font-mono mt-1">
+                          <p className="text-[11px] text-white/50 mt-1">
                             {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
                           </p>
                         )}
@@ -652,7 +652,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{(currentConditions.wave ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[11px] text-accent font-mono">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
+            <p className="text-[11px] text-accent tabular-nums">{t('weather.period')}: {(currentConditions.wavePeriod ?? 0).toFixed(1)}s</p>
           </div>
           <div className="absolute bottom-0 right-0 w-full h-16 opacity-50 z-0 pointer-events-none">
             <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 300 100">
@@ -667,7 +667,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Wind size={11} className="mr-1.5" /> {t('weather.windSpeed')}</h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{currentConditions.wind.toFixed(0)}</span><span className="text-lg ml-1 mb-1 font-medium">km/h</span></div>
-            <p className="text-[11px] text-white/80 font-mono flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /> {getCardinalDirection(currentConditions.windDirection)} (<span className="tabular-nums">{currentConditions.windDirection}°</span>)</p>
+            <p className="text-[11px] text-white/80 flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /> {getCardinalDirection(currentConditions.windDirection)} (<span className="tabular-nums">{currentConditions.windDirection}°</span>)</p>
           </div>
           <Wind className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
         </div>
@@ -677,7 +677,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Waves size={11} className="mr-1.5" /> {t('weather.swell')}</h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{(currentConditions.swell ?? 0).toFixed(1)}</span><span className="text-lg ml-1 mb-1 font-medium">m</span></div>
-            <p className="text-[11px] text-accent font-mono flex items-center gap-1">
+            <p className="text-[11px] text-accent tabular-nums flex items-center gap-1">
               <Navigation size={10} style={{ transform: `rotate(${currentConditions.swellDirection ?? 0}deg)` }} />
               {getCardinalDirection(currentConditions.swellDirection ?? 0)}
               <span className="text-white/30 mx-0.5">·</span>
@@ -710,7 +710,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             </div>
           </div>
           {/* Feels like */}
-          <p className="text-[11px] text-white/60 font-mono mt-2 leading-tight">
+          <p className="text-[11px] text-white/60 mt-2 leading-tight tabular-nums">
             {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
           </p>
         </div>
@@ -729,7 +729,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 <span className="text-lg ml-1 mb-1 font-medium">m</span>
               </div>
               <p
-                className={`text-[11px] font-mono flex items-center gap-1 ${weatherData.tides.rising ? 'text-accent' : 'text-amber-500'}`}
+                className={`text-[11px] tabular-nums flex items-center gap-1 ${weatherData.tides.rising ? 'text-accent' : 'text-amber-500'}`}
                 title={weatherData.tides.rising ? t('forecast.rising') : t('forecast.falling')}
               >
                 {weatherData.tides.rising
@@ -900,7 +900,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 })() : null;
                 return (
                 <tr key={idx} className="hover:bg-white/5 transition-colors">
-                  <td className="px-4 py-3 font-bold">{row.period}<br /><span className="text-[11px] font-mono font-normal text-white/50">{row.date}</span></td>
+                  <td className="px-4 py-3 font-bold">{row.period}<br /><span className="text-[11px] font-normal text-white/50">{row.date}</span></td>
                   {forecastTab === 'mariner' && (<><td className="px-4 py-3 text-white/80">{row.pressure}</td><td className="px-4 py-3 text-white/80">{row.seaStatus}</td><td className="px-4 py-3 font-bold">{row.wind}</td><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3 text-accent font-bold">{row.swell} ({row.swellHeight}m)</td></>)}
                   {forecastTab === 'wave_surfer' && (<><td className="px-4 py-3 font-bold text-blue-300">{row.waveHeight}</td><td className="px-4 py-3">{row.wavePeriod}s</td><td className="px-4 py-3 font-medium text-accent">{row.swellHeight}m</td><td className="px-4 py-3">{row.swellPeriod}s</td><td className="px-4 py-3">{row.swell}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
                   {forecastTab === 'wind_surfer' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3">{row.temp}°C</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}

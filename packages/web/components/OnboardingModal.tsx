@@ -89,7 +89,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               className="flex flex-col items-center text-center"
             >
               <motion.div
-                className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center mb-8 shadow-2xl shadow-blue-500/30"
+                className="w-24 h-24 rounded-3xl bg-[#0071e3] flex items-center justify-center mb-8 shadow-2xl"
                 initial={{ scale: 0.5, rotate: -10 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 15 }}
@@ -117,7 +117,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
               <motion.button
                 onClick={goNext}
-                className="h-14 px-10 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/25 flex items-center gap-2 active:scale-[0.97] transition-transform"
+                className="h-14 px-10 rounded-2xl font-bold text-sm bg-[#0071e3] text-white shadow-lg flex items-center gap-2 active:scale-[0.97] transition-transform"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -190,7 +190,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               <button
                 onClick={confirmPersona}
                 disabled={!selectedPersona}
-                className="w-full h-14 rounded-2xl font-bold text-sm bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/25 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
+                className="w-full h-14 rounded-2xl font-bold text-sm bg-[#0071e3] text-white shadow-lg disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.97] transition-all"
               >
                 {t('onboarding.continue', 'Continue')} <ChevronRight size={18} />
               </button>
@@ -215,7 +215,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-center"
             >
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mb-6 shadow-lg shadow-amber-500/25">
+              <div className="w-14 h-14 rounded-2xl bg-(--bg-button) flex items-center justify-center mb-6 shadow-lg">
                 <Sparkles size={28} className="text-white" />
               </div>
 
@@ -243,7 +243,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
               <button
                 onClick={handlePremium}
-                className="w-full h-14 rounded-2xl font-bold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-[0.97] transition-transform mb-3"
+                className="w-full h-14 rounded-2xl font-bold text-sm bg-[var(--bg-button)] text-white shadow-lg flex items-center justify-center gap-2 active:scale-[0.97] transition-transform mb-3"
               >
                 <Sparkles size={16} /> {t('onboarding.goPremium', 'Start Free Trial')}
               </button>

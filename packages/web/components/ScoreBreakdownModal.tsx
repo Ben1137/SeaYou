@@ -143,9 +143,9 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
         <div className="p-4 border-t border-slate-200 dark:border-white/10">
           <button
             onClick={handleTuneClick}
-            className="w-full relative overflow-hidden group rounded-xl py-3 px-4 font-bold text-sm tracking-wide text-white bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 shadow-lg shadow-amber-500/30 hover:shadow-amber-500/50 transition"
+            className="w-full relative overflow-hidden group rounded-xl py-3 px-4 font-bold text-sm tracking-wide text-white bg-(--bg-button) shadow-lg transition"
           >
-            <span className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
             <span className="relative flex items-center justify-center gap-2">
               <Lock size={14} />
               {t('scoring.tuneSensitivity', 'Tune Sensitivity')}

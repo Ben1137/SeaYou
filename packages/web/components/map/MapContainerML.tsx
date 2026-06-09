@@ -1135,37 +1135,37 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             {/* Basic Layers */}
             <button
               onClick={() => selectBaseLayer('NONE')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'NONE' ? 'bg-white/10 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'NONE' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <div className={`w-2 h-2 rounded-full border ${activeLayer === 'NONE' ? 'border-white bg-transparent' : 'border-white/40'}`}></div> {t('map.none')}
             </button>
             <button
               onClick={() => selectBaseLayer('WIND')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND' ? 'bg-blue-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Wind size={12} /> {t('map.wind')}
             </button>
             <button
               onClick={() => selectBaseLayer('WAVE')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WAVE' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WAVE' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.sigWaves')}
             </button>
             <button
               onClick={() => selectBaseLayer('WIND_WAVE')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND_WAVE' ? 'bg-cyan-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'WIND_WAVE' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('map.windWaves')}
             </button>
             <button
               onClick={() => selectBaseLayer('SWELL')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'SWELL' ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'SWELL' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> {t('weather.swell')}
             </button>
             <button
               onClick={() => selectBaseLayer('CURRENTS')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'CURRENTS' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${activeLayer === 'CURRENTS' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> {t('map.currents')}
             </button>
@@ -1177,61 +1177,61 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'WIND_PARTICLES' ? 'NONE' : 'WIND_PARTICLES')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WIND_PARTICLES' ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WIND_PARTICLES' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Wind size={12} /> <span className="flex-1">{t('map.windParticles', 'Wind Particles')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'CURRENT_PARTICLES' ? 'NONE' : 'CURRENT_PARTICLES')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_PARTICLES' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> <span className="flex-1">{t('map.currentParticles', 'Current Particles')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'CURRENT_HEATMAP' ? 'NONE' : 'CURRENT_HEATMAP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_HEATMAP' ? 'bg-cyan-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CURRENT_HEATMAP' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> <span className="flex-1">{t('map.currentHeatmap', 'Current Heatmap')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'WAVE_HEATMAP' ? 'NONE' : 'WAVE_HEATMAP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-pink-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'WAVE_HEATMAP' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> <span className="flex-1">{t('map.waveHeatmap', 'Wave Heatmap')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'SEA_TEMP' ? 'NONE' : 'SEA_TEMP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP' ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Droplets size={12} /> <span className="flex-1">{t('map.seaTemperature', 'Sea Temperature')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'SEA_TEMP_CURRENTS' ? 'NONE' : 'SEA_TEMP_CURRENTS')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_CURRENTS' ? 'bg-gradient-to-r from-orange-600 to-violet-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_CURRENTS' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Activity size={12} /> <span className="flex-1">{t('map.seaTempCurrents', 'Sea Temp + Currents')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'SEA_TEMP_WIND' ? 'NONE' : 'SEA_TEMP_WIND')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_WIND' ? 'bg-gradient-to-r from-orange-600 to-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SEA_TEMP_WIND' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Wind size={12} /> <span className="flex-1">{t('map.seaTempWind', 'Sea Temp + Wind')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'AIR_TEMP' ? 'NONE' : 'AIR_TEMP')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-red-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'AIR_TEMP' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Thermometer size={12} /> <span className="flex-1">{t('map.airTemperature', 'Air Temperature')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'PRECIPITATION' ? 'NONE' : 'PRECIPITATION')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'PRECIPITATION' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <CloudRain size={12} /> <span className="flex-1">{t('map.precipitation', 'Precipitation')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => trySetAdvancedLayer(advancedLayer === 'CLOUD_COVER' ? 'NONE' : 'CLOUD_COVER')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-slate-500 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'CLOUD_COVER' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Cloud size={12} /> <span className="flex-1">{t('map.cloudCover', 'Cloud Cover')}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
@@ -1255,7 +1255,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                   {relevant.includes('SWELL_PARTICLES') && (
                     <button
                       onClick={() => trySetAdvancedLayer(advancedLayer === 'SWELL_PARTICLES' ? 'NONE' : 'SWELL_PARTICLES')}
-                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'SWELL_PARTICLES' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
                     >
                       <Navigation size={12} /> <span className="flex-1">{t('map.swellDirection') || 'Swell Direction'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
                     </button>
@@ -1263,7 +1263,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
                   {relevant.includes('DIVE_SUITABILITY') && (
                     <button
                       onClick={() => trySetAdvancedLayer(advancedLayer === 'DIVE_SUITABILITY' ? 'NONE' : 'DIVE_SUITABILITY')}
-                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+                      className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'DIVE_SUITABILITY' ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
                     >
                       <Anchor size={12} /> <span className="flex-1">{t('map.diveSuitability') || 'Dive Suitability'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
                     </button>
@@ -1307,7 +1307,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             </button>
             <button
               onClick={() => tryToggleOverlay('reefs')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.reefs ? 'bg-orange-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.reefs ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Waves size={12} /> <span className="flex-1">{t('map.reefs') || 'Coral Reefs'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
@@ -1319,13 +1319,13 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             </button>
             <button
               onClick={() => tryToggleOverlay('marineAreas')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.marineAreas ? 'bg-purple-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.marineAreas ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <MapPin size={12} /> <span className="flex-1">{t('map.marineAreas') || 'Marine Areas'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
             <button
               onClick={() => tryToggleOverlay('radar')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.radar ? 'bg-sky-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.radar ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
             >
               <Droplets size={12} /> <span className="flex-1">{t('map.rainRadar') || 'Rain Radar'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
             </button>
@@ -1338,21 +1338,21 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             </button>
             <button
               onClick={() => tryToggleOverlay('noaaEnc')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.noaaEnc ? 'bg-indigo-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.noaaEnc ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
               title={t('map.noaaHint') || 'Official NOAA Electronic Navigational Charts — US waters only'}
             >
               <Compass size={12} /> <span className="flex-1">{t('map.noaaCharts') || 'NOAA ENC (US)'}</span>
             </button>
             <button
               onClick={() => tryToggleOverlay('linz')}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.linz ? 'bg-emerald-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${geoJSONLayers.linz ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
               title={t('map.linzHint') || 'Official LINZ Marine Charts — New Zealand waters only'}
             >
               <Compass size={12} /> <span className="flex-1">{t('map.linzCharts') || 'LINZ Charts (NZ)'}</span>
             </button>
             <button
               onClick={() => { setAisVisible((v) => !v); setIsLayersPanelExpanded(false); }}
-              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${aisVisible ? 'bg-teal-600 text-white' : 'text-white/40 hover:bg-white/10'}`}
+              className={`w-full text-left px-2 py-1.5 rounded flex items-center gap-2 transition-colors ${aisVisible ? 'bg-[var(--bg-button)] text-white' : 'text-white/40 hover:bg-white/10'}`}
               title="Live AIS vessel traffic — crowd-sourced, may be delayed"
             >
               <Navigation size={12} /> <span className="flex-1">{t('ais.toggle') || 'Vessel Traffic (AIS)'}</span>
