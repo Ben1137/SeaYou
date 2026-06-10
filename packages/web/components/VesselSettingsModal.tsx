@@ -75,12 +75,12 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-bold mb-4 text-slate-900">Vessel Settings</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Vessel Settings</h2>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-700">Vessel Name</label>
+            <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Vessel Name</label>
             <input
               type="text"
               value={name}
@@ -90,7 +90,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-700">
+            <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">
               Draft (meters) — Critical for shallow water detection
             </label>
             <input
@@ -102,13 +102,13 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
               max="10"
               className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
             />
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Depth from waterline to lowest point of keel
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2 text-slate-700">Vessel Type</label>
+            <label className="block text-sm font-semibold mb-2 text-slate-700 dark:text-slate-200">Vessel Type</label>
             <select
               value={type}
               onChange={(e) => handleTypeChange(e.target.value as VesselSettings['type'])}
@@ -119,20 +119,20 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
               <option value="fishing">Fishing Vessel</option>
               <option value="commercial">Commercial Vessel</option>
             </select>
-            <p className="text-xs text-slate-500 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Selecting a type re-seeds the polar baseline below.
             </p>
           </div>
 
           {/* Phase 3 — polar profile */}
-          <div className="pt-2 border-t border-slate-200">
-            <h3 className="text-sm font-semibold text-slate-800 mb-2">
+          <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
               Speed Profile (isochrone router)
             </h3>
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium mb-1 text-slate-600">
+                <label className="block text-xs font-medium mb-1 text-slate-700 dark:text-slate-200">
                   Cruise speed (knots)
                 </label>
                 <input
@@ -144,7 +144,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                   max="50"
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   {type === 'sail'
                     ? 'Typical performance in ~15 kt of beam wind.'
                     : 'Economical cruising speed.'}
@@ -152,7 +152,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1 text-slate-600">
+                <label className="block text-xs font-medium mb-1 text-slate-700 dark:text-slate-200">
                   Upwind penalty (0 – 1)
                 </label>
                 <input
@@ -164,13 +164,13 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                   max="0.9"
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   Fraction of cruise speed lost when heading inside ~45° of the wind.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1 text-slate-600">
+                <label className="block text-xs font-medium mb-1 text-slate-700 dark:text-slate-200">
                   Max comfortable head sea (m)
                 </label>
                 <input
@@ -182,7 +182,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                   max="8"
                   className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
-                <p className="text-[11px] text-slate-500 mt-1">
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                   Router adds cost when pushing bow-on into larger seas.
                 </p>
               </div>
@@ -202,13 +202,13 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                 maxHeadSea,
               })
             }
-            className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="flex-1 py-2 bg-(--bg-button) hover:bg-(--bg-button-hover) text-white rounded transition-colors"
           >
             Save
           </button>
           <button
             onClick={onClose}
-            className="flex-1 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300"
+            className="flex-1 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
           >
             Cancel
           </button>
