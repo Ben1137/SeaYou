@@ -764,9 +764,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </h3>
           <div className="flex items-center gap-2">
             <div className="flex space-x-1 bg-black/20 p-1 rounded-lg" onDoubleClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setActiveGraph('wave')} style={activeGraph === 'wave' ? { backgroundColor: 'var(--chart-primary)', opacity: 0.85 } : undefined} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'wave' ? 'text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.waves')}</button>
-            <button onClick={() => setActiveGraph('swell')} style={activeGraph === 'swell' ? { backgroundColor: 'var(--chart-secondary)', opacity: 0.85 } : undefined} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'swell' ? 'text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.swell')}</button>
-            <button onClick={() => setActiveGraph('tide')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'tide' ? 'bg-white/20 text-white shadow-sm' : 'text-white/60 hover:text-white'}`}>{t('forecast.tides')}</button>
+            <button onClick={() => setActiveGraph('wave')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'wave' ? 'bg-[var(--bg-button)] text-white shadow-sm' : 'bg-transparent text-white/60 hover:text-white hover:bg-white/10'}`}>{t('forecast.waves')}</button>
+            <button onClick={() => setActiveGraph('swell')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'swell' ? 'bg-[var(--bg-button)] text-white shadow-sm' : 'bg-transparent text-white/60 hover:text-white hover:bg-white/10'}`}>{t('forecast.swell')}</button>
+            <button onClick={() => setActiveGraph('tide')} className={`text-[10px] font-bold px-3 py-1 rounded transition-colors ${activeGraph === 'tide' ? 'bg-[var(--bg-button)] text-white shadow-sm' : 'bg-transparent text-white/60 hover:text-white hover:bg-white/10'}`}>{t('forecast.tides')}</button>
             </div>
             <button
               onClick={(e) => { e.stopPropagation(); setIsChartExpanded((v) => !v); }}

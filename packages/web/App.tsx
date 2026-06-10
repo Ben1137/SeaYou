@@ -759,7 +759,7 @@ const AppContent: React.FC = () => {
                     <input
                       type="text"
                       placeholder={t('location.search')}
-                      className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-white/40 focus:border-blue-400 focus:outline-none"
+                      className="w-full bg-black/20 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                       value={searchQuery}
                       onChange={(e) => handleSearchInput(e.target.value)}
                       autoFocus

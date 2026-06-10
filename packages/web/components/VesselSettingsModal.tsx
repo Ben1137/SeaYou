@@ -85,7 +85,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
             />
           </div>
 
@@ -100,7 +100,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
               step="0.1"
               min="0.1"
               max="10"
-              className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
             />
             <p className="text-xs text-slate-500 mt-1">
               Depth from waterline to lowest point of keel
@@ -112,7 +112,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
             <select
               value={type}
               onChange={(e) => handleTypeChange(e.target.value as VesselSettings['type'])}
-              className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+              className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
             >
               <option value="sail">Sailboat</option>
               <option value="power">Powerboat</option>
@@ -142,7 +142,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                   step="0.5"
                   min="1"
                   max="50"
-                  className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
                   {type === 'sail'
@@ -162,7 +162,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                   step="0.05"
                   min="0"
                   max="0.9"
-                  className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
                   Fraction of cruise speed lost when heading inside ~45° of the wind.
@@ -180,7 +180,7 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
                   step="0.5"
                   min="0.5"
                   max="8"
-                  className="w-full p-2 border border-slate-300 rounded text-slate-900 focus:outline-none focus:border-blue-500"
+                  className="w-full p-2 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">
                   Router adds cost when pushing bow-on into larger seas.
