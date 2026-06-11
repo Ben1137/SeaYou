@@ -77,11 +77,24 @@ export function useSharedMarineData(
       north: north + latPadding,
     };
 
-    // Scale resolution down for large viewports to avoid 429 on the free tier.
-    // Open-Meteo free tier throttles large bulk-coordinate requests (256+ points).
-    // Viewport spans > 10° use 8x8 (64 points), > 5° use 12x12 (144 points), else 16x16 (256).
+    // Dynamic resolution — Windy-style zoom-aware grid density.
+    // At globe zoom (<3) use a very sparse grid to cover the full earth without
+    // hammering the Open-Meteo free tier. At normal zoom, density scales with
+    // viewport span as before.
+    const zoom = map.getZoom();
     const viewportSpan = Math.max(east - west, north - south);
-    const gridSize = viewportSpan > 10 ? 6 : viewportSpan > 5 ? 8 : 12;
+    let gridSize: number;
+    if (zoom < 2) {
+      gridSize = 4;  // Planet view: 4×4 (16 points)
+    } else if (zoom < 3) {
+      gridSize = 6;  // Continental: 6×6 (36 points)
+    } else if (viewportSpan > 10) {
+      gridSize = 6;  // Wide regional: 6×6
+    } else if (viewportSpan > 5) {
+      gridSize = 8;  // Regional: 8×8 (64 points)
+    } else {
+      gridSize = 12; // Local detail: 12×12 (144 points)
+    }
     const resolution: GridResolution = {
       latPoints: gridSize,
       lngPoints: gridSize,

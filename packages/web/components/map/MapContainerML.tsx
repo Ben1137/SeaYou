@@ -1096,7 +1096,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             value={selectedModel}
             onChange={(e) => setPreference('selectedModel', e.target.value || undefined)}
             aria-label={t('map.model', 'Forecast model')}
-            className="bg-slate-800 text-white text-xs rounded-md px-2 py-0.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-cyan-400 max-w-[130px] cursor-pointer"
+            className="bg-slate-800 text-white text-xs rounded-md px-2 py-0.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-cyan-400 max-w-[180px] max-h-[50vh] cursor-pointer"
           >
             <option value="">{t('settings.weatherModel.auto', 'Auto')}</option>
             {Object.entries(WEATHER_MODELS).map(([id, model]) => (

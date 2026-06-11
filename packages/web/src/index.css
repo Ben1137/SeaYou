@@ -551,6 +551,11 @@ input[type=range]::-webkit-slider-runnable-track {
   border-radius: 2px;
 }
 
+/* Apple Maps-style deep space background — visible at globe zoom levels */
+.maplibregl-map {
+  background: radial-gradient(ellipse at center, #0a0e1a 0%, #000000 70%);
+}
+
 /* MapLibre control overrides for glass theme */
 .maplibregl-ctrl-group {
   background: rgba(0, 0, 0, 0.3) !important;

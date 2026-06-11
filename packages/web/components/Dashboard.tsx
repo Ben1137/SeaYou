@@ -789,7 +789,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           )}
           {activeGraph !== 'tide' && (
             <>
-              <div className="flex items-center"><span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: activeGraph === 'wave' ? 'var(--chart-primary)' : 'var(--chart-secondary)' }} /> {t('weather.height')} (m)</div>
+              <div className="flex items-center"><span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: 'var(--chart-primary)' }} /> {t('weather.height')} (m)</div>
               <div className="flex items-center"><span className="w-2 h-2 rounded-full bg-yellow-400 mr-1.5" /> {t('weather.period')} (s)</div>
             </>
           )}
@@ -833,7 +833,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                     </>
                   ) : (
                     <>
-                      <Area yAxisId="left" type="monotone" dataKey="swellHeight" stroke="var(--chart-secondary)" fill="var(--chart-secondary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.swellHeight')} />
+                      <Area yAxisId="left" type="monotone" dataKey="swellHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.swellHeight')} />
                       <Line yAxisId="right" type="monotone" dataKey="swellPeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.swellPeriod')} />
                     </>
                   )}
