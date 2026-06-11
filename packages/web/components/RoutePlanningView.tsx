@@ -468,7 +468,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
             {onShowOnMap && route && (
               <button
                 onClick={onShowOnMap}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2"
+                className="px-4 py-2 bg-button text-white rounded-lg hover:bg-button-hover flex items-center gap-2"
                 title="View route on the live map — right-click / long-press to drop waypoints"
               >
                 <MapIcon className="w-4 h-4" />
@@ -508,7 +508,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 }}
                 className={`px-3 py-1 transition-colors ${
                   coordFormat === fmt
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-button text-white'
                     : 'text-white/60 hover:text-white'
                 }`}
                 title={
@@ -589,7 +589,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleLoadRoute(savedRoute)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
+                      className="px-4 py-2 bg-button text-white rounded hover:bg-button-hover"
                     >
                       Load
                     </button>
@@ -629,7 +629,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 value={routeName}
                 onChange={(e) => setRouteName(e.target.value)}
                 placeholder="e.g., Weekend Cruise"
-                className="w-full p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
               />
             </div>
 
@@ -643,11 +643,11 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   value={startLocation}
                   onChange={(e) => setStartLocation(e.target.value)}
                   placeholder="Location name"
-                  className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <button
                   onClick={() => handleUseCurrentLocation('start')}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                  className="px-4 py-3 bg-button text-white rounded-lg hover:bg-button-hover"
                 >
                   <MapPin className="w-5 h-5" />
                 </button>
@@ -658,14 +658,14 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   value={startLat}
                   onChange={(e) => setStartLat(e.target.value)}
                   placeholder={coordFormat === 'DD' ? 'Latitude (43.7384)' : "Latitude (43°44'18\"N)"}
-                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <input
                   type="text"
                   value={startLon}
                   onChange={(e) => setStartLon(e.target.value)}
                   placeholder={coordFormat === 'DD' ? 'Longitude (-79.4)' : "Longitude (79°24'00\"W)"}
-                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
               </div>
             </div>
@@ -680,11 +680,11 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   value={destLocation}
                   onChange={(e) => setDestLocation(e.target.value)}
                   placeholder="Location name"
-                  className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="flex-1 p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <button
                   onClick={() => handleUseCurrentLocation('dest')}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                  className="px-4 py-3 bg-button text-white rounded-lg hover:bg-button-hover"
                 >
                   <MapPin className="w-5 h-5" />
                 </button>
@@ -695,14 +695,14 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   value={destLat}
                   onChange={(e) => setDestLat(e.target.value)}
                   placeholder={coordFormat === 'DD' ? 'Latitude (43.7384)' : "Latitude (43°44'18\"N)"}
-                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
                 <input
                   type="text"
                   value={destLon}
                   onChange={(e) => setDestLon(e.target.value)}
                   placeholder={coordFormat === 'DD' ? 'Longitude (-79.4)' : "Longitude (79°24'00\"W)"}
-                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className="p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
                 />
               </div>
             </div>
@@ -718,13 +718,13 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 min="1"
                 max="50"
                 step="0.5"
-                className="w-full p-3 border border-white/10 rounded-lg bg-black/20 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full p-3 border border-white/10 rounded-lg bg-black/20 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-(--bg-button) focus-visible:ring-offset-2"
               />
             </div>
 
             <button
               onClick={handleCreateRoute}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-semibold flex items-center justify-center gap-2"
+              className="w-full py-3 bg-button text-white rounded-lg hover:bg-button-hover font-semibold flex items-center justify-center gap-2"
             >
               <Navigation className="w-5 h-5" />
               Create Route
@@ -735,7 +735,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
 
       {/* Route Display */}
       {route && (
-        <div className="glass-panel bg-[#0F3A5E]/80 p-6 mb-4">
+        <div className="glass-panel bg-card/80 p-6 mb-4">
 
           {/* Hazard Analysis */}
           {isAnalyzing ? (
@@ -931,7 +931,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                           key={idx}
                           className="flex items-center justify-between gap-3 p-2 rounded bg-indigo-900/30 border border-indigo-500/20 text-xs"
                         >
-                          <span className="font-mono text-indigo-200 w-16">
+                          <span className="tabular-nums text-indigo-200 w-16">
                             #{idx + 1} {relLabel}
                           </span>
                           <span className="flex-1 text-white/80 truncate">
@@ -998,7 +998,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                       <span className="flex-1 text-sm text-white/80 truncate">
                         {wp.name || '(unnamed)'}
                       </span>
-                      <span className="text-[11px] text-white/40 font-mono">
+                      <span className="text-[11px] text-white/40 tabular-nums">
                         {wp.lat.toFixed(4)}, {wp.lon.toFixed(4)}
                       </span>
                       {!isStart && !isEnd && (

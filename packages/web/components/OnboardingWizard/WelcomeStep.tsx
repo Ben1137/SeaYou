@@ -54,7 +54,7 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onNext, onSkip }) =
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
         <button
           onClick={onNext}
-          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-lg"
+          className="flex-1 bg-button hover:brightness-110 active:scale-[0.98] text-white font-bold py-4 px-6 rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg"
         >
           {t('ui.get_started')}
           <ArrowRight size={20} />

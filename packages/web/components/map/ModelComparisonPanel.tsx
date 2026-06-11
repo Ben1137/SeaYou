@@ -160,7 +160,7 @@ export function ModelComparisonPanel({ lat, lng, onClose }: Props) {
                     return (
                       <td
                         key={m.model}
-                        className="text-right py-2 px-2 font-mono text-white tabular-nums"
+                        className="text-right py-2 px-2 text-white tabular-nums"
                       >
                         {val !== null ? `${val.toFixed(decimals)}${unit}` : '—'}
                       </td>

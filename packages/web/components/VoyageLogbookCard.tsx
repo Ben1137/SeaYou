@@ -84,7 +84,7 @@ export const VoyageLogbookCard: React.FC<{ className?: string }> = ({
       className={`bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-white/10 rounded-xl p-4 shadow-sm ${className ?? ''}`}
     >
       <div className="flex items-center justify-between mb-3">
-        <h3 className="flex items-center gap-2 text-sm font-semibold tracking-wide uppercase text-slate-700 dark:text-slate-200">
+        <h3 className="flex items-center gap-2 text-sm font-semibold tracking-tight uppercase text-slate-700 dark:text-slate-200">
           <BookOpen className="w-4 h-4" />
           Logbook
         </h3>
@@ -156,7 +156,7 @@ export const VoyageLogbookCard: React.FC<{ className?: string }> = ({
 
 const Stat: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div className="rounded bg-slate-100 dark:bg-slate-800 py-1 px-1">
-    <p className="text-[9px] uppercase tracking-wide text-slate-500 dark:text-slate-400">
+    <p className="text-[9px] uppercase tracking-tight text-slate-500 dark:text-slate-400">
       {label}
     </p>
     <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 tabular-nums">

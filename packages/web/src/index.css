@@ -185,6 +185,9 @@
 /* Force-opaque every component that uses backdrop-filter in bright-deck */
 .bright-deck [class*="backdrop-blur"],
 .bright-deck .glass,
+.bright-deck .glass-panel,
+.bright-deck .modal-backdrop,
+.bright-deck .maplibregl-ctrl-group,
 .bright-deck [style*="backdrop-filter"] {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -290,6 +293,12 @@ html {
   transition-property: background-color, border-color, color, fill, stroke;
   transition-timing-function: ease;
   transition-duration: 0.2s;
+}
+
+/* Prevent map canvas from inheriting the global transition — eliminates tile/layer jank */
+.maplibregl-canvas,
+.maplibregl-canvas * {
+  transition: none !important;
 }
 
 /* Theme-aware utility classes
@@ -425,15 +434,17 @@ html {
 
 /* Glass Panel — primary container */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 1.25rem;
 }
 
 .dark .glass-panel {
   background: rgba(15, 23, 42, 0.75); /* slate-900 at 75% — matches old bg-card #0f172a */
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
@@ -463,8 +474,8 @@ html {
 /* Modal backdrop */
 .modal-backdrop {
   background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
 }
 
 /* Navigation item styling */
@@ -543,8 +554,8 @@ input[type=range]::-webkit-slider-runnable-track {
 /* MapLibre control overrides for glass theme */
 .maplibregl-ctrl-group {
   background: rgba(0, 0, 0, 0.3) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 0.75rem !important;
 }
@@ -823,7 +834,7 @@ input[type=range]::-webkit-slider-runnable-track {
   transform: translateY(-1px);
 }
 .seayou-marina-call-btn {
-  background: linear-gradient(90deg, #059669, #10b981);
+  background: #059669;
   color: #ffffff;
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
 }
@@ -835,9 +846,9 @@ input[type=range]::-webkit-slider-runnable-track {
   margin-top: 2px;
 }
 .seayou-marina-website-btn {
-  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  background: var(--bg-button);
   color: #ffffff;
-  box-shadow: 0 6px 16px rgba(14, 165, 233, 0.25);
+  box-shadow: 0 6px 16px rgba(0, 141, 141, 0.25);
 }
 .seayou-marina-gmaps-btn {
   background: rgba(255, 255, 255, 0.08);

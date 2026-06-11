@@ -112,7 +112,7 @@ export const AuthPage: React.FC = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center mb-4 shadow-lg shadow-blue-500/25">
+          <div className="w-16 h-16 rounded-2xl bg-[#0071e3] flex items-center justify-center mb-4 shadow-lg">
             <Anchor size={32} className="text-white" />
           </div>
           <h1 className="text-4xl font-black tracking-tight text-white">SeaYou</h1>
@@ -140,7 +140,7 @@ export const AuthPage: React.FC = () => {
             onClick={() => { if (mode !== 'signup') toggleMode(); }}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               mode === 'signup'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20'
+                ? 'bg-[#0071e3] text-white shadow-lg'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
@@ -150,7 +150,7 @@ export const AuthPage: React.FC = () => {
             onClick={() => { if (mode !== 'signin') toggleMode(); }}
             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               mode === 'signin'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-blue-500/20'
+                ? 'bg-[#0071e3] text-white shadow-lg'
                 : 'text-white/40 hover:text-white/60'
             }`}
           >
@@ -246,7 +246,7 @@ export const AuthPage: React.FC = () => {
           <button
             type="submit"
             disabled={disabled || !email || !password}
-            className="w-full h-12 rounded-2xl font-semibold text-sm bg-gradient-to-r from-blue-600 to-cyan-500 text-white hover:from-blue-500 hover:to-cyan-400 transition-all shadow-lg shadow-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
+            className="w-full h-12 rounded-2xl font-semibold text-sm bg-[#0071e3] hover:bg-[#0077ed] text-white transition-all shadow-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             {busy && <Loader2 size={14} className="animate-spin" />}
             {emailLabel}

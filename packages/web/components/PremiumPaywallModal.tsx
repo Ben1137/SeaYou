@@ -27,15 +27,15 @@ export const PremiumPaywallModal: React.FC<PremiumPaywallModalProps> = ({ isOpen
 
           {/* Card */}
           <motion.div
-            className="relative z-10 w-full max-w-sm rounded-3xl overflow-hidden"
-            style={{ background: 'linear-gradient(165deg, #1a2744 0%, #0f1d33 100%)' }}
+            className="relative z-10 w-full max-w-sm rounded-3xl overflow-hidden bg-card border border-subtle"
+            style={undefined}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             {/* Top gradient accent */}
-            <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400" />
+            <div className="h-1 bg-(--bg-button)" />
 
             {/* Close button */}
             <button
@@ -47,7 +47,7 @@ export const PremiumPaywallModal: React.FC<PremiumPaywallModalProps> = ({ isOpen
 
             <div className="px-6 pt-8 pb-6 flex flex-col items-center">
               {/* Lock icon */}
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 to-orange-500/20 flex items-center justify-center mb-5 border border-amber-400/20">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-5 border border-white/10">
                 <Lock size={28} className="text-amber-400" />
               </div>
 
@@ -75,7 +75,7 @@ export const PremiumPaywallModal: React.FC<PremiumPaywallModalProps> = ({ isOpen
 
               <button
                 onClick={onUpgrade}
-                className="w-full h-13 rounded-2xl font-bold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 active:scale-[0.97] transition-transform mb-3"
+                className="w-full h-13 rounded-2xl font-bold text-sm bg-(--bg-button) text-white shadow-lg flex items-center justify-center gap-2 active:scale-[0.97] transition-transform mb-3"
                 style={{ height: '52px' }}
               >
                 <Sparkles size={16} /> {t('premium.goPremium', 'Go Premium')}
