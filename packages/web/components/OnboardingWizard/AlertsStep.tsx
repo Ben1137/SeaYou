@@ -182,7 +182,7 @@ export const AlertsStep: React.FC<OnboardingStepProps> = ({
           </button>
           <button
             onClick={onSkip} // onSkip acts as "Finish" on the last step
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg transform hover:scale-105"
+            className="flex items-center gap-2 bg-button hover:brightness-110 active:scale-[0.98] text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg"
           >
             <Check size={20} />
             {t('ui.finish_setup')}

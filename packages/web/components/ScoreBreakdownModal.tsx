@@ -72,7 +72,7 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
       aria-labelledby="score-breakdown-title"
     >
       <div
-        className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gradient-to-b dark:from-slate-900 dark:to-slate-950 border border-slate-200 dark:border-white/10 rounded-t-2xl sm:rounded-2xl shadow-2xl text-slate-900 dark:text-white"
+        className="w-full sm:max-w-md max-h-[90vh] overflow-y-auto bg-card border border-subtle rounded-t-2xl sm:rounded-2xl shadow-2xl text-primary"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -103,7 +103,7 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
 
         {/* Breakdown list */}
         <div className="p-4 space-y-2">
-          <h3 className="text-[10px] font-bold tracking-widest text-slate-500 dark:text-white/50 uppercase mb-2">
+          <h3 className="text-[10px] font-bold tracking-tight text-slate-500 dark:text-white/50 uppercase mb-2">
             {t('scoring.whyThisScore', 'Why this score')}
           </h3>
           {score.breakdown.map((factor, idx) => {
@@ -127,7 +127,7 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
           {/* Warnings, if any */}
           {score.warnings.length > 0 && (
             <div className="mt-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/40 dark:border-amber-400/30">
-              <h4 className="text-[10px] font-bold tracking-widest text-amber-700 dark:text-amber-300 uppercase mb-1">
+              <h4 className="text-[10px] font-bold tracking-tight text-amber-700 dark:text-amber-300 uppercase mb-1">
                 {t('scoring.warnings', 'Warnings')}
               </h4>
               <ul className="text-xs text-amber-900 dark:text-amber-100/90 space-y-1 list-disc list-inside">
@@ -149,7 +149,7 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
             <span className="relative flex items-center justify-center gap-2">
               <Lock size={14} />
               {t('scoring.tuneSensitivity', 'Tune Sensitivity')}
-              <span className="text-[10px] font-black tracking-widest bg-black/30 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-black tracking-tight bg-black/30 px-1.5 py-0.5 rounded">
                 PRO
               </span>
             </span>

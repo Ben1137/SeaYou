@@ -515,7 +515,7 @@ const Atmosphere: React.FC<AtmosphereProps> = ({ weatherData }) => {
 
                   {moonProgress < 0 && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest">{t('atmosphere.moonDown')}</span>
+                      <span className="text-[10px] text-white/40 uppercase font-bold tracking-tight">{t('atmosphere.moonDown')}</span>
                     </div>
                   )}
 

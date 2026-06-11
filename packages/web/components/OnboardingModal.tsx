@@ -129,7 +129,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
               {/* Progress dots */}
               <div className="flex gap-2 mt-10">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-blue-400' : 'bg-white/15'}`} />
+                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-button' : 'bg-white/15'}`} />
                 ))}
               </div>
             </motion.div>
@@ -197,7 +197,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
               <div className="flex gap-2 mt-8">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-blue-400' : 'bg-white/15'}`} />
+                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-button' : 'bg-white/15'}`} />
                 ))}
               </div>
             </motion.div>
@@ -257,7 +257,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ isOpen, onComp
 
               <div className="flex gap-2 mt-6">
                 {[0, 1, 2].map((i) => (
-                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-blue-400' : 'bg-white/15'}`} />
+                  <div key={i} className={`w-2 h-2 rounded-full transition-colors ${i === step ? 'bg-button' : 'bg-white/15'}`} />
                 ))}
               </div>
             </motion.div>

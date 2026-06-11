@@ -150,7 +150,7 @@ export const PortSearchBar: React.FC = () => {
       </div>
 
       {isOpen && query.length >= 2 && (
-        <div className="absolute z-20 mt-1 w-full bg-[#0a1e33] border border-white/10 rounded-lg shadow-xl max-h-64 overflow-y-auto">
+        <div className="absolute z-20 mt-1 w-full bg-card border border-subtle rounded-lg shadow-xl max-h-64 overflow-y-auto">
           {matches.length === 0 ? (
             <p className="p-3 text-sm text-white/40">
               No matching port in local dataset.

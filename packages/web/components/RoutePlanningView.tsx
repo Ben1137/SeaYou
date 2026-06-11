@@ -735,7 +735,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
 
       {/* Route Display */}
       {route && (
-        <div className="glass-panel bg-[#0F3A5E]/80 p-6 mb-4">
+        <div className="glass-panel bg-card/80 p-6 mb-4">
 
           {/* Hazard Analysis */}
           {isAnalyzing ? (

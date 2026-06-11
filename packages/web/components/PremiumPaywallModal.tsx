@@ -27,8 +27,8 @@ export const PremiumPaywallModal: React.FC<PremiumPaywallModalProps> = ({ isOpen
 
           {/* Card */}
           <motion.div
-            className="relative z-10 w-full max-w-sm rounded-3xl overflow-hidden"
-            style={{ background: 'linear-gradient(165deg, #1a2744 0%, #0f1d33 100%)' }}
+            className="relative z-10 w-full max-w-sm rounded-3xl overflow-hidden bg-card border border-subtle"
+            style={undefined}
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}

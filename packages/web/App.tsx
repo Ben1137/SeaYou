@@ -637,7 +637,7 @@ const AppContent: React.FC = () => {
             <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center mb-2">
               <Anchor size={20} className="text-white" />
             </div>
-            <span className="text-[10px] font-bold tracking-wider text-white/80">SeaYou</span>
+            <span className="text-[10px] font-bold tracking-tight text-white/80">SeaYou</span>
           </div>
 
           <div className="flex-1 flex flex-col items-center gap-1 px-2 py-4">
@@ -681,7 +681,7 @@ const AppContent: React.FC = () => {
             {/* Center: App title with anchor logo — flex-1 so it gets its fair share */}
             <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 sm:gap-2">
               <Anchor size={18} className="text-white/90 shrink-0" aria-hidden="true" />
-              <h1 className="text-lg sm:text-2xl font-bold tracking-wide text-white whitespace-nowrap truncate">SeaYou</h1>
+              <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-white whitespace-nowrap truncate">SeaYou</h1>
             </div>
 
             {/* Right: theme toggle + language selector */}
