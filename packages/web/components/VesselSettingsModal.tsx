@@ -74,8 +74,8 @@ export const VesselSettingsModal: React.FC<VesselSettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-900 rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="modal-backdrop fixed inset-0 flex items-center justify-center z-50">
+      <div className="bg-card border border-subtle rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-slate-900 dark:text-white">Vessel Settings</h2>
 
         <div className="space-y-4">

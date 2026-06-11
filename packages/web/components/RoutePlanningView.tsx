@@ -468,7 +468,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
             {onShowOnMap && route && (
               <button
                 onClick={onShowOnMap}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500 flex items-center gap-2"
+                className="px-4 py-2 bg-button text-white rounded-lg hover:bg-button-hover flex items-center gap-2"
                 title="View route on the live map — right-click / long-press to drop waypoints"
               >
                 <MapIcon className="w-4 h-4" />
@@ -508,7 +508,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 }}
                 className={`px-3 py-1 transition-colors ${
                   coordFormat === fmt
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-button text-white'
                     : 'text-white/60 hover:text-white'
                 }`}
                 title={
@@ -589,7 +589,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleLoadRoute(savedRoute)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-500"
+                      className="px-4 py-2 bg-button text-white rounded hover:bg-button-hover"
                     >
                       Load
                     </button>
@@ -647,7 +647,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 />
                 <button
                   onClick={() => handleUseCurrentLocation('start')}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                  className="px-4 py-3 bg-button text-white rounded-lg hover:bg-button-hover"
                 >
                   <MapPin className="w-5 h-5" />
                 </button>
@@ -684,7 +684,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
                 />
                 <button
                   onClick={() => handleUseCurrentLocation('dest')}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500"
+                  className="px-4 py-3 bg-button text-white rounded-lg hover:bg-button-hover"
                 >
                   <MapPin className="w-5 h-5" />
                 </button>
@@ -724,7 +724,7 @@ export const RoutePlanningView: React.FC<RoutePlanningViewProps> = ({ onShowOnMa
 
             <button
               onClick={handleCreateRoute}
-              className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-500 font-semibold flex items-center justify-center gap-2"
+              className="w-full py-3 bg-button text-white rounded-lg hover:bg-button-hover font-semibold flex items-center justify-center gap-2"
             >
               <Navigation className="w-5 h-5" />
               Create Route
