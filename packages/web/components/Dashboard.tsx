@@ -829,12 +829,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   {activeGraph === 'wave' ? (
                     <>
                       <Area yAxisId="left" type="monotone" dataKey="waveHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.waveHeight')} />
-                      <Line yAxisId="right" type="monotone" dataKey="wavePeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.wavePeriod')} />
+                      <Line yAxisId="right" type="monotone" dataKey="wavePeriod" stroke="var(--chart-primary)" strokeWidth={2} dot={false} name={t('weather.wavePeriod')} />
                     </>
                   ) : (
                     <>
                       <Area yAxisId="left" type="monotone" dataKey="swellHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} name={t('weather.swellHeight')} />
-                      <Line yAxisId="right" type="monotone" dataKey="swellPeriod" stroke="#facc15" strokeWidth={2} dot={false} name={t('weather.swellPeriod')} />
+                      <Line yAxisId="right" type="monotone" dataKey="swellPeriod" stroke="var(--chart-primary)" strokeWidth={2} dot={false} name={t('weather.swellPeriod')} />
                     </>
                   )}
                 </ComposedChart>

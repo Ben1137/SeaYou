@@ -362,6 +362,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const isFreeUser = subscriptionTier !== 'premium';
   const [showPaywall, setShowPaywall] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
 
   // Layer state
   const [activeLayer, setActiveLayer] = useState<MapLayer>('NONE');
@@ -402,6 +404,17 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       aisService.off('cpaWarning', onCpa);
     };
   }, []);
+
+  useEffect(() => {
+    if (!modelDropdownOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target as Node)) {
+        setModelDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [modelDropdownOpen]);
 
   /** Attempt to activate an advanced layer — gated by subscription tier. Auto-closes panel on success. */
   const trySetAdvancedLayer = useCallback((layer: AdvancedLayer) => {
@@ -516,6 +529,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       style: 'https://api.maptiler.com/maps/019cdd5d-dd58-73ba-975e-3e2b92fca675/style.json?key=zyH9i3YVwxIqd1gD7bGK',
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 8,
+      minZoom: 1,
       attributionControl: { compact: true },
     });
 
@@ -538,6 +552,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     map.on('load', () => {
       // Force a resize to ensure the canvas fills the container
       map.resize();
+      // Enable globe projection for Apple Maps-style planet view at low zoom
+      map.setProjection({ type: 'globe' });
 
       mapRef.current = map;
       setMap(map);
@@ -1092,17 +1108,47 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
           <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider whitespace-nowrap hidden sm:inline">
             {t('map.model', 'Model')}
           </span>
-          <select
-            value={selectedModel}
-            onChange={(e) => setPreference('selectedModel', e.target.value || undefined)}
-            aria-label={t('map.model', 'Forecast model')}
-            className="bg-slate-800 text-white text-xs rounded-md px-2 py-0.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-cyan-400 max-w-[180px] max-h-[50vh] cursor-pointer"
-          >
-            <option value="">{t('settings.weatherModel.auto', 'Auto')}</option>
-            {Object.entries(WEATHER_MODELS).map(([id, model]) => (
-              <option key={id} value={id}>{model.name}</option>
-            ))}
-          </select>
+          <div className="relative" ref={modelDropdownRef}>
+            <button
+              onClick={() => setModelDropdownOpen(v => !v)}
+              aria-label={t('map.model', 'Forecast model')}
+              aria-expanded={modelDropdownOpen}
+              aria-haspopup="listbox"
+              className="bg-slate-800 text-white text-xs rounded-md px-2 py-0.5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-cyan-400 max-w-[180px] flex items-center gap-1 cursor-pointer"
+            >
+              <span className="truncate">
+                {selectedModel ? (WEATHER_MODELS[selectedModel]?.name ?? selectedModel) : t('settings.weatherModel.auto', 'Auto')}
+              </span>
+              <ChevronDown size={10} className={`flex-shrink-0 transition-transform duration-150 ${modelDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {modelDropdownOpen && (
+              <div
+                role="listbox"
+                aria-label={t('map.model', 'Forecast model')}
+                className="absolute top-full end-0 mt-1 w-52 max-h-[50vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-lg shadow-xl z-[500] hide-scrollbar"
+              >
+                <button
+                  role="option"
+                  aria-selected={selectedModel === ''}
+                  onClick={() => { setPreference('selectedModel', undefined); setModelDropdownOpen(false); }}
+                  className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${selectedModel === '' ? 'text-cyan-300 bg-white/10' : 'text-white/70 hover:bg-white/5'}`}
+                >
+                  {t('settings.weatherModel.auto', 'Auto')}
+                </button>
+                {Object.entries(WEATHER_MODELS).map(([id, model]) => (
+                  <button
+                    key={id}
+                    role="option"
+                    aria-selected={selectedModel === id}
+                    onClick={() => { setPreference('selectedModel', id); setModelDropdownOpen(false); }}
+                    className={`w-full text-left px-3 py-1.5 text-xs transition-colors ${selectedModel === id ? 'text-cyan-300 bg-white/10' : 'text-white/70 hover:bg-white/5'}`}
+                  >
+                    {model.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button
             onClick={() => setShowComparison((v) => !v)}
             aria-label={t('map.compareModels', 'Compare models')}
