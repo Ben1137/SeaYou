@@ -350,7 +350,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const { setMap } = useMapContext();
+  const { setMap, map: reactiveMap } = useMapContext();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Premium / paywall state
@@ -478,7 +478,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     advancedLayer === 'GUST_DELTA' ||
     advancedLayer === 'CURRENT_HEATMAP'
   );
-  const sharedMarineData = useSharedMarineData(mapRef.current, isMarineLayerActive);
+  const sharedMarineData = useSharedMarineData(reactiveMap, isMarineLayerActive);
 
   // Shared forecast data — single fetch for atmospheric layers (Phase 6B)
   // Wind particles also use forecast data for global coverage (land + sea)
@@ -489,7 +489,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     advancedLayer === 'PRECIPITATION' ||
     advancedLayer === 'CLOUD_COVER'
   );
-  const sharedForecastData = useSharedForecastGridData(mapRef.current, isForecastLayerActive);
+  const sharedForecastData = useSharedForecastGridData(reactiveMap, isForecastLayerActive);
 
   // GeoJSON / raster overlay state
   const [geoJSONLayers, setGeoJSONLayers] = useState({
@@ -1102,7 +1102,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       {/* Map Container */}
       <div
         ref={mapContainerRef}
-        style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: DARK_MAP_CONFIG.backgroundColor }}
+        style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}
       />
 
       {/* Layer Controls Panel */}
