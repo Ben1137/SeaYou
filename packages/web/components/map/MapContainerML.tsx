@@ -570,6 +570,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
             map.setPaintProperty(layer.id, 'fill-color', '#252535');
           }
           if (layer.type === 'background') {
+            map.setPaintProperty(layer.id, 'background-color', 'rgba(0,0,0,0)');
             map.setPaintProperty(layer.id, 'background-opacity', 0);
           }
         }

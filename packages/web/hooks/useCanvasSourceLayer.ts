@@ -174,6 +174,9 @@ export function useCanvasSourceLayer({
         setIsLayerReady(true);
         console.log(`[CanvasSourceLayer] ${layerId} added (source: ${sourceId})`);
         map.triggerRepaint();
+        // Pulse two extra repaints so MapLibre flushes the CanvasSource texture on the very first frame
+        setTimeout(() => { if (!cancelled) map.triggerRepaint(); }, 50);
+        setTimeout(() => { if (!cancelled) map.triggerRepaint(); }, 200);
       } catch (err) {
         console.error(`[CanvasSourceLayer] FAILED to add ${layerId}:`, err);
         // Retry on failure (e.g., if style is in a transitional state)
