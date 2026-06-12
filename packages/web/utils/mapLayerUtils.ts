@@ -56,6 +56,27 @@ import type maplibregl from 'maplibre-gl';
 export function getMarineBeforeId(map: maplibregl.Map): string | undefined {
   const styleLayers = map.getStyle()?.layers ?? [];
 
+  // ── Phase A0: Insert immediately AFTER the last water/ocean fill ───────────
+  // Most reliable for MapTiler Ocean style — finds the last fill layer whose id
+  // contains a water keyword, then returns the layer immediately after it.
+  // Guarantees: [water fill] → [marine layer] → [land fill] regardless of style.
+  let lastWaterLayerId: string | undefined;
+  for (const layer of styleLayers) {
+    const lId = layer.id.toLowerCase();
+    if (
+      (layer.type === 'fill' || layer.type === 'background') &&
+      (lId.includes('water') || lId.includes('ocean') || lId.includes('sea') || lId.includes('lake'))
+    ) {
+      lastWaterLayerId = layer.id;
+    }
+  }
+  if (lastWaterLayerId) {
+    const lastWaterIdx = styleLayers.findIndex(l => l.id === lastWaterLayerId);
+    if (lastWaterIdx >= 0 && lastWaterIdx + 1 < styleLayers.length) {
+      return styleLayers[lastWaterIdx + 1].id;
+    }
+  }
+
   // ── Phase A: Find land polygon fill AFTER all water fills (OMT/Protomaps) ──
   //
   // First, locate the index of the LAST water-like layer in the stack.

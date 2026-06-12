@@ -299,6 +299,7 @@ html {
 .maplibregl-canvas,
 .maplibregl-canvas * {
   transition: none !important;
+  background: transparent;
 }
 
 /* Theme-aware utility classes

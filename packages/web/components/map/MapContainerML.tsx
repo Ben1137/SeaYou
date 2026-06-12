@@ -560,21 +560,26 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       setMap(map);
       setMapLoaded(true);
 
-      // Fix land/water contrast — MapTiler style has land at 7% and water at 8% brightness
-      // which makes them indistinguishable. Brighten land to ~22% so continents are clear.
-      try {
-        const styleLayers = map.getStyle()?.layers ?? [];
-        for (const layer of styleLayers) {
-          const srcLayer = (layer as any)['source-layer'];
-          if (layer.type === 'fill' && srcLayer === 'land') {
-            map.setPaintProperty(layer.id, 'fill-color', '#252535');
+      // Fix land/water contrast + keep background transparent on every style reload.
+      // Called on 'load' and re-applied on 'styledata' so token refreshes don't restore
+      // the solid background that blocks the CSS star field.
+      const applyStyleOverrides = () => {
+        try {
+          const styleLayers = map.getStyle()?.layers ?? [];
+          for (const layer of styleLayers) {
+            const srcLayer = (layer as any)['source-layer'];
+            if (layer.type === 'fill' && srcLayer === 'land') {
+              map.setPaintProperty(layer.id, 'fill-color', '#252535');
+            }
+            if (layer.type === 'background') {
+              map.setPaintProperty(layer.id, 'background-color', 'rgba(0,0,0,0)');
+              map.setPaintProperty(layer.id, 'background-opacity', 0);
+            }
           }
-          if (layer.type === 'background') {
-            map.setPaintProperty(layer.id, 'background-color', 'rgba(0,0,0,0)');
-            map.setPaintProperty(layer.id, 'background-opacity', 0);
-          }
-        }
-      } catch { /* non-critical */ }
+        } catch { /* non-critical */ }
+      };
+      applyStyleOverrides();
+      map.on('styledata', applyStyleOverrides);
 
       // Add current location marker
       const el = document.createElement('div');
