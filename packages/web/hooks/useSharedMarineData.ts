@@ -66,11 +66,11 @@ export function useSharedMarineData(
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Expand bounds for smoother panning
+    // Expand bounds for smoother panning (skipped at globe zoom — padding pushes coords out of valid range)
     const lonPadding = (east - west) * 0.3;
     const latPadding = (north - south) * 0.3;
 
-    const bounds: BoundingBox = {
+    const paddedBounds: BoundingBox = {
       west: west - lonPadding,
       east: east + lonPadding,
       south: south - latPadding,
@@ -100,16 +100,28 @@ export function useSharedMarineData(
       lngPoints: gridSize,
     };
 
+    // At globe zoom use a fixed full-earth bbox — padding on a ~360° viewport produces
+    // out-of-range coords (e.g. lng -234) that Open-Meteo silently clips, leaving partial coverage.
+    // Otherwise clamp padded bounds to valid lat/lng range.
+    const finalBounds: BoundingBox = zoom < 2
+      ? { west: -180, east: 180, south: -85, north: 85 }
+      : {
+          west:  Math.max(paddedBounds.west,  -180),
+          east:  Math.min(paddedBounds.east,   180),
+          south: Math.max(paddedBounds.south,  -90),
+          north: Math.min(paddedBounds.north,   90),
+        };
+
     lastFetchTimeRef.current = Date.now();
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const gridData = await fetchMarineGridData(bounds, resolution);
+      const gridData = await fetchMarineGridData(finalBounds, resolution);
 
       // Check if this request was cancelled while in-flight
       if (controller.signal.aborted) return;
 
-      lastFetchedBoundsRef.current = bounds;
+      lastFetchedBoundsRef.current = finalBounds;
       setState({
         gridData,
         loading: false,

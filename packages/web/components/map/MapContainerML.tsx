@@ -568,6 +568,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
           if (layer.type === 'fill' && srcLayer === 'land') {
             map.setPaintProperty(layer.id, 'fill-color', '#252535');
           }
+          if (layer.type === 'background') {
+            map.setPaintProperty(layer.id, 'background-opacity', 0);
+          }
         }
       } catch { /* non-critical */ }
 
@@ -1125,7 +1128,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               <div
                 role="listbox"
                 aria-label={t('map.model', 'Forecast model')}
-                className="absolute top-full end-0 mt-1 w-52 max-h-[50vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-lg shadow-xl z-[500] hide-scrollbar"
+                className="absolute top-full end-0 mt-1 w-52 max-h-[50vh] overflow-y-auto bg-slate-900 border border-white/10 rounded-lg shadow-xl z-[500] model-dropdown-scroll"
               >
                 <button
                   role="option"
