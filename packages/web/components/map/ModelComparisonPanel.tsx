@@ -9,18 +9,13 @@ interface Props {
   onClose: () => void;
 }
 
-const POPULAR_MODELS = ['best_match', 'ecmwf_ifs025', 'icon_seamless', 'gfs_seamless'] as const;
-
-// ecmwf_ifs025 is the high-res IFS variant available on the forecast API;
-// fall back gracefully to the display name from WEATHER_MODELS if present,
-// otherwise use a human-readable label.
 function getModelLabel(id: string): string {
-  return WEATHER_MODELS[id]?.name ?? (id === 'ecmwf_ifs025' ? 'ECMWF IFS 0.25°' : id);
+  return WEATHER_MODELS[id]?.name ?? id;
 }
 
 export function ModelComparisonPanel({ lat, lng, onClose }: Props) {
   const { t } = useTranslation();
-  const [selectedModels, setSelectedModels] = useState<string[]>(['best_match', 'icon_seamless']);
+  const [selectedModels, setSelectedModels] = useState<string[]>(['best_match', 'ecmwf_ifs']);
   const [result, setResult] = useState<ComparisonResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +85,7 @@ export function ModelComparisonPanel({ lat, lng, onClose }: Props) {
 
       {/* Model selector chips */}
       <div className="flex flex-wrap gap-2 mb-2" role="group" aria-label={t('comparison.pickHint', 'Pick 2–3 models to compare')}>
-        {POPULAR_MODELS.map((id) => {
+        {Object.entries(WEATHER_MODELS).map(([id, model]) => {
           const selected = selectedModels.includes(id);
           return (
             <button
@@ -103,7 +98,7 @@ export function ModelComparisonPanel({ lat, lng, onClose }: Props) {
                   : 'border-white/10 text-white/50 hover:border-white/30 hover:text-white/70'
               }`}
             >
-              {getModelLabel(id)}
+              {model.name}
             </button>
           );
         })}

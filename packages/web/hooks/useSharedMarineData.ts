@@ -104,7 +104,7 @@ export function useSharedMarineData(
     // out-of-range coords (e.g. lng -234) that Open-Meteo silently clips, leaving partial coverage.
     // Otherwise clamp padded bounds to valid lat/lng range.
     const finalBounds: BoundingBox = zoom < 2
-      ? { west: -180, east: 180, south: -85, north: 85 }
+      ? { west: -179, east: 179, south: -70, north: 70 }
       : {
           west:  Math.max(paddedBounds.west,  -180),
           east:  Math.min(paddedBounds.east,   180),

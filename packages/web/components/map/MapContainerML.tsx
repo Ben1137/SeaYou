@@ -530,6 +530,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 8,
       minZoom: 1,
+      canvasContextAttributes: { alpha: true },
       attributionControl: { compact: true },
     });
 
