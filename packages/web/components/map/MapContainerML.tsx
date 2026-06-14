@@ -529,7 +529,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       style: 'https://api.maptiler.com/maps/019cdd5d-dd58-73ba-975e-3e2b92fca675/style.json?key=zyH9i3YVwxIqd1gD7bGK',
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 8,
-      minZoom: 1,
+      minZoom: 0,
       canvasContextAttributes: { alpha: true },
       attributionControl: { compact: true },
     });
@@ -1795,9 +1795,9 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       />
       <WaveParticleLayerML
         visible={advancedLayer === 'WAVE_HEATMAP'}
-        particleCount={256}
+        particleCount={128}
         speedFactor={2.0}
-        pointSize={3.0}
+        pointSize={2.0}
         sharedGridData={sharedMarineData.gridData}
       />
 

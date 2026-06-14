@@ -42,8 +42,8 @@ export function createColorRampTexture(
 
 // Windy-style wave height color ramp (purple → fuchsia → pink)
 export const WAVE_COLORS: [number, number, number, number][] = [
-  [20,  20,  80, 100],    // Faint deep blue baseline (~0.39 opacity) — calm 0.1-0.3m waves visible
-  [60,  30, 140, 140],    // Deep purple
+  [30,  30, 120, 160],    // Calm waves — boosted alpha so heatmap reads through particle overlay
+  [80,  40, 180, 185],    // Light swell — richer purple-blue, clearly visible
   [147, 51, 234, 200],    // Purple-600
   [168, 85, 247, 210],    // Purple-500
   [192, 132, 252, 220],   // Purple-400
