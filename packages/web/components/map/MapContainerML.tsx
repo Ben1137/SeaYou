@@ -557,6 +557,31 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       map.setProjection({ type: 'globe' });
       console.log('[Map] Projection active:', map.getProjection());
 
+      // Atmospheric glow — deep blue halo wrapping the globe edge, fades out at high zoom.
+      // BASE_SKY_CONFIG is spread on every setSky call: passing a partial object triggers
+      // a MapLibre sky-overwrite bug that resets all unspecified properties to defaults.
+      const BASE_SKY_CONFIG = {
+        'sky-color': 'rgba(0, 0, 0, 0)',            // Fully transparent — WebGL stars show through
+        'horizon-color': 'rgba(26, 107, 204, 0.8)', // Deep ocean-blue horizon glow
+        'fog-color': 'rgba(10, 42, 74, 0.5)',        // Dark blue inner atmospheric fog
+        'fog-ground-blend': 0.3,
+        'horizon-fog-blend': 0.7,
+        'sky-horizon-blend': 0.5,
+      };
+      const updateAtmosphere = () => {
+        const z = map.getZoom();
+        const blend = Math.max(0, Math.min(1, (7 - z) / 3));
+        try {
+          // @ts-ignore — rgba strings not directly assignable to MapLibre Color type at compile time;
+          // MapLibre parses them correctly at runtime. Spread required to prevent sky-overwrite bug.
+          map.setSky({ ...BASE_SKY_CONFIG, 'atmosphere-blend': blend });
+        } catch (e) {
+          console.warn('[Map] Sky update failed:', e);
+        }
+      };
+      updateAtmosphere();
+      map.on('zoom', updateAtmosphere);
+
       mapRef.current = map;
       setMap(map);
       setMapLoaded(true);
