@@ -37,6 +37,7 @@ import { OpenSeaMapHarboursLayerML } from './layers/OpenSeaMapHarboursLayerML';
 
 // Custom WebGL Layers (Phase 2)
 import { WaveHeatmapLayerML } from './layers/WaveHeatmapLayerML';
+import { starfieldLayer } from './layers/StarfieldLayer';
 
 // GPGPU Particle Layers (Phase 3 & 4)
 import { WindParticleLayerML } from './layers/WindParticleLayerML';
@@ -530,7 +531,6 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 8,
       minZoom: 0,
-      canvasContextAttributes: { alpha: true },
       attributionControl: { compact: true },
     });
 
@@ -560,6 +560,14 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       mapRef.current = map;
       setMap(map);
       setMapLoaded(true);
+
+      // Add native WebGL starfield as the very first layer — all map tiles render on top of it
+      try {
+        const firstLayerId = map.getStyle()?.layers?.[0]?.id;
+        map.addLayer(starfieldLayer, firstLayerId);
+      } catch (e) {
+        console.warn('[Map] Starfield layer failed to add:', e);
+      }
 
       // Fix land/water contrast + keep background transparent on every style reload.
       // Called on 'load' and re-applied on 'styledata' so token refreshes don't restore
