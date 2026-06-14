@@ -63,9 +63,11 @@ export function getMarineBeforeId(map: maplibregl.Map): string | undefined {
   let lastWaterLayerId: string | undefined;
   for (const layer of styleLayers) {
     const lId = layer.id.toLowerCase();
+    const srcLyr = ((layer as any)['source-layer'] ?? '').toLowerCase();
     if (
       (layer.type === 'fill' || layer.type === 'background') &&
-      (lId.includes('water') || lId.includes('ocean') || lId.includes('sea') || lId.includes('lake'))
+      (lId.includes('water') || lId.includes('ocean') || lId.includes('sea') || lId.includes('lake') ||
+       srcLyr.includes('water') || srcLyr.includes('ocean') || srcLyr.includes('marine'))
     ) {
       lastWaterLayerId = layer.id;
     }

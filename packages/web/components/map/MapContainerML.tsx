@@ -555,6 +555,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       map.resize();
       // Enable globe projection for Apple Maps-style planet view at low zoom
       map.setProjection({ type: 'globe' });
+      console.log('[Map] Projection active:', map.getProjection());
 
       mapRef.current = map;
       setMap(map);

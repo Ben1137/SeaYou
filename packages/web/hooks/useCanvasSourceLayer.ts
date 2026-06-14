@@ -177,6 +177,16 @@ export function useCanvasSourceLayer({
         // Pulse two extra repaints so MapLibre flushes the CanvasSource texture on the very first frame
         setTimeout(() => { if (!cancelled) map.triggerRepaint(); }, 50);
         setTimeout(() => { if (!cancelled) map.triggerRepaint(); }, 200);
+        // Force-apply current visibility 100ms after creation — guards against the race where
+        // tryAdd read visible=false during a map re-init cycle and the visibility useEffect
+        // didn't re-fire because visible hadn't changed since the stale render.
+        setTimeout(() => {
+          if (!cancelled && map.getLayer(layerId)) {
+            const op = visibleRef.current ? opacityRef.current : 0;
+            map.setPaintProperty(layerId, 'raster-opacity', op);
+            if (visibleRef.current) map.triggerRepaint();
+          }
+        }, 100);
       } catch (err) {
         console.error(`[CanvasSourceLayer] FAILED to add ${layerId}:`, err);
         // Retry on failure (e.g., if style is in a transitional state)
