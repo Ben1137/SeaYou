@@ -44,9 +44,9 @@ const MIN_ZOOM = 8;
 const DEBOUNCE_MS = 400;
 
 const OVERPASS_ENDPOINTS = [
-  'https://overpass-api.de/api/interpreter',
-  'https://overpass.openstreetmap.ru/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
 ];
 
 const LOG = (...args: unknown[]) => console.log('[OSM Harbours]', ...args);
@@ -268,6 +268,7 @@ export function OpenSeaMapHarboursLayerML({ visible }: OpenSeaMapHarboursLayerML
     if (!map || !visible) return;
 
     const handleClick = (e: maplibregl.MapLayerMouseEvent) => {
+      e.originalEvent.stopPropagation();
       console.log('[OSM Harbours] Click detected!', e.features);
       const feature = e.features?.[0];
       if (!feature || feature.geometry.type !== 'Point') return;

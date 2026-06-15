@@ -80,12 +80,25 @@ export function useSharedForecastGridData(
     const lonPadding = (east - west) * 0.3;
     const latPadding = (north - south) * 0.3;
 
-    const bounds: BoundingBox = {
+    const paddedBounds: BoundingBox = {
       west: west - lonPadding,
       east: east + lonPadding,
       south: south - latPadding,
       north: north + latPadding,
     };
+
+    // At globe zoom use a fixed full-earth bbox — padding on a ~360° viewport produces
+    // out-of-range coords (e.g. lat 132) that Open-Meteo rejects with 400.
+    // Otherwise clamp padded bounds to valid lat/lng range.
+    const zoom = map.getZoom();
+    const bounds: BoundingBox = zoom < 2
+      ? { west: -179, east: 179, south: -70, north: 70 }
+      : {
+          west:  Math.max(paddedBounds.west,  -180),
+          east:  Math.min(paddedBounds.east,   180),
+          south: Math.max(paddedBounds.south,  -90),
+          north: Math.min(paddedBounds.north,   90),
+        };
 
     // Adaptive grid resolution: fewer points for large viewports to avoid rate limiting.
     // Viewport spans > 10° → 8x8 (64 pts), > 5° → 12x12 (144 pts), else 16x16 (256 pts).

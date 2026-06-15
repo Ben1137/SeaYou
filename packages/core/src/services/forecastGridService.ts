@@ -50,7 +50,10 @@ function generateGridCoordinates(bounds: BoundingBox, resolution: GridResolution
     for (let j = 0; j < lngPoints; j++) {
       const lat = north - (i * latStep);
       const lng = west + (j * lngStep);
-      coordinates.push({ lat, lng });
+      coordinates.push({
+        lat: Math.max(-90, Math.min(90, lat)),
+        lng: Math.max(-180, Math.min(180, lng)),
+      });
     }
   }
 
