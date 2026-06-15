@@ -667,7 +667,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Wind size={11} className="mr-1.5" /> {t('weather.windSpeed')}</h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1"><span className="text-4xl font-bold leading-none tabular-nums">{currentConditions.wind.toFixed(0)}</span><span className="text-lg ml-1 mb-1 font-medium">km/h</span></div>
-            <p className="text-[11px] text-white/80 flex items-center gap-1"><Navigation size={10} style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /> {getCardinalDirection(currentConditions.windDirection)} (<span className="tabular-nums">{currentConditions.windDirection}°</span>)</p>
+            <p className="text-[11px] text-white/60 flex items-center gap-1 whitespace-nowrap overflow-hidden"><Navigation size={10} className="shrink-0" style={{ transform: `rotate(${currentConditions.windDirection}deg)` }} /><span className="truncate min-w-0">{getCardinalDirection(currentConditions.windDirection)}</span><span className="tabular-nums shrink-0">({currentConditions.windDirection}°)</span></p>
           </div>
           <Wind className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
         </div>
