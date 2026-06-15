@@ -1048,7 +1048,6 @@ const AppContent: React.FC = () => {
           isOpen={isProfileOpen}
           onClose={() => setIsProfileOpen(false)}
           onReplayTour={() => {
-            alertConfig.setHasCompletedTour(false);
             setManualTourRequested(true);
             setIsProfileOpen(false);
           }}
