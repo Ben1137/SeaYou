@@ -17,6 +17,7 @@ import {
   Star,
   AlertTriangle,
   Check,
+  CircleHelp,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../src/contexts/AuthContext';
@@ -189,9 +190,10 @@ const FavoriteTicker: React.FC<FavoriteTickerProps> = ({ favorites, persona }) =
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onReplayTour?: () => void;
 }
 
-export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose }) => {
+export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, onReplayTour }) => {
   const { user, signOut } = useAuth();
   const { t, i18n } = useTranslation();
   const {
@@ -459,6 +461,19 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onCl
               </h3>
 
               <div className="space-y-2">
+                {/* Replay App Tour */}
+                {onReplayTour && (
+                  <button
+                    onClick={onReplayTour}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl bg-white/3 border border-white/5 hover:bg-white/6 transition-colors group"
+                  >
+                    <CircleHelp size={18} className="text-white/30 group-hover:text-white/50 shrink-0" />
+                    <span className="text-sm text-white/60 group-hover:text-white/80 font-semibold">
+                      {t('profile.replayTour', 'Replay App Tour')}
+                    </span>
+                  </button>
+                )}
+
                 {/* Sign Out */}
                 <button
                   onClick={handleSignOut}

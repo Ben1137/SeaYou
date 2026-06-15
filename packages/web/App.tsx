@@ -117,6 +117,9 @@ const PREFS_STORAGE_KEY = 'seayou_user_preferences';
 
 function readTourCompletedSync(): boolean {
   if (typeof window === 'undefined') return false;
+  // Fast-path: direct key written synchronously on tour completion — beats the
+  // async preferences blob write which can lose the race on a rapid refresh.
+  if (window.localStorage.getItem('seaYouTourCompleted') === 'true') return true;
   try {
     const raw = window.localStorage.getItem(PREFS_STORAGE_KEY);
     if (!raw) return false;
@@ -193,13 +196,15 @@ const AppContent: React.FC = () => {
   const prefsLoaded = isSignedIn
     ? alertConfig.cloudSyncStatus === 'synced' || alertConfig.cloudSyncStatus === 'error'
     : true;
+  const [manualTourRequested, setManualTourRequested] = useState(false);
+
   const showAppTour =
-    !tourLocallyCompleted &&
+    (manualTourRequested || !tourLocallyCompleted) &&
     !authLoading &&
     prefsLoaded &&
     hasCompletedOnboarding &&
     alertConfig.persona !== null &&
-    alertConfig.hasCompletedTour === false;
+    (manualTourRequested || alertConfig.hasCompletedTour === false);
 
   // ─── Persona-filtered navigation — "Routes" tab only visible to mariners ───
   const visibleNavItems = useMemo(
@@ -1039,7 +1044,15 @@ const AppContent: React.FC = () => {
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
         {/* User Profile Modal */}
-        <UserProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+        <UserProfileModal
+          isOpen={isProfileOpen}
+          onClose={() => setIsProfileOpen(false)}
+          onReplayTour={() => {
+            alertConfig.setHasCompletedTour(false);
+            setManualTourRequested(true);
+            setIsProfileOpen(false);
+          }}
+        />
 
         {/* First-time Onboarding — local-only flag prevents cloud sync from skipping */}
         <OnboardingModal isOpen={showOnboarding} onComplete={() => {
@@ -1051,12 +1064,11 @@ const AppContent: React.FC = () => {
         {showAppTour && <InteractiveTour
           run={showAppTour}
           onFinish={() => {
-            // setHasCompletedTour synchronously writes the full userPreferences
-            // blob to localStorage via persistPreferences().  The next page
-            // load's readTourCompletedSync() will pick that up and short-circuit
-            // before Supabase hydration finishes.  No separate boolean key
-            // needed (legacy `tourCompleted` write dropped — see commit log).
+            // Synchronous fast-path guard — written before the async prefs blob
+            // so a rapid refresh can't race past readTourCompletedSync().
+            localStorage.setItem('seaYouTourCompleted', 'true');
             alertConfig.setHasCompletedTour(true);
+            setManualTourRequested(false);
 
             // UX-ideal moment to ask for push permission: the user has
             // just seen what the app can do and understands the value of

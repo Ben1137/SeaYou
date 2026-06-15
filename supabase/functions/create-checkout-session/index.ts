@@ -121,14 +121,10 @@ Deno.serve(async (req: Request) => {
   try {
     const SUPABASE_URL = env('SUPABASE_URL');
     const SUPABASE_ANON_KEY = env('SUPABASE_ANON_KEY');
-    const STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY');
-    const STRIPE_PRICE_ID = env('STRIPE_PRICE_ID');
-    const STRIPE_SUCCESS_URL = env('STRIPE_SUCCESS_URL');
-    const STRIPE_CANCEL_URL = env('STRIPE_CANCEL_URL');
-    const trialDaysRaw = env('STRIPE_TRIAL_DAYS', false);
-    const trialDays = trialDaysRaw ? Number(trialDaysRaw) : undefined;
+    // Optional — absence triggers mock mode for regional testing without Stripe
+    const STRIPE_SECRET_KEY = env('STRIPE_SECRET_KEY', false);
 
-    // 1) Verify caller auth
+    // 1) Verify caller auth (runs in both real and mock paths)
     const authHeader = req.headers.get('Authorization') ?? '';
     if (!authHeader.startsWith('Bearer ')) {
       return jsonResponse(401, { error: 'Missing Authorization header' });
@@ -146,7 +142,21 @@ Deno.serve(async (req: Request) => {
     }
     const user = userData.user;
 
-    // 2) Create Stripe session
+    // 2) MOCK MODE — no Stripe key configured (regional bypass for dev/testing)
+    if (!STRIPE_SECRET_KEY) {
+      console.log(`[create-checkout-session] No STRIPE_SECRET_KEY — MOCK mode for user ${user.id}`);
+      await new Promise<void>((resolve) => setTimeout(resolve, 800));
+      const mockUrl = env('STRIPE_SUCCESS_URL', false) || req.headers.get('origin') || '/';
+      return jsonResponse(200, { url: mockUrl, id: 'mock_session' });
+    }
+
+    // 3) Real Stripe path — only reached when key is configured
+    const STRIPE_PRICE_ID = env('STRIPE_PRICE_ID');
+    const STRIPE_SUCCESS_URL = env('STRIPE_SUCCESS_URL');
+    const STRIPE_CANCEL_URL = env('STRIPE_CANCEL_URL');
+    const trialDaysRaw = env('STRIPE_TRIAL_DAYS', false);
+    const trialDays = trialDaysRaw ? Number(trialDaysRaw) : undefined;
+
     const session = await createStripeCheckoutSession({
       userId: user.id,
       email: user.email,
