@@ -13,7 +13,7 @@ You must read the live architecture rules stored in my Obsidian Vault:
 
 ### 2. The Graphify Rule
 Before creating any new utility, helper, or shared component, you must query the local Graphify map to ensure you are not duplicating code.
-* Use `graphify query "<keyword>"` or read the `graphify-out/graph.json` file to check for existing functions.
+* Use `graphify query "<keyword>"` or read `packages/web/graphify-out/graph.json` to check for existing functions. Re-run with `python3 -m graphify update packages/web/` from the project root (0 LLM tokens, AST-only).
 * Pay special attention to the "God Nodes" listed in the Obsidian Guidelines. If your task touches them, use Graphify to map their dependencies first.
 
 If you learn a new pattern or solve a major architectural problem during our session, remind me to update the Obsidian Guidelines!
@@ -83,10 +83,10 @@ All WebGL code lives in `packages/web/webgl/`.
 
 | File | Purpose |
 |---|---|
-| `ParticleEngine.ts` | GPGPU particle system (wind + ocean currents) |
-| `WaveHeatmapEngine.ts` | Wave height heatmap rendering |
-| `SeaTemperatureEngine.ts` | Sea surface temperature rendering |
-| `CanvasVectorLayer.ts` | Canvas 2D fallback for vectors |
+| `ParticleEngine.ts` | GPGPU particle system (wind, currents, swell particles) |
+| `GenericHeatmapEngine.ts` | Unified heatmap for all scalar fields (wave, sea temp, air temp, precip, cloud, chop, gust delta, dive) |
+| `OffscreenCanvasManager.ts` | Manages offscreen canvas lifecycle for heatmap rendering off the main thread |
+| `CanvasVectorLayer.ts` | Canvas 2D fallback for vectors (no WebGL available) |
 | `GLUtils.ts` | WebGL utilities: shader compilation, FBO, save/restore state |
 | `DataEncoder.ts` | Float32 ↔ Uint8 R8G8B8A8 encoding |
 | `ColorRamps.ts` | Color stop definitions (WIND_COLORS, WAVE_COLORS, etc.) |
@@ -105,24 +105,72 @@ All WebGL code lives in `packages/web/webgl/`.
 | `particle-draw.vert.glsl` | Particle draw vertex (Float32 mode) |
 | `particle-draw-uint8.vert.glsl` | Particle draw vertex (Uint8 mode) |
 | `particle-draw.frag.glsl` | Particle draw fragment — glow + age fade |
-| `heatmap.vert.glsl` | Wave heatmap vertex |
-| `heatmap.frag.glsl` | Wave heatmap fragment (Float32) |
-| `heatmap-uint8.frag.glsl` | Wave heatmap fragment (Uint8) |
-| `temperature.frag.glsl` | Sea temp fragment (Float32) |
-| `temperature-uint8.frag.glsl` | Sea temp fragment (Uint8) |
+| `heatmap.vert.glsl` | Heatmap vertex shader (shared across all heatmap layers) |
+| `generic-heatmap.frag.glsl` | Generic heatmap fragment (Float32) — used by all scalar layers |
+| `generic-heatmap-uint8.frag.glsl` | Generic heatmap fragment (Uint8 fallback) |
 
 ### MapLibre Layer Components (`packages/web/components/map/layers/`)
+
+**GPGPU Particle Layers**
 
 | File | Engine used |
 |---|---|
 | `WindParticleLayerML.tsx` | `ParticleEngine` |
 | `CurrentParticleLayerML.tsx` | `ParticleEngine` |
-| `WaveHeatmapLayerML.tsx` | `WaveHeatmapEngine` |
-| `SeaTemperatureLayerML.tsx` | `SeaTemperatureEngine` |
+| `SwellParticleLayerML.tsx` | `ParticleEngine` |
+
+**WebGL Heatmap Layers**
+
+| File | Engine used |
+|---|---|
+| `WaveHeatmapLayerML.tsx` | `GenericHeatmapEngine` |
+| `SeaTemperatureLayerML.tsx` | `GenericHeatmapEngine` |
+| `CurrentHeatmapLayerML.tsx` | `GenericHeatmapEngine` |
+| `AirTemperatureLayerML.tsx` | `GenericHeatmapEngine` |
+| `PrecipitationLayerML.tsx` | `GenericHeatmapEngine` |
+| `CloudCoverLayerML.tsx` | `GenericHeatmapEngine` |
+| `ChopLevelLayerML.tsx` | `GenericHeatmapEngine` |
+| `GustDeltaLayerML.tsx` | `GenericHeatmapEngine` |
+| `DiveSuitabilityLayerML.tsx` | `GenericHeatmapEngine` |
+
+**Compound Layers**
+
+| File | Engine used |
+|---|---|
+| `CompoundSeaTempCurrentsML.tsx` | `GenericHeatmapEngine` + `ParticleEngine` |
+| `CompoundSeaTempWindML.tsx` | `GenericHeatmapEngine` + `ParticleEngine` |
+
+**Globe / 3D Layers**
+
+| File | Engine used |
+|---|---|
+| `StarfieldLayer.ts` | Native WebGL — NDC clip space `gl.POINTS` at z=0.9999, `renderingMode:'3d'` |
+
+**MapLibre Native / Tile Layers**
+
+| File | Engine used |
+|---|---|
 | `PortsLayerML.tsx` | MapLibre native layers |
 | `ReefLayerML.tsx` | MapLibre native layers |
 | `BathymetryLayerML.tsx` | MapLibre native layers |
-| `RainRadarLayerML.tsx` | External tile overlay |
+| `CoastlineLayerML.tsx` | MapLibre native layers |
+| `MarineAreasLayerML.tsx` | MapLibre native layers |
+| `OpenSeaMapLayerML.tsx` | MapLibre native layers |
+| `OpenSeaMapHarboursLayerML.tsx` | MapLibre native layers |
+| `ActiveTsunamiLayerML.tsx` | MapLibre native layers (GDACS feed) |
+| `RainRadarLayerML.tsx` | External tile overlay (RainViewer) |
+| `NOAAEncLayerML.tsx` | External WMS (NOAA Electronic Navigational Charts) |
+| `LINZLayerML.tsx` | External WMS (NZ LINZ charts) |
+
+**Navigation / Interaction Layers**
+
+| File | Engine used |
+|---|---|
+| `RouteLayerML.tsx` | MapLibre native layers |
+| `RouteInteractionLayer.tsx` | MapLibre native layers |
+| `TrackHistoryLayerML.tsx` | MapLibre native layers |
+| `MOBLayerML.tsx` | MapLibre native layers |
+| `AISLayerML.tsx` | MapLibre native layers |
 
 ---
 
@@ -309,9 +357,19 @@ Reference files:
 
 ---
 
-## 13. Recent Changes (February 2026)
+## 13. Recent Changes
 
-### Particle count fix
+### June 2026 — Globe 3D Engine Stabilization
+
+- **`StarfieldLayer.ts`** — New native WebGL custom layer (`renderingMode:'3d'`). Renders ~3000 `gl.POINTS` in NDC clip space at z=0.9999 (far depth plane). Stars render behind all map tiles automatically. No projection matrix needed — NDC positions are fixed at module load.
+- **Globe atmospheric glow** — `map.setSky()` adds gradient fog haze around the globe edge; configured in `MapContainerML.tsx`.
+- **Wave/swell particle balance** — Fixed particle opacity and count at zoom 0 (globe mode) so wind and swell layers don't visually compete.
+- **Wave heatmap opacity race** — Fixed `beforeId` layer ordering so heatmap inserts below fill layers reliably; added coverage for all WebGL heatmap layers.
+- **New activity-specific layers** — `SwellParticleLayerML`, `DiveSuitabilityLayerML`, `ChopLevelLayerML`, `GustDeltaLayerML`, `CurrentHeatmapLayerML`.
+- **Heatmap engine unification** — All scalar heatmap layers now share `GenericHeatmapEngine.ts` + `OffscreenCanvasManager.ts`. The per-variable engines (`WaveHeatmapEngine`, `SeaTemperatureEngine`) no longer exist.
+- **Graphify re-scoped** — Graph now lives at `packages/web/graphify-out/` (153 web files only, 899 nodes, 0 LLM tokens). Re-run with `python3 -m graphify update packages/web/` from the project root.
+
+### February 2026 — Particle count fix
 - **Problem:** `getDefaultParticleRes()` used `devicePixelRatio >= 1.5` — excluded standard 1080p desktops
 - **Fix:** Now uses `isMobileDevice()` / `isLowEndDevice()` from `DeviceCapabilities.ts`
 

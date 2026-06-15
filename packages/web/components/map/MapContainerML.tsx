@@ -527,7 +527,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: 'https://api.maptiler.com/maps/019cdd5d-dd58-73ba-975e-3e2b92fca675/style.json?key=zyH9i3YVwxIqd1gD7bGK',
+      style: `https://api.maptiler.com/maps/019cdd5d-dd58-73ba-975e-3e2b92fca675/style.json?key=${import.meta.env.VITE_MAPTILER_KEY}`,
       center: [currentLocation.lng, currentLocation.lat],
       zoom: 8,
       minZoom: 0,

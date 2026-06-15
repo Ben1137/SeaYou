@@ -51,9 +51,15 @@ SeaYou is a real-time marine weather dashboard built for sailors, surfers, kiter
 | Cloud Cover | WebGL GenericHeatmapEngine | Free |
 | Sea Temp + Currents | Compound layer | Premium |
 | Sea Temp + Wind | Compound layer | Premium |
+| Swell Particles | GPGPU ParticleEngine | Premium |
+| Current Heatmap | WebGL GenericHeatmapEngine | Premium |
+| Chop Level | WebGL GenericHeatmapEngine | Premium |
+| Gust Delta | WebGL GenericHeatmapEngine | Premium |
+| Dive Suitability | WebGL GenericHeatmapEngine | Premium |
 | GEBCO Depth Charts (Bathymetry WMS) | External WMS | Premium |
 | Ports, Reefs, Coastline, Marine Areas | MapLibre native | Free |
 | Rain Radar | Tile overlay (RainViewer) | Free |
+| Starfield (Globe Void) | Native WebGL, NDC clip space | Free |
 
 Tapping a Premium layer as a Free user opens the **Premium Paywall Modal** which launches Stripe Checkout.
 
@@ -193,7 +199,11 @@ The `ParticleEngine` implements MapLibre's `CustomLayerInterface` and uses a pin
 
 ### Heatmap Engines
 
-The `GenericHeatmapEngine` powers all heatmap layers (wave, sea temperature, air temperature, precipitation, cloud cover). Each engine uses an offscreen canvas managed by `OffscreenCanvasManager` to render color-mapped grid data without blocking the main map render pipeline.
+`GenericHeatmapEngine` is a single unified engine powering all scalar field layers: wave height, sea temperature, air temperature, precipitation, cloud cover, chop level, gust delta, and dive suitability. Each layer passes its Float32 grid data and a color ramp — the engine handles everything else. An `OffscreenCanvasManager` keeps heatmap rendering off the main render pipeline.
+
+### Globe Void & Atmosphere
+
+At low zoom levels the 3D globe shows empty space. `StarfieldLayer` fills this void with ~3000 native WebGL `gl.POINTS` rendered at NDC clip space depth z=0.9999 (the far depth plane), so all map tiles automatically composite in front of the stars — no depth-fighting, no blending tricks. The `map.setSky()` API adds an atmospheric gradient halo around the globe edge.
 
 ### Device Capability Tiers
 
@@ -214,7 +224,7 @@ Located in `packages/web/webgl/shaders/`:
 - `particle-update.frag.glsl` / `particle-update-uint8.frag.glsl` — GPGPU position update
 - `particle-draw.vert.glsl` / `particle-draw-uint8.vert.glsl` — particle draw vertex
 - `particle-draw.frag.glsl` — particle draw fragment with halo glow and age fade
-- `heatmap.vert.glsl` / `generic-heatmap.frag.glsl` / `generic-heatmap-uint8.frag.glsl` — heatmap rendering
+- `heatmap.vert.glsl` / `generic-heatmap.frag.glsl` / `generic-heatmap-uint8.frag.glsl` — unified heatmap rendering (all scalar layers)
 
 ---
 
@@ -264,9 +274,25 @@ pnpm install
 Create `packages/web/.env.local` with:
 
 ```env
+# Base path — / for Vercel, /SeaYou1.0/ for GitHub Pages
+VITE_PWA_BASE=/
+
+# Supabase project (from Supabase Dashboard → Settings → API)
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon-key>
-VITE_ONESIGNAL_APP_ID=<onesignal-app-id>   # optional, enables push
+
+# MapTiler API key (from maptiler.com — free tier available)
+VITE_MAPTILER_KEY=<your-maptiler-key>
+
+# Google Places API key (for location search autocomplete — optional)
+VITE_GOOGLE_PLACES_API_KEY=<google-places-key>
+
+# OneSignal — optional, enables push notifications
+VITE_ONESIGNAL_APP_ID=<onesignal-app-id>
+
+# AISStream.io WebSocket key — local dev only, never expose in production
+# In production, set this as a Supabase Edge Function secret instead
+VITE_AISSTREAM_API_KEY=<aisstream-key>
 ```
 
 Supabase Edge Function secrets (set via Supabase Dashboard → Project → Edge Functions → Secrets):
@@ -354,13 +380,14 @@ Preview and staging builds run on Vercel. The project uses Vercel's default Vite
 
 ## Recent Changes
 
+- **Jun 2026** — Globe 3D engine stabilization: native WebGL starfield fills the globe void (`StarfieldLayer.ts`, `renderingMode:'3d'`, NDC z=0.9999); atmospheric sky glow via `map.setSky()`; wave/swell particle balance fixed at globe zoom; wave heatmap opacity race and `beforeId` layer ordering hardened; new activity layers (Swell Particles, Current Heatmap, Chop Level, Gust Delta, Dive Suitability); all scalar heatmaps unified under `GenericHeatmapEngine`; graphify re-scoped to `packages/web/` (153 files, 899 nodes, 0 LLM tokens).
 - **Apr 2026** — Auto Day/Night theme on fullscreen panels + Score Breakdown Modal; Interactive Tour completion persists to Supabase on Close/Skip/Finish; Stripe Revenue Engine (create-checkout-session + stripe-webhook Edge Functions, `startCheckout()` billing service, paywall wired on Profile / Onboarding / Map upsell)
 - **Apr 2026** — Route Planner safety pivot: legal disclaimer banner, hazard warnings list replaces "Auto-Fix Route"; GEBCO Depth Charts WMS as Premium layer
 - **Apr 2026** — CSS-state fullscreen for Wave Graph + Forecast Table (iOS Safari safe, bypasses Recharts event swallowing)
 - **Feb 2026** — WebGL state-leak fix ("colored cubicles"); particle count tiering via `DeviceCapabilities` (no longer uses `devicePixelRatio`); Windy-style particle visual tuning
 - **Feb 2026** — API rate-limiting hardening (throttle queue + negative cache + global cooldown)
 
-See `CLAUDE.md` for full architectural decisions and bug-pattern notes.
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for a junior-developer-friendly deep dive into data flow, the ping-pong FBO particle system, the globe void starfield, and the WebGL safety patterns. See `CLAUDE.md` for full architectural decisions and bug-pattern notes.
 
 ---
 
