@@ -77,6 +77,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     let isMounted = true;
+    // Debounce null transitions: Supabase occasionally fires SIGNED_OUT
+    // immediately before SIGNED_IN during token rotation or PWA resume,
+    // creating a brief user→null→user window. Without this guard that null
+    // window re-triggers AlertContext's hydration effect, which re-fetches
+    // prefs from cloud and can overwrite the seaYouTourCompleted gate.
+    let userClearTimer: ReturnType<typeof setTimeout> | null = null;
 
     (async () => {
       try {
@@ -104,20 +110,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSession(prev =>
         prev?.access_token === newSession?.access_token ? prev : newSession
       );
-      // Use functional update to bail out when the user identity hasn't
-      // changed (INITIAL_SESSION + duplicate SIGNED_IN both fire with the
-      // same user that getCurrentSession() already restored). Returning the
-      // same reference prevents the AlertContext hydration effect from
-      // re-running and eliminates the startup flash.
-      setUser(prev => {
-        const incoming = newSession?.user ?? null;
-        if (prev?.id === incoming?.id) return prev;
-        return incoming;
-      });
+      const incoming = newSession?.user ?? null;
+      if (incoming !== null) {
+        // User present — cancel any pending null-clear and apply immediately.
+        if (userClearTimer) { clearTimeout(userClearTimer); userClearTimer = null; }
+        setUser(prev => (prev?.id === incoming.id ? prev : incoming));
+      } else {
+        // User went null — debounce 500ms so a rapid SIGNED_IN that follows
+        // (auth bounce) can cancel this before AlertContext sees null.
+        if (userClearTimer) clearTimeout(userClearTimer);
+        userClearTimer = setTimeout(() => {
+          userClearTimer = null;
+          if (isMounted) setUser(null);
+        }, 500);
+      }
     });
 
     return () => {
       isMounted = false;
+      if (userClearTimer) clearTimeout(userClearTimer);
       unsubscribe();
     };
   }, [isConfigured]);
@@ -184,7 +195,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return false;
       }
       setError(null);
-      const { error: linkError } = await signInWithMagicLink(email);
+      const { error: linkError } = await signInWithMagicLink(email, window.location.origin);
       if (linkError) {
         setError(linkError);
         return false;

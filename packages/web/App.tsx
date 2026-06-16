@@ -119,7 +119,8 @@ function readTourCompletedSync(): boolean {
   if (typeof window === 'undefined') return false;
   // Fast-path: direct key written synchronously on tour completion — beats the
   // async preferences blob write which can lose the race on a rapid refresh.
-  if (window.localStorage.getItem('seaYouTourCompleted') === 'true') return true;
+  const v = window.localStorage.getItem('seaYouTourCompleted');
+  if (v === 'true' || v === 'in-progress') return true;
   try {
     const raw = window.localStorage.getItem(PREFS_STORAGE_KEY);
     if (!raw) return false;
@@ -215,6 +216,15 @@ const AppContent: React.FC = () => {
   const tourActiveRef = useRef(false);
   if (showAppTour) tourActiveRef.current = true;
   const tourVisible = showAppTour || tourActiveRef.current;
+
+  // Write fast-path key the moment the tour becomes visible so any
+  // mid-tour auth bounce + prefs re-hydration cannot wipe the gate.
+  // onFinish upgrades this to 'true'; readTourCompletedSync accepts both.
+  useEffect(() => {
+    if (tourVisible && !localStorage.getItem('seaYouTourCompleted')) {
+      localStorage.setItem('seaYouTourCompleted', 'in-progress');
+    }
+  }, [tourVisible]);
 
   // ─── Persona-filtered navigation — "Routes" tab only visible to mariners ───
   const visibleNavItems = useMemo(
