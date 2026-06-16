@@ -206,6 +206,16 @@ const AppContent: React.FC = () => {
     alertConfig.persona !== null &&
     (manualTourRequested || alertConfig.hasCompletedTour === false);
 
+  // Latch: once the tour starts, keep it mounted until onFinish fires.
+  // A Supabase auth-state refresh or realtime push mid-tour can cycle
+  // cloudSyncStatus → 'syncing' → prefsLoaded=false → showAppTour=false,
+  // which unmounts the tour before onFinish writes seaYouTourCompleted —
+  // causing the tour to re-fire on the next render. The ref holds the
+  // component mounted; onFinish is the only path that clears it.
+  const tourActiveRef = useRef(false);
+  if (showAppTour) tourActiveRef.current = true;
+  const tourVisible = showAppTour || tourActiveRef.current;
+
   // ─── Persona-filtered navigation — "Routes" tab only visible to mariners ───
   const visibleNavItems = useMemo(
     () => NAV_ITEMS.filter(item => !item.marinerOnly || alertConfig.persona === 'mariner'),
@@ -1060,9 +1070,10 @@ const AppContent: React.FC = () => {
         }} />
 
         {/* Post-onboarding Interactive Tour — only mount after prefs are confirmed loaded */}
-        {showAppTour && <InteractiveTour
+        {tourVisible && <InteractiveTour
           run={showAppTour}
           onFinish={() => {
+            tourActiveRef.current = false;
             // Synchronous fast-path guard — written before the async prefs blob
             // so a rapid refresh can't race past readTourCompletedSync().
             localStorage.setItem('seaYouTourCompleted', 'true');
