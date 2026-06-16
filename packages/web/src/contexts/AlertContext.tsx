@@ -325,7 +325,14 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       if (!cloudPrefs) return;
       // Apply without re-upserting
       suppressUpsertRef.current = true;
-      setPreferences({
+      // hasCompletedTour is monotonic: once true on any device it must never
+      // revert. A realtime push can arrive before a local upsert commits,
+      // carrying the stale false value and wiping the localStorage fast-path
+      // guard that prevents the tour re-firing on refresh.
+      const hasCompletedTour = Boolean(
+        preferencesRef.current.hasCompletedTour || cloudPrefs.hasCompletedTour
+      );
+      const merged = {
         ...DEFAULT_PREFERENCES,
         ...cloudPrefs,
         alerts: { ...DEFAULT_PREFERENCES.alerts, ...(cloudPrefs.alerts ?? {}) },
@@ -333,8 +340,10 @@ export const AlertProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         subscriptionTier: cloudPrefs.subscriptionTier ?? 'free',
         favoriteLocations: cloudPrefs.favoriteLocations ?? [],
         recentSearches: cloudPrefs.recentSearches ?? [],
-      });
-      persistPreferences(cloudPrefs, new Date().toISOString());
+        hasCompletedTour,
+      };
+      setPreferences(merged);
+      persistPreferences(merged, new Date().toISOString());
       setCloudSyncStatus('synced');
     });
 

@@ -1071,7 +1071,7 @@ const AppContent: React.FC = () => {
 
         {/* Post-onboarding Interactive Tour — only mount after prefs are confirmed loaded */}
         {tourVisible && <InteractiveTour
-          run={showAppTour}
+          run={tourVisible}
           onFinish={() => {
             tourActiveRef.current = false;
             // Synchronous fast-path guard — written before the async prefs blob
