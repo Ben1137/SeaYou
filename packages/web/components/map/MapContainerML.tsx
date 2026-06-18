@@ -27,6 +27,7 @@ import { aisService, type CPAWarning } from '../../src/services/aisService';
 import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
+import { BathymetryDebugLayerML } from './layers/BathymetryDebugLayerML';
 import { NOAAEncLayerML } from './layers/NOAAEncLayerML';
 import { LINZLayerML } from './layers/LINZLayerML';
 import { RainRadarLayerML } from './layers/RainRadarLayerML';
@@ -1778,6 +1779,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         visible={geoJSONLayers.bathymetry}
         opacity={0.6}
       />
+      {/* PHASE 2 VISUAL VERIFICATION — remove after confirming depth path on Vercel */}
+      <BathymetryDebugLayerML visible={true} />
       <RainRadarLayerML
         visible={geoJSONLayers.radar}
         opacity={0.5}
