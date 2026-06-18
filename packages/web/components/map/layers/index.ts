@@ -54,3 +54,4 @@ export { CloudCoverLayerML, type CloudCoverLayerMLProps } from './CloudCoverLaye
  * CoastalDynamicsLayerML (Phase 3) is working.
  */
 export { BathymetryDebugLayerML, type BathymetryDebugLayerMLProps } from './BathymetryDebugLayerML';
+export { CoastalDynamicsLayerML, type CoastalDynamicsLayerMLProps } from './CoastalDynamicsLayerML';

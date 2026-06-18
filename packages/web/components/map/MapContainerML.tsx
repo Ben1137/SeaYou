@@ -28,6 +28,7 @@ import type { PortFeature } from './layers/PortsLayerML';
 import { ReefLayerML } from './layers/ReefLayerML';
 import { BathymetryLayerML } from './layers/BathymetryLayerML';
 import { BathymetryDebugLayerML } from './layers/BathymetryDebugLayerML';
+import { CoastalDynamicsLayerML } from './layers/CoastalDynamicsLayerML';
 import { NOAAEncLayerML } from './layers/NOAAEncLayerML';
 import { LINZLayerML } from './layers/LINZLayerML';
 import { RainRadarLayerML } from './layers/RainRadarLayerML';
@@ -103,7 +104,9 @@ type AdvancedLayer =
   | 'CHOP_LEVEL'
   | 'GUST_DELTA'
   // Phase 9 — current magnitude as heatmap (complements CURRENT_PARTICLES)
-  | 'CURRENT_HEATMAP';
+  | 'CURRENT_HEATMAP'
+  // Coastal Dynamics Engine — breaking-wave height (Premium)
+  | 'COASTAL_DYNAMICS';
 
 import type { SavedLocation } from '@seame/core';
 import type { TideData } from '@seame/core';
@@ -478,7 +481,8 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
     advancedLayer === 'DIVE_SUITABILITY' ||
     advancedLayer === 'CHOP_LEVEL' ||
     advancedLayer === 'GUST_DELTA' ||
-    advancedLayer === 'CURRENT_HEATMAP'
+    advancedLayer === 'CURRENT_HEATMAP' ||
+    advancedLayer === 'COASTAL_DYNAMICS'
   );
   const sharedMarineData = useSharedMarineData(reactiveMap, isMarineLayerActive);
 
@@ -1379,6 +1383,17 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
               );
             })()}
 
+            {/* Coastal Dynamics Engine — Premium surf feature */}
+            <div className="border-t border-white/5 my-2 pt-2">
+              <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.coastalDynamicsSection') || 'Coastal Dynamics'}</div>
+            </div>
+            <button
+              onClick={() => trySetAdvancedLayer(advancedLayer === 'COASTAL_DYNAMICS' ? 'NONE' : 'COASTAL_DYNAMICS')}
+              className={`w-full text-left px-3 py-3 rounded flex items-center gap-2 transition-colors ${advancedLayer === 'COASTAL_DYNAMICS' ? 'bg-emerald-700 text-white' : 'text-white/40 hover:bg-white/10'}`}
+            >
+              <Waves size={12} /> <span className="flex-1">{t('map.coastalDynamics') || 'Breaking Waves'}</span> {isFreeUser && <Lock size={10} className="shrink-0 text-amber-400/60" />}
+            </button>
+
             {/* GeoJSON Overlay Layers Divider */}
             <div className="border-t border-white/5 my-2 pt-2">
               <div className="text-[10px] text-white/40 uppercase font-bold mb-1 px-2">{t('map.geoJSONLayers') || 'Map Overlays'}</div>
@@ -1931,6 +1946,12 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
       <GustDeltaLayerML
         visible={advancedLayer === 'GUST_DELTA'}
         opacity={0.6}
+        sharedGridData={sharedMarineData.gridData}
+      />
+      {/* Coastal Dynamics Engine — breaking-wave height heatmap (Premium, Phase 3) */}
+      <CoastalDynamicsLayerML
+        visible={advancedLayer === 'COASTAL_DYNAMICS'}
+        opacity={0.75}
         sharedGridData={sharedMarineData.gridData}
       />
 

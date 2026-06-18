@@ -231,6 +231,21 @@ export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
   [  0,  15,  70, 240],    // 6000 m — hadal: very dark navy
 ];
 
+// Breaking-wave height colour ramp — calm (transparent) → small chop (green) →
+// surfable swell (yellow/orange) → powerful/dangerous surf (red/magenta).
+// Input range: 0–4 m breaking height. Designed to be striking near shore while
+// transparent offshore (where deep water means near-zero nearshore transform effect).
+export const BREAKING_WAVE_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],   //  0.0 m — calm / no transform, fully transparent
+  [ 30, 200, 160,  80],   //  0.3 m — very small chop: aquamarine
+  [ 20, 220, 120, 130],   //  0.7 m — ankle to knee high: green
+  [ 80, 220,  50, 175],   //  1.2 m — waist high: lime-green
+  [200, 220,  20, 205],   //  1.8 m — head high: yellow-green
+  [255, 165,   0, 220],   //  2.5 m — overhead: orange
+  [255,  80,  20, 235],   //  3.2 m — double overhead: red-orange
+  [200,  20, 100, 248],   //  4.0 m — dangerous / XXL: magenta
+];
+
 // Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds
 // Mimics real satellite infrared imagery: clear sky = invisible, clouds = bright white
 export const CLOUD_COVER_COLORS: [number, number, number, number][] = [
