@@ -59,22 +59,41 @@ const float MIN_H0 = 0.05;         // Below this deep-water height → discard
 
 varying vec2 v_texcoord;
 
+// ── GLSL ES 1.00 replacements for tanh/sinh (GLSL ES 3.00 only) ─────────────
+// The vertex shader uses attribute/varying syntax (ES 1.00), so the entire
+// program compiles under ES 1.00 where tanh() and sinh() do not exist.
+
+// tanh(x) = (e^x - e^-x) / (e^x + e^-x)
+// Clamped to [-20, 20]: beyond that tanh is ±1.0 to float precision.
+float glsl_tanh(float x) {
+  float cx  = clamp(x, -20.0, 20.0);
+  float ex  = exp(cx);
+  float emx = exp(-cx);
+  return (ex - emx) / (ex + emx);
+}
+
+// sinh(x) = (e^x - e^-x) / 2
+// Only called for kd2 < 15.0 (caller guards larger values), so no overflow.
+float glsl_sinh(float x) {
+  return (exp(x) - exp(-x)) * 0.5;
+}
+
 // ── Fenton-McKee (1990) explicit dispersion ─────────────────────────────────
 // L = L0 · tanh( (ω²·d/g)^(3/4) )^(2/3)
 // Avoids the iterative Newton solver, accurate to <1% for kd ∈ [0.1, 10].
 //
 float deepWaterWavelength(float T) {
-  return (G * T * T) / (TWO_PI);   // L0 = g·T²/2π
+  return (G * T * T) / TWO_PI;   // L0 = g·T²/2π
 }
 
 float fentonMcKeeWavelength(float T, float d) {
-  float L0   = deepWaterWavelength(T);
+  float L0    = deepWaterWavelength(T);
   float omega = TWO_PI / T;
-  float x    = (omega * omega * d) / G;          // ω²d/g (dimensionless depth)
-  // Clamp to avoid pow domain issues at x→0 (deep) or large x
-  float xc   = clamp(x, 1e-4, 1000.0);
-  float tanhArg = pow(xc, 0.75);                 // (ω²d/g)^(3/4)
-  float tanhVal = tanh(tanhArg);
+  float x     = (omega * omega * d) / G;   // ω²d/g (dimensionless depth)
+  // Clamp to avoid pow domain issues at x→0 or large x
+  float xc    = clamp(x, 0.0001, 500.0);
+  float tanhArg = pow(xc, 0.75);           // (ω²d/g)^(3/4)
+  float tanhVal  = glsl_tanh(tanhArg);
   return L0 * pow(tanhVal, 2.0 / 3.0);
 }
 
@@ -83,18 +102,23 @@ float shoalingCoeff(float T, float d) {
   // Deep-water group speed Cg0 = C0/2 = g·T/(4π)
   float Cg0 = (G * T) / (4.0 * PI);
 
-  float L   = fentonMcKeeWavelength(T, d);
-  float k   = TWO_PI / L;
-  float C   = L / T;
+  float L = fentonMcKeeWavelength(T, d);
+  float k = TWO_PI / L;
+  float C = L / T;
 
   // n = 0.5·(1 + 2kd/sinh(2kd))
   float kd2 = 2.0 * k * d;
-  // sinh(2kd): avoid overflow for kd > 10 (deep water, sinh → large)
-  float sinh2kd = (kd2 > 15.0) ? exp(kd2) * 0.5 : sinh(kd2);
-  float n = 0.5 * (1.0 + (kd2 / max(sinh2kd, 1e-6)));
+  // For kd2 > 15 sinh grows as exp(kd2)/2 — avoid overflow by using exp directly.
+  float sinh2kd;
+  if (kd2 > 15.0) {
+    sinh2kd = exp(kd2) * 0.5;
+  } else {
+    sinh2kd = glsl_sinh(kd2);
+  }
+  float n = 0.5 * (1.0 + (kd2 / max(sinh2kd, 0.000001)));
 
-  float Cg  = n * C;
-  return sqrt(Cg0 / max(Cg, 1e-6));
+  float Cg = n * C;
+  return sqrt(Cg0 / max(Cg, 0.000001));
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
