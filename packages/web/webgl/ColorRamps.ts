@@ -218,6 +218,19 @@ export const GUST_DELTA_COLORS: [number, number, number, number][] = [
   [200,  20, 120, 255],    // 35+ km/h — Extreme: magenta
 ];
 
+// Ocean depth debug ramp — shallow (transparent/teal) → deep (dark navy)
+// Input range: 0–6000 m depth (positive = below sea level; land/negative clamped to transparent).
+// Used by BathymetryDebugLayerML to verify Terrarium tile decode end-to-end.
+export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],    //    0 m — land / sea surface, fully transparent
+  [ 80, 200, 220,  60],    //  100 m — very shallow: pale teal
+  [ 40, 160, 200, 120],    //  300 m — shelf edge: blue-teal
+  [ 20, 110, 180, 160],    //  800 m — upper slope: medium blue
+  [ 10,  70, 150, 195],    // 1500 m — mid slope: deep blue
+  [  5,  40, 120, 220],    // 3000 m — abyssal: dark blue
+  [  0,  15,  70, 240],    // 6000 m — hadal: very dark navy
+];
+
 // Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds
 // Mimics real satellite infrared imagery: clear sky = invisible, clouds = bright white
 export const CLOUD_COVER_COLORS: [number, number, number, number][] = [
