@@ -411,6 +411,8 @@
     "chopLevel": "Wellenkabbel",
     "gustDelta": "Böendifferenz",
     "currentHeatmap": "Strömungsgeschwindigkeit",
+    "coastalDynamicsSection": "Küstendynamik",
+    "coastalDynamics": "Brechende Wellen",
     "model": "Modell",
     "compareModels": "Vergleichen",
     "navCharts": "Seekarten (ENC)",

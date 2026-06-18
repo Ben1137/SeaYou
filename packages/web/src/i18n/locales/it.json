@@ -412,6 +412,8 @@
     "chopLevel": "Livello increspatura",
     "gustDelta": "Delta raffiche",
     "currentHeatmap": "Velocità corrente",
+    "coastalDynamicsSection": "Dinamica Costiera",
+    "coastalDynamics": "Onde Frangenti",
     "model": "Modello",
     "compareModels": "Confronta",
     "navCharts": "Carte Nautiche (ENC)",

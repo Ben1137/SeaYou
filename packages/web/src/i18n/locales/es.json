@@ -394,6 +394,8 @@
     "chopLevel": "Nivel de marejada",
     "gustDelta": "Delta de ráfagas",
     "currentHeatmap": "Velocidad de corriente",
+    "coastalDynamicsSection": "Dinámica Costera",
+    "coastalDynamics": "Olas Rompientes",
     "model": "Modelo",
     "compareModels": "Comparar",
     "navCharts": "Cartas Náuticas (ENC)",

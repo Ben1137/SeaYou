@@ -153,6 +153,7 @@ export function CoastalDynamicsLayerML({
     const minLat = lats[0];
     const maxLat = lats[lats.length - 1];
 
+    // Store swell bounds as the canonical rectangle — depth MUST use the same bounds.
     processBounds.current = { minLon, maxLon, minLat, maxLat };
 
     // Tide offset from first ocean point
@@ -162,7 +163,10 @@ export function CoastalDynamicsLayerML({
 
     const corners = boundsToCorners(minLon, maxLon, minLat, maxLat);
     updateCoordinates(corners);
-  }, [updateCoordinates]);
+
+    // Fetch depth for the SAME rectangle immediately so both textures are co-registered.
+    fetchDepth({ minLon, maxLon, minLat, maxLat });
+  }, [updateCoordinates, fetchDepth]);
 
   // ── Respond to incoming swell data ───────────────────────────────────────
   useEffect(() => {
@@ -170,19 +174,15 @@ export function CoastalDynamicsLayerML({
     processSwellData(sharedGridData);
   }, [sharedGridData, visible, processSwellData]);
 
-  // ── Fetch depth grid on moveend ──────────────────────────────────────────
-  const fetchDepth = useCallback(async () => {
+  // ── Fetch depth grid for a specific bounds rectangle ────────────────────
+  // Always called with the SWELL bounds (processBounds.current) so both
+  // textures cover the same geographic rectangle and UV sampling is aligned.
+  const fetchDepth = useCallback(async (
+    bounds: { minLon: number; maxLon: number; minLat: number; maxLat: number },
+  ) => {
     const currentMap = mapRef.current;
     const engine = engineRef.current;
     if (!currentMap || !engine || !visible) return;
-
-    const mapBounds = currentMap.getBounds();
-    const bounds = {
-      minLon: mapBounds.getWest(),
-      maxLon: mapBounds.getEast(),
-      minLat: mapBounds.getSouth(),
-      maxLat: mapBounds.getNorth(),
-    };
 
     const token = { aborted: false };
     fetchAbortRef.current = token;
@@ -190,6 +190,20 @@ export function CoastalDynamicsLayerML({
     try {
       const grid = await fetchDepthGrid(bounds, DEPTH_COLS, DEPTH_ROWS, TILE_ZOOM);
       if (token.aborted) return;
+
+      // Debug: log depth range so we can verify the grid covers ocean (positive = below sea level)
+      const flat = grid.flat().filter(d => isFinite(d));
+      if (flat.length > 0) {
+        const minD = Math.min(...flat);
+        const maxD = Math.max(...flat);
+        const midRow = Math.floor(grid.length / 2);
+        const midCol = Math.floor((grid[midRow]?.length ?? 0) / 2);
+        const centre = grid[midRow]?.[midCol] ?? NaN;
+        console.log(
+          `[CoastalDynamics] Depth grid: min=${minD.toFixed(1)}m max=${maxD.toFixed(1)}m centre=${centre.toFixed(1)}m` +
+          ` (positive=ocean, negative=land)`
+        );
+      }
 
       engine.updateBathymetryData(
         grid,
@@ -205,15 +219,24 @@ export function CoastalDynamicsLayerML({
     }
   }, [visible]);
 
+  // Trigger depth fetch whenever swell data arrives with new bounds.
+  // Stored so the moveend handler can re-fetch the same swell rectangle.
+  const fetchDepthForSwellBounds = useCallback(() => {
+    if (processBounds.current) {
+      fetchDepth(processBounds.current);
+    }
+  }, [fetchDepth]);
+
   useEffect(() => {
     if (!map || !visible) return;
 
-    fetchDepth();
+    // Initial fetch on mount (if swell bounds already known)
+    fetchDepthForSwellBounds();
 
-    const onMoveEnd = () => fetchDepth();
+    const onMoveEnd = () => fetchDepthForSwellBounds();
     map.on('moveend', onMoveEnd);
     return () => { map.off('moveend', onMoveEnd); };
-  }, [map, visible, fetchDepth]);
+  }, [map, visible, fetchDepthForSwellBounds]);
 
   return null;
 }

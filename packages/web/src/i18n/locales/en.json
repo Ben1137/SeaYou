@@ -458,6 +458,8 @@
     "noaaHint": "Official NOAA Electronic Navigational Charts — US waters only",
     "linzCharts": "LINZ Charts (NZ)",
     "linzHint": "Official LINZ Marine Charts — New Zealand waters only",
+    "coastalDynamicsSection": "Coastal Dynamics",
+    "coastalDynamics": "Breaking Waves",
     "model": "Model",
     "compareModels": "Compare"
   },

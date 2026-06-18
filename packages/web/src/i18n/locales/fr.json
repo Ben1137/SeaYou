@@ -394,6 +394,8 @@
     "chopLevel": "Niveau de clapot",
     "gustDelta": "Delta de rafales",
     "currentHeatmap": "Vitesse du courant",
+    "coastalDynamicsSection": "Dynamique Côtière",
+    "coastalDynamics": "Vagues Déferlantes",
     "model": "Modèle",
     "compareModels": "Comparer",
     "navCharts": "Cartes Marines (ENC)",

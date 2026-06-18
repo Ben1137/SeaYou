@@ -412,6 +412,8 @@
     "chopLevel": "Уровень волнения",
     "gustDelta": "Разница порывов ветра",
     "currentHeatmap": "Скорость течения",
+    "coastalDynamicsSection": "Прибрежная Динамика",
+    "coastalDynamics": "Разбивающиеся Волны",
     "model": "Модель",
     "compareModels": "Сравнить",
     "navCharts": "Навигационные карты (ENC)",
