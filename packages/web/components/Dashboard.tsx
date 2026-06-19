@@ -260,7 +260,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   }, [weatherData, currentHourIndex]);
 
   const forecastTableBlocks = useMemo(() => {
-    if (!weatherData?.hourly) return [];
+    if (!weatherData?.hourly?.time?.length) return [];
     const blocks = [];
     const startIndex = currentHourIndex;
     const totalHours = weatherData.hourly.time.length;
@@ -274,14 +274,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       const endTime = format(parseISO(weatherData.hourly.time[end - 1]), 'HH:mm');
       const nextDay = format(parseISO(weatherData.hourly.time[start]), 'dd/MM');
       const pressures = sliceIndexes.map(idx => weatherData.hourly.pressure_msl?.[idx] || 1013);
-      const waveHeights = sliceIndexes.map(idx => weatherData.hourly.wave_height[idx]);
-      const wavePeriods = sliceIndexes.map(idx => weatherData.hourly.wave_period[idx]);
-      const windSpeeds = sliceIndexes.map(idx => weatherData.hourly.wind_speed_10m[idx]);
-      const windDirs = sliceIndexes.map(idx => weatherData.hourly.wind_direction_10m[idx]);
+      const waveHeights = sliceIndexes.map(idx => weatherData.hourly.wave_height?.[idx] ?? 0);
+      const wavePeriods = sliceIndexes.map(idx => weatherData.hourly.wave_period?.[idx] ?? 0);
+      const windSpeeds = sliceIndexes.map(idx => weatherData.hourly.wind_speed_10m?.[idx] ?? 0);
+      const windDirs = sliceIndexes.map(idx => weatherData.hourly.wind_direction_10m?.[idx] ?? 0);
       const visibilities = sliceIndexes.map(idx => weatherData.hourly.visibility?.[idx] || 10000);
-      const swellHeights = sliceIndexes.map(idx => weatherData.hourly.swell_wave_height[idx]);
-      const swellPeriods = sliceIndexes.map(idx => weatherData.hourly.swell_wave_period[idx]);
-      const swellDirs = sliceIndexes.map(idx => weatherData.hourly.swell_wave_direction[idx]);
+      const swellHeights = sliceIndexes.map(idx => weatherData.hourly.swell_wave_height?.[idx] ?? 0);
+      const swellPeriods = sliceIndexes.map(idx => weatherData.hourly.swell_wave_period?.[idx] ?? 0);
+      const swellDirs = sliceIndexes.map(idx => weatherData.hourly.swell_wave_direction?.[idx] ?? 0);
       const uvs = sliceIndexes.map(idx => weatherData.hourly.uv_index?.[idx] || 0);
       const minPress = Math.min(...pressures).toFixed(0), maxPress = Math.max(...pressures).toFixed(0);
       const minWave = Math.min(...waveHeights), maxWave = Math.max(...waveHeights);
