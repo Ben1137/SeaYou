@@ -384,20 +384,6 @@ export function createCoastalDynamicsEngine(
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-      // DIAGNOSTIC PROBE 2 — one-time pixel readback to confirm the engine is drawing.
-      // Non-zero alpha → engine draws to canvas; blank → all-discard or viewport/blend bug.
-      if (!(engine as any)._probe2Done) {
-        (engine as any)._probe2Done = true;
-        const px = new Uint8Array(4);
-        gl.readPixels(
-          Math.floor((gl.canvas as HTMLCanvasElement).width / 2),
-          Math.floor((gl.canvas as HTMLCanvasElement).height / 2),
-          1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px
-        );
-        console.log('[CoastalDynamics] PROBE2 centre pixel RGBA after draw:', px[0], px[1], px[2], px[3]);
-      }
-      // END DIAGNOSTIC PROBE 2
-
       gl.disableVertexAttribArray(posLoc);
       gl.disableVertexAttribArray(texLoc);
       gl.bindBuffer(gl.ARRAY_BUFFER, null);

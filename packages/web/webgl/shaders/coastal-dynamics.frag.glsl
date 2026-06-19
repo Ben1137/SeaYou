@@ -123,13 +123,6 @@ float shoalingCoeff(float T, float d) {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 void main() {
-  // DIAGNOSTIC PROBE 1 — solid red, bypasses ALL discards and data sampling.
-  // If a red rectangle appears → pipeline/drape/ordering works, bug is in data/discard logic.
-  // If still blank → canvas is offscreen or occluded by basemap (ordering/beforeId bug).
-  gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-  return;
-  // END DIAGNOSTIC PROBE 1
-
   vec2 uv = v_texcoord;
 
   // ── Swell data ────────────────────────────────────────────────────────────

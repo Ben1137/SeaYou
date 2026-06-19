@@ -212,31 +212,9 @@ export function CoastalDynamicsLayerML({
 
     updateCoordinates(boundsToCorners(minLon, maxLon, minLat, maxLat));
 
-    // DIAGNOSTIC PROBE 3 — layer order + beforeId. Runs once per swell update.
-    // Tells us: is the layer below an opaque basemap? Is beforeId resolving correctly?
-    const m = mapRef.current;
-    if (m) {
-      try {
-        const ids = m.getStyle().layers.map((l: { id: string }) => l.id);
-        const idx = ids.indexOf(LAYER_ID);
-        console.log('[CoastalDynamics] PROBE3 beforeId used:', beforeId);
-        console.log('[CoastalDynamics] PROBE3 layer index:', idx, 'of', ids.length);
-        console.log('[CoastalDynamics] PROBE3 layers around it:',
-          ids.slice(Math.max(0, idx - 2), idx + 3));
-        const firstOpaque = ids.find((id: string) =>
-          /^(background|land|ocean|water|fill|building|landuse|landcover)/i.test(id)
-        );
-        console.log('[CoastalDynamics] PROBE3 first opaque-ish layer id:', firstOpaque ?? '(none found)');
-        console.log('[CoastalDynamics] PROBE3 all layer ids:', ids.join(', '));
-      } catch (e) {
-        console.log('[CoastalDynamics] PROBE3 style not yet available:', e);
-      }
-    }
-    // END DIAGNOSTIC PROBE 3
-
     // Fetch depth for the SAME rectangle so both textures are co-registered.
     fetchDepth({ minLon, maxLon, minLat, maxLat });
-  }, [updateCoordinates, fetchDepth, beforeId]);
+  }, [updateCoordinates, fetchDepth]);
 
   // ── Respond to incoming swell data ───────────────────────────────────────
   useEffect(() => {
