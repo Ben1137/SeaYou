@@ -22,7 +22,17 @@
  * Tide adjustment: depth is read from the bathymetry texture and augmented
  * by u_tide_offset (sea_level_height_msl) before the transform.
  *
- * Output: breaking-wave height (m) → colour ramp lookup → premultiplied alpha.
+ * Phase 3.5 display model — nearshore-only rendering:
+ *   Deep water (d ≥ 200 m) is DISCARDED. Displaying H0 there coloured the
+ *   whole open ocean with ambient swell (the "green blanket"). This layer's job
+ *   is to show NEARSHORE TRANSFORMATION, not open-water swell magnitude.
+ *
+ *   Within 0–200 m a per-pixel effectAlpha weights the signal by:
+ *     - depth proximity (sqrt fade: bright at 0 m, zero at 200 m)
+ *     - shoaling strength (Ks boost: extra opacity where energy is concentrating)
+ *     - active breaking (full opacity where γ·d cap fires)
+ *
+ * Output: breaking-wave height (m) → colour ramp → premultiplied alpha.
  *
  * ─────────────────────────────────────────────────────────────────────────────
  * Private GL context — NOT subject to CLAUDE.md shared-context rules.
@@ -147,39 +157,71 @@ void main() {
   // ── Bathymetry ────────────────────────────────────────────────────────────
   vec4 depthSample = texture2D(u_depth, uv);
 
+  // A-channel 0 means no bathymetry data (land or tile gap) — discard.
+  if (depthSample.a < 0.1) {
+    discard;
+  }
+
   // Effective depth = GEBCO depth + tide offset.
   // Depth > 0 = ocean; ≤ 0 = land/intertidal → discard.
   float depth_raw = depthSample.r;
-  float d_eff = max(depth_raw + u_tide_offset, 0.0);
-
-  // Only transform in the nearshore zone (d < ~200 m) where shoaling is visible.
-  // Outside that, show deep-water H0 directly via the ramp (continuous display).
-  const float DEEP_WATER_CUTOFF = 200.0;
-  float H_final;
+  float d_eff = depth_raw + u_tide_offset;
 
   if (d_eff < MIN_DEPTH) {
     // Dry land or intertidal zone — discard completely
     discard;
-  } else if (d_eff >= DEEP_WATER_CUTOFF) {
-    // Deep water: Ks ≈ 1, no breaking, display H0 directly
-    H_final = H0;
-  } else {
-    // Nearshore transform
-    float Ks  = shoalingCoeff(T, d_eff);
-    // Clamp Ks to physically plausible range [0.5, 3.0]
-    Ks = clamp(Ks, 0.5, 3.0);
+  }
 
-    float H_shoaled  = H0 * Ks;          // Kr = 1.0 in Phase 3 (refraction Phase 4)
-    float breakingCap = GAMMA * d_eff;
+  // ── Nearshore-only gate ───────────────────────────────────────────────────
+  // Deep water (d ≥ 200 m) is discarded entirely. This layer's purpose is to
+  // show NEARSHORE TRANSFORMATION energy, not ambient open-ocean swell. Showing
+  // H0 in deep water painted the whole sea green ("green blanket" Phase 3.5 bug).
+  const float DEEP_WATER_CUTOFF = 200.0;
 
-    H_final = (H_shoaled > breakingCap) ? breakingCap : H_shoaled;
+  if (d_eff >= DEEP_WATER_CUTOFF) {
+    discard;
+  }
+
+  // ── Nearshore transform (0 < d_eff < 200 m) ──────────────────────────────
+  float Ks = shoalingCoeff(T, d_eff);
+  // Clamp Ks to physically plausible range [0.5, 3.0]
+  Ks = clamp(Ks, 0.5, 3.0);
+
+  float H_shoaled   = H0 * Ks;           // Kr = 1.0 in Phase 3 (refraction Phase 4)
+  float breakingCap = GAMMA * d_eff;
+  bool  isBreaking  = H_shoaled > breakingCap;
+  float H_final     = isBreaking ? breakingCap : H_shoaled;
+
+  // ── Depth-proximity alpha weighting ─────────────────────────────────────
+  // Fade the signal so that:
+  //   • shallow water (d → 0)   → full opacity (strong shoaling / breaking)
+  //   • transition band (50–200 m) → partial opacity (moderate shoaling)
+  //   • approaching 200 m cutoff  → fades to transparent (no perceptible shoaling)
+  // sqrt gives a gentler roll-off than linear so the 10–50 m band stays visible.
+  float depthFraction  = clamp(d_eff / DEEP_WATER_CUTOFF, 0.0, 1.0); // 0=shore, 1=200m
+  float depthAlpha     = 1.0 - sqrt(depthFraction);                   // 1.0 → 0.0
+
+  // Shoaling boost: Ks > 1 means energy is concentrating — reinforce that visually.
+  // Extra opacity proportional to how much above 1.0 Ks is, capped at +0.3.
+  float shoalingBoost  = clamp((Ks - 1.0) * 0.5, 0.0, 0.3);
+
+  // Breaking bonus: if depth-limited breaking fires, push to full opacity.
+  float breakingBonus  = isBreaking ? 0.3 : 0.0;
+
+  float effectAlpha    = clamp(depthAlpha + shoalingBoost + breakingBonus, 0.0, 1.0);
+
+  // Discard pixels where the computed effect is negligible (avoids faint haze
+  // at the 200 m boundary and land-adjacent noise).
+  if (effectAlpha < 0.05) {
+    discard;
   }
 
   // ── Colour ramp lookup ───────────────────────────────────────────────────
   float normalized = clamp(H_final / u_max_breaking_height, 0.0, 1.0);
   vec4 color = texture2D(u_color_ramp, vec2(normalized, 0.5));
 
-  // Apply opacity — straight alpha (premultipliedAlpha: false on offscreen canvas)
-  float alpha = color.a * u_opacity;
+  // Apply opacity — straight alpha (premultipliedAlpha: false on offscreen canvas).
+  // effectAlpha gates the nearshore-only display; u_opacity is the global layer knob.
+  float alpha = color.a * effectAlpha * u_opacity;
   gl_FragColor = vec4(color.rgb, alpha);
 }

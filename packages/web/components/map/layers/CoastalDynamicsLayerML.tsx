@@ -69,7 +69,7 @@ export function CoastalDynamicsLayerML({
 
     const engine = createCoastalDynamicsEngine({
       colorRamp: BREAKING_WAVE_COLORS,
-      maxBreakingHeight: 1.5,  // Eastern Med max swell ~1.2m; 4.0 made output near-invisible
+      maxBreakingHeight: 3.0,  // Eastern Med typical max 1–2m; 4.0 on Phase 3.5 effectAlpha
       opacity: 1.0,
       logPrefix: '[CoastalDynamics]',
     });
