@@ -155,6 +155,27 @@ export function CoastalDynamicsLayerML({
       const grid = await fetchDepthGrid(viewBounds, DEPTH_COLS, DEPTH_ROWS, tileZoom);
       if (token.aborted) return;
 
+      // DIAGNOSTIC — log depth at grid centre and at known shallow sea point (~12m @ 32.08°N,34.78°E)
+      {
+        const midRow = Math.floor(grid.length / 2);
+        const midCol = Math.floor((grid[midRow]?.length ?? 0) / 2);
+        const centrePt = grid[midRow]?.[midCol] ?? NaN;
+        // Find the grid point closest to the known test coordinate (Tel Aviv coast)
+        const testLat = 32.08, testLon = 34.78;
+        const rows = grid.length, cols = grid[0]?.length ?? 0;
+        const nearRow = Math.round(((testLat - viewBounds.minLat) / (viewBounds.maxLat - viewBounds.minLat)) * (rows - 1));
+        const nearCol = Math.round(((testLon - viewBounds.minLon) / (viewBounds.maxLon - viewBounds.minLon)) * (cols - 1));
+        const nearPt = grid[Math.max(0, Math.min(rows - 1, nearRow))]?.[Math.max(0, Math.min(cols - 1, nearCol))] ?? NaN;
+        console.log( // DIAGNOSTIC
+          `[CoastalDynamics PROBE] depthGrid centre=${centrePt.toFixed(1)}m` +
+          ` | point@(32.08N,34.78E)=${nearPt.toFixed(1)}m` +
+          ` | row0=${(grid[0]?.[midCol] ?? NaN).toFixed(1)}m (should be maxLat=north)` +
+          ` | rowLast=${(grid[rows-1]?.[midCol] ?? NaN).toFixed(1)}m (should be minLat=south)` +
+          ` | viewBounds=lat[${viewBounds.minLat.toFixed(3)},${viewBounds.maxLat.toFixed(3)}]` // DIAGNOSTIC
+        ); // DIAGNOSTIC
+      } // DIAGNOSTIC
+      // END DIAGNOSTIC
+
       engine.updateBathymetryData(
         grid,
         viewBounds.minLon, viewBounds.maxLon,
