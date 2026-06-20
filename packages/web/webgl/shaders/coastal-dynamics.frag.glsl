@@ -144,26 +144,93 @@ float shoalingCoeff(float T, float d) {
 void main() {
   vec2 uv = v_texcoord;
 
-  // ===== DIAGNOSTIC 3-BAND PROBE — REMOVE AFTER =====
-  // Band 1 (left  third, uv.x < 0.333): solid magenta — bypasses EVERYTHING.
-  //   Magenta over sea → drape covers the viewport, CanvasSource positioned OK.
-  //   Black    over sea → drape/coordinate bug; shader never runs over the sea.
-  // Band 2 (middle third, 0.333–0.666): samples H0 exactly as the real path does,
-  //   renders red whose brightness = H0/2. Bright red → data present. Black → H0=0.
-  // Band 3 (right third, uv.x > 0.666): real shader output unchanged — falls through.
+  // ===== DIAGNOSTIC 4-BAND GATE ISOLATION — REMOVE AFTER =====
+  // Prior probe (818b9f2) proved: drape OK, H0 present (~0.3–0.5m flat), real path black.
+  // One of 4 downstream gates kills every sea pixel. Each band bypasses exactly one:
+  //
+  //  Band A (x < 0.25)  — Gate A: depth-UV out-of-rect discard (clamp instead of discard)
+  //  Band B (0.25–0.5)  — Gate B: depthSample.a < 0.1 land guard (skip it)
+  //  Band C (0.5–0.75)  — Gate C: d >= 200 m deep-water discard (skip it)
+  //  Band D (x >= 0.75) — Gate D: effectAlpha weighting (force to 1.0)
+  //
+  // Over the sea at z10-11: whichever band shows colour = that gate is the blocker.
+  // All bands otherwise run the full real transform so the output is the real breaking colour.
   {
     float bx = uv.x; // DIAGNOSTIC
-    if (bx < 0.3333) { // DIAGNOSTIC
-      gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0); // DIAGNOSTIC — solid magenta
+    if (bx < 0.75) { // DIAGNOSTIC — bands A, B, C (D falls through)
+
+      // ── Shared real-path prelude (same for all bands) ────────────────────
+      vec4 gs = texture2D(u_data, uv); // DIAGNOSTIC
+      if (gs.a < 0.1) { discard; } // DIAGNOSTIC — swell valid guard stays in all bands
+      float gH0 = gs.r, gT = gs.g; // DIAGNOSTIC
+      if (gH0 < MIN_H0 || gT < 1.0) { discard; } // DIAGNOSTIC
+
+      // Compute depthUV (same as real path)
+      float gWorldLon = u_swell_bounds.x + uv.x * (u_swell_bounds.y - u_swell_bounds.x); // DIAGNOSTIC
+      float gWorldLat = u_swell_bounds.z + uv.y * (u_swell_bounds.w - u_swell_bounds.z); // DIAGNOSTIC
+      float gLonSpan  = u_depth_bounds.y - u_depth_bounds.x; // DIAGNOSTIC
+      float gLatSpan  = u_depth_bounds.w - u_depth_bounds.z; // DIAGNOSTIC
+      vec2  gDepthUV; // DIAGNOSTIC
+      if (gLonSpan < 0.0001 || gLatSpan < 0.0001) { // DIAGNOSTIC
+        gDepthUV = uv; // DIAGNOSTIC
+      } else { // DIAGNOSTIC
+        gDepthUV = vec2((gWorldLon - u_depth_bounds.x) / gLonSpan, // DIAGNOSTIC
+                        (gWorldLat - u_depth_bounds.z) / gLatSpan); // DIAGNOSTIC
+      } // DIAGNOSTIC
+
+      if (bx < 0.25) {
+        // BAND A — clamp depthUV to [0,1] instead of discarding out-of-rect // DIAGNOSTIC
+        gDepthUV = clamp(gDepthUV, 0.0, 1.0); // DIAGNOSTIC — Gate A bypassed
+      } else {
+        // Bands B and C still discard out-of-rect (Gate A active)
+        if (gDepthUV.x < 0.0 || gDepthUV.x > 1.0 || gDepthUV.y < 0.0 || gDepthUV.y > 1.0) { // DIAGNOSTIC
+          discard; // DIAGNOSTIC
+        } // DIAGNOSTIC
+      }
+
+      vec4  gDep  = texture2D(u_depth, gDepthUV); // DIAGNOSTIC
+      float gdRaw = gDep.r; // DIAGNOSTIC
+      float gdEff = gdRaw + u_tide_offset; // DIAGNOSTIC
+
+      if (bx < 0.25) {
+        // BAND A: land guard + deep-water discard still active
+        if (gDep.a < 0.1) { discard; } // DIAGNOSTIC
+        if (gdEff < MIN_DEPTH) { discard; } // DIAGNOSTIC
+        if (gdEff >= 200.0) { discard; } // DIAGNOSTIC
+      } else if (bx < 0.5) {
+        // BAND B — skip depthSample.a land guard // DIAGNOSTIC
+        // (Gate B bypassed — don't check gDep.a)
+        if (gdEff < MIN_DEPTH) { discard; } // DIAGNOSTIC
+        if (gdEff >= 200.0) { discard; } // DIAGNOSTIC
+      } else {
+        // BAND C — skip d >= 200 deep-water discard // DIAGNOSTIC
+        if (gDep.a < 0.1) { discard; } // DIAGNOSTIC
+        if (gdEff < MIN_DEPTH) { discard; } // DIAGNOSTIC
+        // Gate C bypassed: no d >= 200 discard
+      }
+
+      // Compute real breaking height
+      float gKs     = clamp(shoalingCoeff(gT, max(gdEff, MIN_DEPTH + 0.01)), 0.5, 3.0); // DIAGNOSTIC
+      float gH      = gH0 * gKs; // DIAGNOSTIC
+      float gCap    = GAMMA * max(gdEff, MIN_DEPTH + 0.01); // DIAGNOSTIC
+      float gHfinal = (gH > gCap) ? gCap : gH; // DIAGNOSTIC
+
+      float gNorm  = clamp(gHfinal / u_max_breaking_height, 0.0, 1.0); // DIAGNOSTIC
+      vec4  gColor = texture2D(u_color_ramp, vec2(gNorm, 0.5)); // DIAGNOSTIC
+      // Floor brightness so a near-zero result is still visible (dim band = small H0,
+      // not a gate kill) — Gate D (effectAlpha) stays active in all these bands.
+      float gEffAlpha = clamp( // DIAGNOSTIC
+        (1.0 - sqrt(clamp(gdEff / 200.0, 0.0, 1.0))) + // DIAGNOSTIC
+        clamp((gKs - 1.0) * 0.5, 0.0, 0.3), 0.0, 1.0); // DIAGNOSTIC
+      if (gEffAlpha < 0.05) { discard; } // DIAGNOSTIC
+      gl_FragColor = vec4(gColor.rgb, gColor.a * gEffAlpha * u_opacity); // DIAGNOSTIC
       return; // DIAGNOSTIC
-    } else if (bx < 0.6666) { // DIAGNOSTIC
-      vec4 probeSwellSample = texture2D(u_data, uv); // DIAGNOSTIC
-      float probeH0 = probeSwellSample.r; // DIAGNOSTIC — same decode as real path
-      gl_FragColor = vec4(clamp(probeH0 / 2.0, 0.0, 1.0), 0.0, 0.0, 1.0); // DIAGNOSTIC
-      return; // DIAGNOSTIC
-    } // DIAGNOSTIC — band 3: fall through to real shader
+
+    }
+    // Band D (x >= 0.75) falls through to the real path, EXCEPT effectAlpha is forced to 1.0
+    // (handled below by overriding the final alpha computation)
   } // DIAGNOSTIC
-  // ===== END DIAGNOSTIC 3-BAND PROBE =====
+  // ===== END 4-BAND GATE ISOLATION =====
 
   // ── Swell data ────────────────────────────────────────────────────────────
   vec4 swellSample = texture2D(u_data, uv);
@@ -279,6 +346,8 @@ void main() {
 
   // Apply opacity — straight alpha (premultipliedAlpha: false on offscreen canvas).
   // effectAlpha gates the nearshore-only display; u_opacity is the global layer knob.
-  float alpha = color.a * effectAlpha * u_opacity;
+  // BAND D (x >= 0.75): force effectAlpha=1.0 to isolate whether alpha is the blocker. // DIAGNOSTIC
+  float bandDAlpha = (uv.x >= 0.75) ? 1.0 : effectAlpha; // DIAGNOSTIC
+  float alpha = color.a * bandDAlpha * u_opacity;
   gl_FragColor = vec4(color.rgb, alpha);
 }
