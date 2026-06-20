@@ -42,10 +42,11 @@ export interface CoastalDynamicsLayerMLProps {
 const SOURCE_ID = 'coastal-dynamics-canvas-src';
 const LAYER_ID  = 'coastal-dynamics-canvas-layer';
 
-// Depth grid resolution: finer than swell (swell is 6–12 pts, depth at 64 gives crisp coast hugging)
+// Depth grid resolution — adaptive: more samples when viewport is small.
+// At low zoom the viewport covers hundreds of km; at z11 it's ~20 km across.
+// We always fetch 64×64 = 4096 samples; the tile zoom governs Terrarium resolution.
 const DEPTH_COLS = 64;
 const DEPTH_ROWS = 64;
-const TILE_ZOOM  = 9;   // ~300 m/px, honest for ETOPO1
 
 export function CoastalDynamicsLayerML({
   visible,
@@ -112,46 +113,52 @@ export function CoastalDynamicsLayerML({
     visible,
   });
 
-  // Canonical swell rectangle — depth MUST always be fetched for this same rect.
+  // Swell grid bounds — stored so the shader knows swell texture extent.
   const processBounds = useRef<{
     minLon: number; maxLon: number; minLat: number; maxLat: number;
   } | null>(null);
 
-  // ── Fetch depth grid for a specific bounds rectangle ────────────────────
-  // Declared BEFORE processSwellData to avoid TDZ ("Cannot access before init").
-  // Always called with swell bounds so both textures share one geographic rect.
-  const fetchDepth = useCallback(async (
-    bounds: { minLon: number; maxLon: number; minLat: number; maxLat: number },
-  ) => {
+  // ── Fetch depth grid for the current viewport ────────────────────────────
+  // Depth is fetched for the MAP VIEWPORT (not swell bounds). This ensures
+  // the 64×64 depth samples concentrate where the user is looking, giving
+  // ~300–500m spacing at z10–11 on the Israeli coast (~20km viewport).
+  // The shader remaps depth UV independently via u_swell_bounds / u_depth_bounds.
+  //
+  // Tile zoom adapts to viewport size:
+  //   z≤7  (planet/ocean view)  → tile z9  (~300m/px, broad strokes)
+  //   z8–9 (regional)           → tile z10 (~150m/px)
+  //   z≥10 (coastal/harbour)    → tile z11 (~75m/px, best for narrow shelf)
+  const fetchDepth = useCallback(async () => {
     const currentMap = mapRef.current;
     const engine = engineRef.current;
     if (!currentMap || !engine || !visible) return;
+
+    // Derive viewport bounds from MapLibre
+    const mapBounds = currentMap.getBounds();
+    if (!mapBounds) return;
+
+    const viewBounds = {
+      minLon: mapBounds.getWest(),
+      maxLon: mapBounds.getEast(),
+      minLat: mapBounds.getSouth(),
+      maxLat: mapBounds.getNorth(),
+    };
+
+    // Adaptive tile zoom based on map zoom level
+    const mapZoom = currentMap.getZoom();
+    const tileZoom = mapZoom >= 10 ? 11 : mapZoom >= 8 ? 10 : 9;
 
     const token = { aborted: false };
     fetchAbortRef.current = token;
 
     try {
-      const grid = await fetchDepthGrid(bounds, DEPTH_COLS, DEPTH_ROWS, TILE_ZOOM);
+      const grid = await fetchDepthGrid(viewBounds, DEPTH_COLS, DEPTH_ROWS, tileZoom);
       if (token.aborted) return;
-
-      // Debug: log depth range to verify grid covers ocean (positive = below sea level)
-      const flat = grid.flat().filter(d => isFinite(d));
-      if (flat.length > 0) {
-        const minD = Math.min(...flat);
-        const maxD = Math.max(...flat);
-        const midRow = Math.floor(grid.length / 2);
-        const midCol = Math.floor((grid[midRow]?.length ?? 0) / 2);
-        const centre = grid[midRow]?.[midCol] ?? NaN;
-        console.log(
-          `[CoastalDynamics] Depth grid: min=${minD.toFixed(1)}m max=${maxD.toFixed(1)}m centre=${centre.toFixed(1)}m` +
-          ` (positive=ocean, negative=land)`
-        );
-      }
 
       engine.updateBathymetryData(
         grid,
-        bounds.minLon, bounds.maxLon,
-        bounds.minLat, bounds.maxLat,
+        viewBounds.minLon, viewBounds.maxLon,
+        viewBounds.minLat, viewBounds.maxLat,
       );
       engine.render();
       currentMap.triggerRepaint();
@@ -161,11 +168,6 @@ export function CoastalDynamicsLayerML({
       }
     }
   }, [visible]);
-
-  // Re-fetch depth using the stored swell bounds (used by moveend handler).
-  const fetchDepthForSwellBounds = useCallback(() => {
-    if (processBounds.current) fetchDepth(processBounds.current);
-  }, [fetchDepth]);
 
   // ── Process swell grid data from Open-Meteo ─────────────────────────────
   const processSwellData = useCallback((gridData: MarineGridData) => {
@@ -212,8 +214,9 @@ export function CoastalDynamicsLayerML({
 
     updateCoordinates(boundsToCorners(minLon, maxLon, minLat, maxLat));
 
-    // Fetch depth for the SAME rectangle so both textures are co-registered.
-    fetchDepth({ minLon, maxLon, minLat, maxLat });
+    // Fetch depth for the current viewport (independent of swell extent).
+    // Shader remaps depth UV via u_swell_bounds/u_depth_bounds uniforms.
+    fetchDepth();
   }, [updateCoordinates, fetchDepth]);
 
   // ── Respond to incoming swell data ───────────────────────────────────────
@@ -225,12 +228,12 @@ export function CoastalDynamicsLayerML({
   useEffect(() => {
     if (!map || !visible) return;
 
-    fetchDepthForSwellBounds();
+    fetchDepth();
 
-    const onMoveEnd = () => fetchDepthForSwellBounds();
+    const onMoveEnd = () => fetchDepth();
     map.on('moveend', onMoveEnd);
     return () => { map.off('moveend', onMoveEnd); };
-  }, [map, visible, fetchDepthForSwellBounds]);
+  }, [map, visible, fetchDepth]);
 
   return null;
 }

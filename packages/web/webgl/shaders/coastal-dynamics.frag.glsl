@@ -59,6 +59,15 @@ uniform float u_max_breaking_height; // Colour ramp max (m), default 4.0
 uniform float u_tide_offset;       // sea_level_height_msl (m) — adds to depth
 uniform float u_use_land_mask;     // 1.0 = apply land mask, 0.0 = skip
 
+// Geographic bounds for each texture (lon/lat, allowing independent extents).
+// u_swell_bounds: [minLon, maxLon, minLat, maxLat] of the swell grid texture.
+// u_depth_bounds: [minLon, maxLon, minLat, maxLat] of the depth grid texture.
+// v_texcoord samples the swell texture directly (both share the canvas extent).
+// Depth UV is remapped: convert swell-UV → world lon/lat → depth-UV so the
+// depth texture can cover a different (viewport-sized) geographic rectangle.
+uniform vec4 u_swell_bounds;    // [minLon, maxLon, minLat, maxLat]
+uniform vec4 u_depth_bounds;    // [minLon, maxLon, minLat, maxLat]
+
 // ── Constants ───────────────────────────────────────────────────────────────
 const float PI  = 3.14159265358979;
 const float TWO_PI = 6.28318530717959;
@@ -155,7 +164,34 @@ void main() {
   }
 
   // ── Bathymetry ────────────────────────────────────────────────────────────
-  vec4 depthSample = texture2D(u_depth, uv);
+  // The depth texture may cover a different geographic extent than the swell
+  // texture. Convert the current fragment's world position (derived from the
+  // swell UV) into the depth texture's UV space.
+  //
+  // World coordinates from swell UV:
+  float worldLon = u_swell_bounds.x + uv.x * (u_swell_bounds.y - u_swell_bounds.x);
+  float worldLat = u_swell_bounds.z + uv.y * (u_swell_bounds.w - u_swell_bounds.z);
+
+  // Remap into depth UV. Pixels outside the depth rectangle are discarded.
+  float dLonSpan = u_depth_bounds.y - u_depth_bounds.x;
+  float dLatSpan = u_depth_bounds.w - u_depth_bounds.z;
+  // Guard zero-span (fallback: depth covers same extent as swell)
+  vec2 depthUV;
+  if (dLonSpan < 0.0001 || dLatSpan < 0.0001) {
+    depthUV = uv;
+  } else {
+    depthUV = vec2(
+      (worldLon - u_depth_bounds.x) / dLonSpan,
+      (worldLat - u_depth_bounds.z) / dLatSpan
+    );
+  }
+
+  // Pixels whose world position lies outside the depth texture → discard.
+  if (depthUV.x < 0.0 || depthUV.x > 1.0 || depthUV.y < 0.0 || depthUV.y > 1.0) {
+    discard;
+  }
+
+  vec4 depthSample = texture2D(u_depth, depthUV);
 
   // A-channel 0 means no bathymetry data (land or tile gap) — discard.
   if (depthSample.a < 0.1) {
