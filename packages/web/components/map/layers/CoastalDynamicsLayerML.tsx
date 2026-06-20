@@ -182,8 +182,13 @@ export function CoastalDynamicsLayerML({
 
     gridData.points.forEach(pt => {
       const key = `${pt.lat.toFixed(4)},${pt.lng.toFixed(4)}`;
-      H0Map.set(key, pt.isOcean ? (pt.swellHeight ?? NaN) : NaN);
-      TMap.set(key,  pt.isOcean ? (pt.swellPeriod ?? NaN) : NaN);
+      // Use total wave height (wave_height) not swell_wave_height.
+      // Eastern Med is wind-sea dominated — swell_wave_height is 0 most of the time,
+      // causing every pixel to discard at the H0 < MIN_H0 guard in the shader.
+      // wave_height is the total significant wave height (all components combined)
+      // and is the physically correct input for nearshore shoaling/breaking.
+      H0Map.set(key, pt.isOcean ? (pt.waveHeight ?? NaN) : NaN);
+      TMap.set(key,  pt.isOcean ? (pt.wavePeriod ?? NaN) : NaN);
     });
 
     const H0Grid: number[][] = [];

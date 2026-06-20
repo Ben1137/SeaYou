@@ -99,7 +99,6 @@ export function createCoastalDynamicsEngine(
   } | null = null;
 
   let destroyed = false;
-  let diagLogPending = false; // DIAGNOSTIC PROBE 1 — log bounds once after each data update
 
   /**
    * Upload a 2-channel swell texture: R=H0, G=T, A=valid.
@@ -314,7 +313,6 @@ export function createCoastalDynamicsEngine(
             minLon: pendingSwell.minLon, maxLon: pendingSwell.maxLon,
             minLat: pendingSwell.minLat, maxLat: pendingSwell.maxLat,
           };
-          diagLogPending = true; // DIAGNOSTIC PROBE 1
           console.log(`${prefix} Swell texture uploaded`);
         } catch (e) {
           console.error(`${prefix} Swell upload failed:`, e);
@@ -330,7 +328,6 @@ export function createCoastalDynamicsEngine(
             minLon: pendingDepth.minLon, maxLon: pendingDepth.maxLon,
             minLat: pendingDepth.minLat, maxLat: pendingDepth.maxLat,
           };
-          diagLogPending = true; // DIAGNOSTIC PROBE 1
           console.log(`${prefix} Depth texture uploaded`);
         } catch (e) {
           console.error(`${prefix} Depth upload failed:`, e);
@@ -383,26 +380,6 @@ export function createCoastalDynamicsEngine(
         depthMeta.minLon, depthMeta.maxLon, depthMeta.minLat, depthMeta.maxLat,
       );
 
-      // ── DIAGNOSTIC PROBE 1 — log bounds once after each data update ─────────
-      if (diagLogPending && depthMeta) {
-        console.log(
-          `${prefix} [PROBE1] swellBounds: lon[${swellMeta.minLon.toFixed(3)},${swellMeta.maxLon.toFixed(3)}]` +
-          ` lat[${swellMeta.minLat.toFixed(3)},${swellMeta.maxLat.toFixed(3)}]`
-        );
-        console.log(
-          `${prefix} [PROBE1] depthBounds: lon[${depthMeta.minLon.toFixed(3)},${depthMeta.maxLon.toFixed(3)}]` +
-          ` lat[${depthMeta.minLat.toFixed(3)},${depthMeta.maxLat.toFixed(3)}]`
-        );
-        // Overlap check: does the depth rectangle cover any part of the swell rectangle?
-        const overlapLon = depthMeta.maxLon > swellMeta.minLon && depthMeta.minLon < swellMeta.maxLon;
-        const overlapLat = depthMeta.maxLat > swellMeta.minLat && depthMeta.minLat < swellMeta.maxLat;
-        console.log(
-          `${prefix} [PROBE1] Overlap: lon=${overlapLon} lat=${overlapLat}` +
-          ` — if BOTH false, no pixels survive the depth-UV discard`
-        );
-        diagLogPending = false;
-      }
-      // ── END PROBE 1 ────────────────────────────────────────────────────────
 
       // Draw fullscreen quad (straight alpha, premultipliedAlpha: false canvas)
       gl.enable(gl.BLEND);
