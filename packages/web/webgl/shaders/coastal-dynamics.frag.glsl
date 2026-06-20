@@ -144,6 +144,27 @@ float shoalingCoeff(float T, float d) {
 void main() {
   vec2 uv = v_texcoord;
 
+  // ===== DIAGNOSTIC 3-BAND PROBE — REMOVE AFTER =====
+  // Band 1 (left  third, uv.x < 0.333): solid magenta — bypasses EVERYTHING.
+  //   Magenta over sea → drape covers the viewport, CanvasSource positioned OK.
+  //   Black    over sea → drape/coordinate bug; shader never runs over the sea.
+  // Band 2 (middle third, 0.333–0.666): samples H0 exactly as the real path does,
+  //   renders red whose brightness = H0/2. Bright red → data present. Black → H0=0.
+  // Band 3 (right third, uv.x > 0.666): real shader output unchanged — falls through.
+  {
+    float bx = uv.x; // DIAGNOSTIC
+    if (bx < 0.3333) { // DIAGNOSTIC
+      gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0); // DIAGNOSTIC — solid magenta
+      return; // DIAGNOSTIC
+    } else if (bx < 0.6666) { // DIAGNOSTIC
+      vec4 probeSwellSample = texture2D(u_data, uv); // DIAGNOSTIC
+      float probeH0 = probeSwellSample.r; // DIAGNOSTIC — same decode as real path
+      gl_FragColor = vec4(clamp(probeH0 / 2.0, 0.0, 1.0), 0.0, 0.0, 1.0); // DIAGNOSTIC
+      return; // DIAGNOSTIC
+    } // DIAGNOSTIC — band 3: fall through to real shader
+  } // DIAGNOSTIC
+  // ===== END DIAGNOSTIC 3-BAND PROBE =====
+
   // ── Swell data ────────────────────────────────────────────────────────────
   vec4 swellSample = texture2D(u_data, uv);
   if (swellSample.a < 0.1) {
