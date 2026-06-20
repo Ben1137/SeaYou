@@ -186,6 +186,15 @@ void main() {
     );
   }
 
+  // ── PROBE 2 — Visualise the computed depth UV as R=u G=v B=0 A=1 ──────────
+  // Expected over sea at z10–11: smooth left→right red gradient + bottom→top
+  // green gradient, values in [0,1] everywhere within the depth rectangle.
+  // Flat/garbage → remap is broken. Nothing over sea → depth bounds don't
+  // overlap swell bounds. Comment out this block after confirming.
+  // gl_FragColor = vec4(clamp(depthUV.x,0.0,1.0), clamp(depthUV.y,0.0,1.0), 0.0, 1.0); // DIAGNOSTIC PROBE 2
+  // return; // DIAGNOSTIC PROBE 2
+  // ── END PROBE 2 ────────────────────────────────────────────────────────────
+
   // Pixels whose world position lies outside the depth texture → discard.
   if (depthUV.x < 0.0 || depthUV.x > 1.0 || depthUV.y < 0.0 || depthUV.y > 1.0) {
     discard;
@@ -245,6 +254,13 @@ void main() {
   float breakingBonus  = isBreaking ? 0.3 : 0.0;
 
   float effectAlpha    = clamp(depthAlpha + shoalingBoost + breakingBonus, 0.0, 1.0);
+
+  // ── PROBE 3 — Force effectAlpha=1 to rule out alpha suppression ────────────
+  // Uncomment the line below to bypass the fade/boost weighting entirely.
+  // If a nearshore fringe appears → effectAlpha math is suppressing the band.
+  // If still blank → the bug is upstream (lat-flip, remap, or swell starvation).
+  // effectAlpha = 1.0; // DIAGNOSTIC PROBE 3
+  // ── END PROBE 3 ────────────────────────────────────────────────────────────
 
   // Discard pixels where the computed effect is negligible (avoids faint haze
   // at the 200 m boundary and land-adjacent noise).
