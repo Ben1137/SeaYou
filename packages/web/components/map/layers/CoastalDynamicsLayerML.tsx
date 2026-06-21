@@ -128,7 +128,7 @@ export function CoastalDynamicsLayerML({
 
     const engine = createCoastalDynamicsEngine({
       colorRamp: BREAKING_WAVE_COLORS,
-      maxBreakingHeight: 3.0,
+      maxBreakingHeight: 1.0,  // Eastern Med: wave_height 0.3–0.8m; 3.0 used only 10–27% of ramp
       opacity: 1.0,
       logPrefix: '[CoastalDynamics]',
     });
@@ -249,54 +249,6 @@ export function CoastalDynamicsLayerML({
     try {
       const depthGrid = await fetchDepthGrid(vb, GRID_COLS, GRID_ROWS, tileZoom);
       if (token.aborted) return;
-
-      // DIAGNOSTIC — extended depth grid instrumentation
-      {
-        const rows = depthGrid.length, cols = depthGrid[0]?.length ?? 0;
-        const midRow = Math.floor(rows / 2), midCol = Math.floor(cols / 2);
-
-        // Grid-wide min/max (all finite values)
-        let gridMin = Infinity, gridMax = -Infinity;
-        for (const row of depthGrid) {
-          for (const v of row) {
-            if (isFinite(v)) { gridMin = Math.min(gridMin, v); gridMax = Math.max(gridMax, v); }
-          }
-        }
-
-        // Test point 1: inland Tel Aviv ~34.78E (likely land → negative expected) // DIAGNOSTIC
-        const t1Lat = 32.08, t1Lon = 34.78; // DIAGNOSTIC
-        const t1Row = Math.round(((vb.maxLat - t1Lat) / (vb.maxLat - vb.minLat)) * (rows - 1)); // DIAGNOSTIC
-        const t1Col = Math.round(((t1Lon - vb.minLon) / (vb.maxLon - vb.minLon)) * (cols - 1)); // DIAGNOSTIC
-        const t1Clamped = t1Row < 0 || t1Row >= rows || t1Col < 0 || t1Col >= cols; // DIAGNOSTIC
-        const t1Val = t1Clamped ? NaN : (depthGrid[t1Row]?.[t1Col] ?? NaN); // DIAGNOSTIC
-
-        // Test point 2: clearly offshore ~34.70E (~8km west of coast, should be sea) // DIAGNOSTIC
-        const t2Lat = 32.08, t2Lon = 34.70; // DIAGNOSTIC
-        const t2Row = Math.round(((vb.maxLat - t2Lat) / (vb.maxLat - vb.minLat)) * (rows - 1)); // DIAGNOSTIC
-        const t2Col = Math.round(((t2Lon - vb.minLon) / (vb.maxLon - vb.minLon)) * (cols - 1)); // DIAGNOSTIC
-        const t2Clamped = t2Row < 0 || t2Row >= rows || t2Col < 0 || t2Col >= cols; // DIAGNOSTIC
-        const t2Val = t2Clamped ? NaN : (depthGrid[t2Row]?.[t2Col] ?? NaN); // DIAGNOSTIC
-
-        // Four grid corners
-        const c00 = depthGrid[0]?.[0] ?? NaN;          // NW: maxLat, minLon
-        const c0L = depthGrid[0]?.[cols-1] ?? NaN;     // NE: maxLat, maxLon
-        const cR0 = depthGrid[rows-1]?.[0] ?? NaN;     // SW: minLat, minLon
-        const cRL = depthGrid[rows-1]?.[cols-1] ?? NaN; // SE: minLat, maxLon
-        const latNW = vb.maxLat.toFixed(3), lonNW = vb.minLon.toFixed(3);
-        const latSE = vb.minLat.toFixed(3), lonSE = vb.maxLon.toFixed(3);
-
-        console.log( // DIAGNOSTIC
-          `[CoastalDynamics DIAG] vb=lat[${vb.minLat.toFixed(3)},${vb.maxLat.toFixed(3)}]` +
-          ` lon[${vb.minLon.toFixed(3)},${vb.maxLon.toFixed(3)}]` +
-          ` | gridMinMax=[${gridMin.toFixed(1)},${gridMax.toFixed(1)}]m` +
-          ` | centre=${(depthGrid[midRow]?.[midCol] ?? NaN).toFixed(1)}m` +
-          ` | t1(32.08N,34.78E [inland?]) row${t1Row}col${t1Col}${t1Clamped ? '[CLAMP]' : ''}=${t1Val.toFixed(1)}m` +
-          ` | t2(32.08N,34.70E [offshore])  row${t2Row}col${t2Col}${t2Clamped ? '[CLAMP]' : ''}=${t2Val.toFixed(1)}m` +
-          ` | corners: NW(${latNW},${lonNW})=${c00.toFixed(1)}m NE(${latNW},${lonSE})=${c0L.toFixed(1)}m` +
-          ` SW(${latSE},${lonNW})=${cR0.toFixed(1)}m SE(${latSE},${lonSE})=${cRL.toFixed(1)}m`
-        ); // DIAGNOSTIC
-      }
-      // END DIAGNOSTIC
 
       engine.updateBathymetryData(depthGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
 

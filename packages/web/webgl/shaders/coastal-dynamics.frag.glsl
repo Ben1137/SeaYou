@@ -218,9 +218,10 @@ void main() {
 
   float effectAlpha    = clamp(depthAlpha + shoalingBoost + breakingBonus, 0.0, 1.0);
 
-  // Discard pixels where the computed effect is negligible (avoids faint haze
-  // at the 200 m boundary and land-adjacent noise).
-  if (effectAlpha < 0.05) {
+  // Minimum floor: discard only truly negligible pixels (very near the 200m boundary).
+  // Eastern Med wave_height is 0.3–0.8m — the effectAlpha fade must not cut the
+  // entire nearshore band. Lowered from 0.05 to avoid blank rendering at low H0.
+  if (effectAlpha < 0.01) {
     discard;
   }
 
