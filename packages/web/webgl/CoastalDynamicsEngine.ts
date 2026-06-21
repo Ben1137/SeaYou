@@ -142,7 +142,11 @@ export function createCoastalDynamicsEngine(
       const internalFmt = useWebGL2Float
         ? (gl as WebGL2RenderingContext).RGBA32F
         : gl.RGBA;
+      // Row 0 in our JS grids = maxLat (north). UNPACK_FLIP_Y corrects WebGL's
+      // bottom-left texture origin so texture v=1 (top) maps to maxLat (north).
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
       gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, width, height, 0, gl.RGBA, gl.FLOAT, data);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     } else {
       // Uint8 fallback: pack H0/30 and T/30 into R/G bytes
       const data = new Uint8Array(width * height * 4);
@@ -159,7 +163,11 @@ export function createCoastalDynamicsEngine(
           }
         }
       }
+      // Row 0 in our JS grids = maxLat (north). UNPACK_FLIP_Y corrects WebGL's
+      // bottom-left texture origin so texture v=1 (top) maps to maxLat (north).
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     }
 
     gl.bindTexture(gl.TEXTURE_2D, null);
@@ -205,7 +213,11 @@ export function createCoastalDynamicsEngine(
       const internalFmt = useWebGL2Float
         ? (gl as WebGL2RenderingContext).RGBA32F
         : gl.RGBA;
+      // Row 0 in our JS grids = maxLat (north). UNPACK_FLIP_Y corrects WebGL's
+      // bottom-left texture origin so texture v=1 (top) maps to maxLat (north).
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
       gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, width, height, 0, gl.RGBA, gl.FLOAT, data);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     } else {
       // Uint8: pack depth/6000 → byte
       const data = new Uint8Array(width * height * 4);
@@ -221,7 +233,11 @@ export function createCoastalDynamicsEngine(
           }
         }
       }
+      // Row 0 in our JS grids = maxLat (north). UNPACK_FLIP_Y corrects WebGL's
+      // bottom-left texture origin so texture v=1 (top) maps to maxLat (north).
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     }
 
     gl.bindTexture(gl.TEXTURE_2D, null);
