@@ -128,7 +128,7 @@ export function CoastalDynamicsLayerML({
 
     const engine = createCoastalDynamicsEngine({
       colorRamp: BREAKING_WAVE_COLORS,
-      maxBreakingHeight: 1.0,  // Eastern Med: wave_height 0.3–0.8m; 3.0 used only 10–27% of ramp
+      maxBreakingHeight: 2.5,  // Global-safe ceiling: overhead+ surf, ~0.5m Med reads aquamarine
       opacity: 1.0,
       logPrefix: '[CoastalDynamics]',
     });
@@ -208,8 +208,16 @@ export function CoastalDynamicsLayerML({
       const TMap  = new Map<string, number>();
       gridData.points.forEach(pt => {
         const key = `${pt.lat.toFixed(4)},${pt.lng.toFixed(4)}`;
-        H0Map.set(key, pt.isOcean ? (pt.waveHeight ?? NaN) : NaN);
-        TMap.set(key,  pt.isOcean ? (pt.wavePeriod ?? NaN) : NaN);
+        // Swell-primary H0 policy: use swell_wave_height where meaningful (open-ocean
+        // swell carries shoaling/refraction structure); fall back to total wave_height
+        // where swell≈0 (enclosed seas like Eastern Med in summer).
+        const SWELL_FLOOR = 0.1;
+        const swH = pt.swellHeight ?? 0;
+        const swP = pt.swellPeriod ?? 0;
+        const h0 = pt.isOcean ? ((swH > SWELL_FLOOR ? swH : (pt.waveHeight ?? 0)) || NaN) : NaN;
+        const t  = pt.isOcean ? ((swH > SWELL_FLOOR ? (swP > 0 ? swP : (pt.wavePeriod ?? 0)) : (pt.wavePeriod ?? 0)) || NaN) : NaN;
+        H0Map.set(key, h0);
+        TMap.set(key,  t);
       });
       for (let li = 0; li < lats.length; li++) {
         const H0Row: number[] = [];

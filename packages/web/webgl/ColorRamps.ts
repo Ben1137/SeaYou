@@ -237,8 +237,8 @@ export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
 // transparent offshore (where deep water means near-zero nearshore transform effect).
 export const BREAKING_WAVE_COLORS: [number, number, number, number][] = [
   [  0,   0,   0,   0],   //  0.0 m — calm / no transform, fully transparent
-  [ 30, 200, 160,  80],   //  0.3 m — very small chop: aquamarine
-  [ 20, 220, 120, 130],   //  0.7 m — ankle to knee high: green
+  [ 30, 200, 160, 140],   //  0.3 m — very small chop: aquamarine (alpha raised for Med visibility)
+  [ 20, 220, 120, 175],   //  0.7 m — ankle to knee high: green (alpha raised)
   [ 80, 220,  50, 175],   //  1.2 m — waist high: lime-green
   [200, 220,  20, 205],   //  1.8 m — head high: yellow-green
   [255, 165,   0, 220],   //  2.5 m — overhead: orange
