@@ -138,28 +138,6 @@ float shoalingCoeff(float T, float d) {
 void main() {
   vec2 uv = v_texcoord;
 
-  // ===== DIAGNOSTIC DEPTH-FIELD PROBE (Step 6 — remove after gradient confirmed) =====
-  // Single-viewport; both textures sampled at uv directly (no remap).
-  // LEFT  (x < 0.5): depth sign map — GREEN=sea(d>0), RED=land(d<0), BLACK=zero.
-  //   Pass criterion: sea region reads green, land reads red, coastline aligned.
-  // RIGHT (x >= 0.5): A-channel validity — red=valid (a>=0.1), black=invalid.
-  {
-    vec4  pDep = texture2D(u_depth, uv); // DIAGNOSTIC
-    float pRaw = pDep.r; // DIAGNOSTIC
-    float pEff = pRaw + u_tide_offset; // DIAGNOSTIC
-    if (uv.x < 0.5) { // DIAGNOSTIC
-      // Sign map: green=sea, red=land, black=zero
-      float isPos = step(0.01, pEff);   // 1 if depth > 0 (sea)  // DIAGNOSTIC
-      float isNeg = step(0.01, -pEff);  // 1 if depth < 0 (land) // DIAGNOSTIC
-      gl_FragColor = vec4(0.0, isPos, 0.0, 1.0) + vec4(isNeg, 0.0, 0.0, 1.0); // DIAGNOSTIC
-      return; // DIAGNOSTIC
-    } else { // DIAGNOSTIC
-      gl_FragColor = vec4((pDep.a >= 0.1) ? 1.0 : 0.0, 0.0, 0.0, 1.0); // DIAGNOSTIC
-      return; // DIAGNOSTIC
-    } // DIAGNOSTIC
-  } // DIAGNOSTIC
-  // ===== END DEPTH-FIELD PROBE =====
-
   // ── Swell data ────────────────────────────────────────────────────────────
   // Single-viewport: swell texture is bilinearly resampled onto the viewport
   // grid in the layer (row 0 = maxLat/north), same as the depth texture.

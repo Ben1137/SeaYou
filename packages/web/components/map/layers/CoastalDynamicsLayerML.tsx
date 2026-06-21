@@ -189,7 +189,9 @@ export function CoastalDynamicsLayerML({
     };
 
     const mapZoom = currentMap.getZoom();
-    const tileZoom = mapZoom >= 10 ? 11 : mapZoom >= 8 ? 10 : 9;
+    // tileZoom capped at 10: Terrarium ocean tiles at z11 return ~0 nearshore depth
+    // (confirmed aa25968: 34.70E reads 0m@z11 vs +40m@z10). z10 ≈ 150m bathymetry.
+    const tileZoom = mapZoom >= 8 ? 10 : 9;
 
     const token = { aborted: false };
     fetchAbortRef.current = token;
