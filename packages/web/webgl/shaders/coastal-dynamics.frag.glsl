@@ -58,15 +58,9 @@ uniform float u_opacity;           // Layer opacity [0,1]
 uniform float u_max_breaking_height; // Colour ramp max (m), default 4.0
 uniform float u_tide_offset;       // sea_level_height_msl (m) — adds to depth
 uniform float u_use_land_mask;     // 1.0 = apply land mask, 0.0 = skip
-
-// Geographic bounds for each texture (lon/lat, allowing independent extents).
-// u_swell_bounds: [minLon, maxLon, minLat, maxLat] of the swell grid texture.
-// u_depth_bounds: [minLon, maxLon, minLat, maxLat] of the depth grid texture.
-// v_texcoord samples the swell texture directly (both share the canvas extent).
-// Depth UV is remapped: convert swell-UV → world lon/lat → depth-UV so the
-// depth texture can cover a different (viewport-sized) geographic rectangle.
-uniform vec4 u_swell_bounds;    // [minLon, maxLon, minLat, maxLat]
-uniform vec4 u_depth_bounds;    // [minLon, maxLon, minLat, maxLat]
+// Single-viewport architecture: both swell (TEXTURE0) and depth (TEXTURE4) cover
+// the same geographic rectangle (the map viewport). The shader samples both at
+// v_texcoord directly. No bounds uniforms or UV remap needed.
 
 // ── Constants ───────────────────────────────────────────────────────────────
 const float PI  = 3.14159265358979;
@@ -144,54 +138,29 @@ float shoalingCoeff(float T, float d) {
 void main() {
   vec2 uv = v_texcoord;
 
-  // ===== DIAGNOSTIC DEPTH-FIELD PROBE — REMOVE AFTER =====
-  // edf6943 4-band probe: all bands black → ≥2 gates fire from one upstream cause.
-  // Hypothesis: lat flip in depth remap (fetchDepthGrid row0=maxLat vs shader v=0=minLat).
-  // This probe shows the RAW depth field the shader samples — NO discards anywhere.
-  //
-  // LEFT  (x < 0.5): grayscale depth — dark=shallow/0m, white=200m+.
-  //   Expected correct: dark near coast, bright offshore.
-  //   Inverted (bright coast, dark offshore) → lat flip confirmed.
-  //   Flat black → depth is 0 everywhere (bad upload or remap lands off-tile).
-  //
+  // ===== DIAGNOSTIC DEPTH-FIELD PROBE (Step 6 — remove after gradient confirmed) =====
+  // Single-viewport architecture: both textures sampled at uv directly.
+  // LEFT  (x < 0.5): raw depth as grayscale — dark=shallow, white=≥200m.
+  //   Pass criterion: dark at coast, brightening offshore.
   // RIGHT (x >= 0.5): A-channel validity — red=valid ocean, black=invalid/land.
-  //   Red over sea → depth texture uploads correctly with valid flag.
-  //   Black over sea → A-channel is 0 (upload bug or wrong tile).
   {
-    // Compute depthUV exactly as the real path does (no clamp, no discard here)
-    float pWorldLon = u_swell_bounds.x + uv.x * (u_swell_bounds.y - u_swell_bounds.x); // DIAGNOSTIC
-    float pWorldLat = u_swell_bounds.z + uv.y * (u_swell_bounds.w - u_swell_bounds.z); // DIAGNOSTIC
-    float pLonSpan  = u_depth_bounds.y - u_depth_bounds.x; // DIAGNOSTIC
-    float pLatSpan  = u_depth_bounds.w - u_depth_bounds.z; // DIAGNOSTIC
-    vec2  pDepthUV; // DIAGNOSTIC
-    if (pLonSpan < 0.0001 || pLatSpan < 0.0001) { // DIAGNOSTIC
-      pDepthUV = uv; // DIAGNOSTIC
-    } else { // DIAGNOSTIC
-      pDepthUV = vec2((pWorldLon - u_depth_bounds.x) / pLonSpan, // DIAGNOSTIC
-                      (pWorldLat - u_depth_bounds.z) / pLatSpan); // DIAGNOSTIC
-    } // DIAGNOSTIC
-    // Clamp so we can always see something even outside the depth rect
-    pDepthUV = clamp(pDepthUV, 0.0, 1.0); // DIAGNOSTIC
-
-    vec4  pDep  = texture2D(u_depth, pDepthUV); // DIAGNOSTIC
-    float pRaw  = pDep.r; // DIAGNOSTIC — raw depth from texture (metres in float mode)
-    float pEff  = pRaw + u_tide_offset; // DIAGNOSTIC
-
+    vec4  pDep = texture2D(u_depth, uv); // DIAGNOSTIC
+    float pEff = pDep.r + u_tide_offset; // DIAGNOSTIC
     if (uv.x < 0.5) { // DIAGNOSTIC
-      // LEFT — raw depth as grayscale (0m=black, ≥200m=white)
       float g = clamp(pEff / 200.0, 0.0, 1.0); // DIAGNOSTIC
       gl_FragColor = vec4(g, g, g, 1.0); // DIAGNOSTIC
       return; // DIAGNOSTIC
     } else { // DIAGNOSTIC
-      // RIGHT — A-channel: red=valid, black=invalid
-      float valid = (pDep.a >= 0.1) ? 1.0 : 0.0; // DIAGNOSTIC
-      gl_FragColor = vec4(valid, 0.0, 0.0, 1.0); // DIAGNOSTIC
+      gl_FragColor = vec4((pDep.a >= 0.1) ? 1.0 : 0.0, 0.0, 0.0, 1.0); // DIAGNOSTIC
       return; // DIAGNOSTIC
     } // DIAGNOSTIC
   } // DIAGNOSTIC
   // ===== END DEPTH-FIELD PROBE =====
 
   // ── Swell data ────────────────────────────────────────────────────────────
+  // Single-viewport: swell texture is bilinearly resampled onto the viewport
+  // grid in the layer (row 0 = maxLat/north), same as the depth texture.
+  // Both are sampled at v_texcoord directly — no UV remap needed.
   vec4 swellSample = texture2D(u_data, uv);
   if (swellSample.a < 0.1) {
     discard;   // No swell data at this pixel
@@ -211,34 +180,9 @@ void main() {
   }
 
   // ── Bathymetry ────────────────────────────────────────────────────────────
-  // The depth texture may cover a different geographic extent than the swell
-  // texture. Convert the current fragment's world position (derived from the
-  // swell UV) into the depth texture's UV space.
-  //
-  // World coordinates from swell UV:
-  float worldLon = u_swell_bounds.x + uv.x * (u_swell_bounds.y - u_swell_bounds.x);
-  float worldLat = u_swell_bounds.z + uv.y * (u_swell_bounds.w - u_swell_bounds.z);
-
-  // Remap into depth UV. Pixels outside the depth rectangle are discarded.
-  float dLonSpan = u_depth_bounds.y - u_depth_bounds.x;
-  float dLatSpan = u_depth_bounds.w - u_depth_bounds.z;
-  // Guard zero-span (fallback: depth covers same extent as swell)
-  vec2 depthUV;
-  if (dLonSpan < 0.0001 || dLatSpan < 0.0001) {
-    depthUV = uv;
-  } else {
-    depthUV = vec2(
-      (worldLon - u_depth_bounds.x) / dLonSpan,
-      (worldLat - u_depth_bounds.z) / dLatSpan
-    );
-  }
-
-  // Pixels whose world position lies outside the depth texture → discard.
-  if (depthUV.x < 0.0 || depthUV.x > 1.0 || depthUV.y < 0.0 || depthUV.y > 1.0) {
-    discard;
-  }
-
-  vec4 depthSample = texture2D(u_depth, depthUV);
+  // Single-viewport architecture: depth is sampled at the same uv as swell.
+  // Row 0 = maxLat (north) in both textures, matching fetchDepthGrid convention.
+  vec4 depthSample = texture2D(u_depth, uv);
 
   // A-channel 0 means no bathymetry data (land or tile gap) — discard.
   if (depthSample.a < 0.1) {

@@ -369,16 +369,8 @@ export function createCoastalDynamicsEngine(
       gl.uniform1f(gl.getUniformLocation(program, 'u_tide_offset'), tideOffset);
       gl.uniform1f(gl.getUniformLocation(program, 'u_use_land_mask'), 0.0); // depth handles it
 
-      // Geographic bounds — allow swell and depth textures to cover different extents.
-      // Shader uses these to remap depth UV independently from the swell UV.
-      gl.uniform4f(
-        gl.getUniformLocation(program, 'u_swell_bounds'),
-        swellMeta.minLon, swellMeta.maxLon, swellMeta.minLat, swellMeta.maxLat,
-      );
-      gl.uniform4f(
-        gl.getUniformLocation(program, 'u_depth_bounds'),
-        depthMeta.minLon, depthMeta.maxLon, depthMeta.minLat, depthMeta.maxLat,
-      );
+      // Single-viewport architecture: both swell and depth cover the same rect.
+      // The shader samples both at v_texcoord directly — no bounds uniforms needed.
 
 
       // Draw fullscreen quad (straight alpha, premultipliedAlpha: false canvas)

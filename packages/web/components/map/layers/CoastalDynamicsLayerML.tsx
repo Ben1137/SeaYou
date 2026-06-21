@@ -1,23 +1,25 @@
 /**
  * CoastalDynamicsLayerML — Breaking-wave height heatmap (Phase 3, GPU route).
  *
- * Combines two data streams per-pixel on the GPU:
- *   1. Swell grid (H0, T from Open-Meteo marine API via sharedGridData)
- *   2. Bathymetry grid (depth in m from AWS Terrarium tiles via fetchDepthGrid)
+ * Single-viewport-rectangle architecture (simplified from 0911c12's two-rect remap):
+ *   - The offscreen canvas, the swell texture, and the depth texture ALL cover
+ *     the same geographic rectangle: the current MAP VIEWPORT.
+ *   - v_texcoord in the shader maps directly to both textures — no remap, no
+ *     out-of-rect discard, no u_swell_bounds / u_depth_bounds uniforms needed.
+ *   - Row 0 = maxLat (north) in both textures (matching fetchDepthGrid convention).
+ *   - CanvasSource is draped at the viewport bounds.
  *
- * The CoastalDynamicsEngine runs Fenton-McKee dispersion → shoaling coefficient
- * → depth-limited breaking (γ=0.78) entirely in coastal-dynamics.frag.glsl.
- * No refraction yet (Kr=1 in Phase 3; Snell's law added in Phase 4).
- *
- * PREMIUM TIER — gated by isFreeUser in MapContainerML (trySetAdvancedLayer).
+ * Why: the prior two-rect remap (swell on swell-grid bounds, depth on viewport bounds)
+ * produced a mis-located depth sample confirmed by the 947cfc0 depth-viz probe
+ * (point@32.08N read 38.5m instead of ~12m; gradient inverted coast↔offshore).
  *
  * Data pipeline:
- *   sharedGridData (MarineGridData) → swell H0/T grids → CoastalDynamicsEngine TEXTURE0
- *   MapLibre 'moveend'             → fetchDepthGrid()   → CoastalDynamicsEngine TEXTURE4
- *   sea_level_height_msl           → engine.setTideOffset()
- *   CanvasSource drapes offscreen canvas onto MapLibre globe
+ *   sharedGridData (MarineGridData) → bilinear resample onto viewport 64×64 → TEXTURE0
+ *   MapLibre 'moveend'              → fetchDepthGrid() → TEXTURE4
+ *   Both textures: row 0 = maxLat (north), row N-1 = minLat (south)
+ *   CanvasSource draped at viewport bounds
  *
- * Honest caveat (displayed in legend): physics-based estimate, NOT spot-calibrated.
+ * Honest caveat: physics-based estimate, NOT spot-calibrated.
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -42,11 +44,64 @@ export interface CoastalDynamicsLayerMLProps {
 const SOURCE_ID = 'coastal-dynamics-canvas-src';
 const LAYER_ID  = 'coastal-dynamics-canvas-layer';
 
-// Depth grid resolution — adaptive: more samples when viewport is small.
-// At low zoom the viewport covers hundreds of km; at z11 it's ~20 km across.
-// We always fetch 64×64 = 4096 samples; the tile zoom governs Terrarium resolution.
-const DEPTH_COLS = 64;
-const DEPTH_ROWS = 64;
+// Both textures use the same 64×64 viewport grid.
+const GRID_COLS = 64;
+const GRID_ROWS = 64;
+
+// ── Bilinear interpolation helper ───────────────────────────────────────────
+// Interpolates a value from a coarse grid at a given lon/lat.
+// The coarse grid is defined by sorted arrays of lats and lons, with
+// row i = lat[i] (ascending, south-first) and col j = lon[j] (ascending, west-first).
+function bilinearInterp(
+  grid: number[][],       // grid[latIdx][lonIdx], row 0 = minLat (south)
+  lats: number[],         // ascending latitudes
+  lons: number[],         // ascending longitudes
+  targetLat: number,
+  targetLon: number,
+): number {
+  const nLat = lats.length;
+  const nLon = lons.length;
+  if (nLat === 0 || nLon === 0) return NaN;
+
+  // Clamp to grid extent
+  const clampedLat = Math.max(lats[0], Math.min(lats[nLat - 1], targetLat));
+  const clampedLon = Math.max(lons[0], Math.min(lons[nLon - 1], targetLon));
+
+  // Find bounding indices
+  let latLo = 0;
+  for (let i = 0; i < nLat - 1; i++) {
+    if (lats[i + 1] >= clampedLat) { latLo = i; break; }
+    latLo = nLat - 2;
+  }
+  let lonLo = 0;
+  for (let j = 0; j < nLon - 1; j++) {
+    if (lons[j + 1] >= clampedLon) { lonLo = j; break; }
+    lonLo = nLon - 2;
+  }
+  const latHi = Math.min(latLo + 1, nLat - 1);
+  const lonHi = Math.min(lonLo + 1, nLon - 1);
+
+  const dLat = lats[latHi] - lats[latLo];
+  const dLon = lons[lonHi] - lons[lonLo];
+  const tLat = dLat > 0 ? (clampedLat - lats[latLo]) / dLat : 0;
+  const tLon = dLon > 0 ? (clampedLon - lons[lonLo]) / dLon : 0;
+
+  const v00 = grid[latLo]?.[lonLo] ?? NaN;
+  const v01 = grid[latLo]?.[lonHi] ?? NaN;
+  const v10 = grid[latHi]?.[lonLo] ?? NaN;
+  const v11 = grid[latHi]?.[lonHi] ?? NaN;
+
+  // If any corner is invalid, fall back to nearest valid
+  if (!isFinite(v00) || !isFinite(v01) || !isFinite(v10) || !isFinite(v11)) {
+    const candidates = [v00, v01, v10, v11].filter(isFinite);
+    return candidates.length > 0 ? candidates[0] : NaN;
+  }
+
+  return v00 * (1 - tLat) * (1 - tLon)
+       + v01 * (1 - tLat) * tLon
+       + v10 * tLat * (1 - tLon)
+       + v11 * tLat * tLon;
+}
 
 export function CoastalDynamicsLayerML({
   visible,
@@ -63,6 +118,9 @@ export function CoastalDynamicsLayerML({
   const fetchAbortRef   = useRef<{ aborted: boolean }>({ aborted: false });
   const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
 
+  // Latest swell data — kept so moveend can resample onto the new viewport
+  const swellDataRef = useRef<MarineGridData | null>(null);
+
   // Create engine + offscreen canvas once on mount
   useEffect(() => {
     const handle = createOffscreenCanvas('coastal-dynamics', 1024, 1024);
@@ -70,7 +128,7 @@ export function CoastalDynamicsLayerML({
 
     const engine = createCoastalDynamicsEngine({
       colorRamp: BREAKING_WAVE_COLORS,
-      maxBreakingHeight: 3.0,  // Eastern Med typical max 1–2m; 4.0 on Phase 3.5 effectAlpha
+      maxBreakingHeight: 3.0,
       opacity: 1.0,
       logPrefix: '[CoastalDynamics]',
     });
@@ -78,7 +136,6 @@ export function CoastalDynamicsLayerML({
     engineRef.current = engine;
     setCanvasElement(handle.canvas);
 
-    // Continuous render loop — keeps CanvasSource pixel-synced with engine state
     let alive = true;
     const animate = () => {
       if (!alive) return;
@@ -113,153 +170,133 @@ export function CoastalDynamicsLayerML({
     visible,
   });
 
-  // Swell grid bounds — stored so the shader knows swell texture extent.
-  const processBounds = useRef<{
-    minLon: number; maxLon: number; minLat: number; maxLat: number;
-  } | null>(null);
-
-  // ── Fetch depth grid for the current viewport ────────────────────────────
-  // Depth is fetched for the MAP VIEWPORT (not swell bounds). This ensures
-  // the 64×64 depth samples concentrate where the user is looking, giving
-  // ~300–500m spacing at z10–11 on the Israeli coast (~20km viewport).
-  // The shader remaps depth UV independently via u_swell_bounds / u_depth_bounds.
-  //
-  // Tile zoom adapts to viewport size:
-  //   z≤7  (planet/ocean view)  → tile z9  (~300m/px, broad strokes)
-  //   z8–9 (regional)           → tile z10 (~150m/px)
-  //   z≥10 (coastal/harbour)    → tile z11 (~75m/px, best for narrow shelf)
-  const fetchDepth = useCallback(async () => {
+  // ── Build and upload everything for the current viewport ─────────────────
+  // Both swell (resampled) and depth are aligned to the viewport rectangle,
+  // with row 0 = maxLat (north). CanvasSource is draped at viewport bounds.
+  const buildViewport = useCallback(async () => {
     const currentMap = mapRef.current;
     const engine = engineRef.current;
     if (!currentMap || !engine || !visible) return;
 
-    // Derive viewport bounds from MapLibre
     const mapBounds = currentMap.getBounds();
     if (!mapBounds) return;
 
-    const viewBounds = {
+    const vb = {
       minLon: mapBounds.getWest(),
       maxLon: mapBounds.getEast(),
       minLat: mapBounds.getSouth(),
       maxLat: mapBounds.getNorth(),
     };
 
-    // Adaptive tile zoom based on map zoom level
     const mapZoom = currentMap.getZoom();
     const tileZoom = mapZoom >= 10 ? 11 : mapZoom >= 8 ? 10 : 9;
 
     const token = { aborted: false };
     fetchAbortRef.current = token;
 
+    // ── Swell: resample coarse grid onto viewport 64×64 ─────────────────────
+    const gridData = swellDataRef.current;
+    if (gridData?.points?.length) {
+      const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
+      const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
+
+      const H0CoarseGrid: number[][] = [];
+      const TCoarseGrid:  number[][] = [];
+      const H0Map = new Map<string, number>();
+      const TMap  = new Map<string, number>();
+      gridData.points.forEach(pt => {
+        const key = `${pt.lat.toFixed(4)},${pt.lng.toFixed(4)}`;
+        H0Map.set(key, pt.isOcean ? (pt.waveHeight ?? NaN) : NaN);
+        TMap.set(key,  pt.isOcean ? (pt.wavePeriod ?? NaN) : NaN);
+      });
+      for (let li = 0; li < lats.length; li++) {
+        const H0Row: number[] = [];
+        const TRow:  number[] = [];
+        for (let lo = 0; lo < lons.length; lo++) {
+          const key = `${lats[li].toFixed(4)},${lons[lo].toFixed(4)}`;
+          H0Row.push(H0Map.get(key) ?? NaN);
+          TRow.push(TMap.get(key)   ?? NaN);
+        }
+        H0CoarseGrid.push(H0Row);
+        TCoarseGrid.push(TRow);
+      }
+
+      // Resample onto viewport 64×64 with row 0 = maxLat (north), matching depth
+      const H0Grid: number[][] = [];
+      const TGrid:  number[][] = [];
+      for (let row = 0; row < GRID_ROWS; row++) {
+        // row 0 = maxLat (north), row GRID_ROWS-1 = minLat (south)
+        const lat = vb.maxLat - (row / (GRID_ROWS - 1)) * (vb.maxLat - vb.minLat);
+        const H0Row: number[] = [];
+        const TRow:  number[] = [];
+        for (let col = 0; col < GRID_COLS; col++) {
+          const lon = vb.minLon + (col / (GRID_COLS - 1)) * (vb.maxLon - vb.minLon);
+          H0Row.push(bilinearInterp(H0CoarseGrid, lats, lons, lat, lon));
+          TRow.push(bilinearInterp(TCoarseGrid,  lats, lons, lat, lon));
+        }
+        H0Grid.push(H0Row);
+        TGrid.push(TRow);
+      }
+
+      const tideM = gridData.points.find(p => p.isOcean)?.seaLevelHeight ?? 0;
+      engine.setTideOffset(tideM);
+      engine.updateSwellData(H0Grid, TGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
+    }
+
+    // ── Depth: fetch at viewport ─────────────────────────────────────────────
     try {
-      const grid = await fetchDepthGrid(viewBounds, DEPTH_COLS, DEPTH_ROWS, tileZoom);
+      const depthGrid = await fetchDepthGrid(vb, GRID_COLS, GRID_ROWS, tileZoom);
       if (token.aborted) return;
 
-      // DIAGNOSTIC — log depth at grid centre and at known shallow sea point (~12m @ 32.08°N,34.78°E)
+      // DIAGNOSTIC — verify depth reads ~12m at the Tel Aviv test point
       {
-        const midRow = Math.floor(grid.length / 2);
-        const midCol = Math.floor((grid[midRow]?.length ?? 0) / 2);
-        const centrePt = grid[midRow]?.[midCol] ?? NaN;
-        // Find the grid point closest to the known test coordinate (Tel Aviv coast)
+        const rows = depthGrid.length, cols = depthGrid[0]?.length ?? 0;
+        const midRow = Math.floor(rows / 2), midCol = Math.floor(cols / 2);
         const testLat = 32.08, testLon = 34.78;
-        const rows = grid.length, cols = grid[0]?.length ?? 0;
-        const nearRow = Math.round(((testLat - viewBounds.minLat) / (viewBounds.maxLat - viewBounds.minLat)) * (rows - 1));
-        const nearCol = Math.round(((testLon - viewBounds.minLon) / (viewBounds.maxLon - viewBounds.minLon)) * (cols - 1));
-        const nearPt = grid[Math.max(0, Math.min(rows - 1, nearRow))]?.[Math.max(0, Math.min(cols - 1, nearCol))] ?? NaN;
-        console.log( // DIAGNOSTIC
-          `[CoastalDynamics PROBE] depthGrid centre=${centrePt.toFixed(1)}m` +
+        const nearRow = Math.round(((vb.maxLat - testLat) / (vb.maxLat - vb.minLat)) * (rows - 1));
+        const nearCol = Math.round(((testLon - vb.minLon) / (vb.maxLon - vb.minLon)) * (cols - 1));
+        const nearPt = depthGrid[Math.max(0,Math.min(rows-1,nearRow))]?.[Math.max(0,Math.min(cols-1,nearCol))] ?? NaN;
+        console.log(
+          `[CoastalDynamics] Depth grid (single-viewport): centre=${(depthGrid[midRow]?.[midCol] ?? NaN).toFixed(1)}m` +
           ` | point@(32.08N,34.78E)=${nearPt.toFixed(1)}m` +
-          ` | row0=${(grid[0]?.[midCol] ?? NaN).toFixed(1)}m (should be maxLat=north)` +
-          ` | rowLast=${(grid[rows-1]?.[midCol] ?? NaN).toFixed(1)}m (should be minLat=south)` +
-          ` | viewBounds=lat[${viewBounds.minLat.toFixed(3)},${viewBounds.maxLat.toFixed(3)}]` // DIAGNOSTIC
-        ); // DIAGNOSTIC
-      } // DIAGNOSTIC
+          ` | row0_mid=${(depthGrid[0]?.[midCol] ?? NaN).toFixed(1)}m (north)` +
+          ` | rowLast_mid=${(depthGrid[rows-1]?.[midCol] ?? NaN).toFixed(1)}m (south)` +
+          ` | vb=lat[${vb.minLat.toFixed(3)},${vb.maxLat.toFixed(3)}]`
+        );
+      }
       // END DIAGNOSTIC
 
-      engine.updateBathymetryData(
-        grid,
-        viewBounds.minLon, viewBounds.maxLon,
-        viewBounds.minLat, viewBounds.maxLat,
-      );
+      engine.updateBathymetryData(depthGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
+
+      // Drape the CanvasSource at the viewport bounds
+      updateCoordinates(boundsToCorners(vb.minLon, vb.maxLon, vb.minLat, vb.maxLat));
+
       engine.render();
       currentMap.triggerRepaint();
     } catch (err) {
       if (!token.aborted) {
-        console.error('[CoastalDynamicsLayerML] Depth fetch failed:', err);
+        console.error('[CoastalDynamicsLayerML] buildViewport failed:', err);
       }
     }
-  }, [visible]);
+  }, [visible, updateCoordinates]);
 
-  // ── Process swell grid data from Open-Meteo ─────────────────────────────
-  const processSwellData = useCallback((gridData: MarineGridData) => {
-    if (!gridData?.points?.length || !engineRef.current) return;
-
-    const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
-    const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
-    if (lats.length === 0 || lons.length === 0) return;
-
-    const H0Map = new Map<string, number>();
-    const TMap  = new Map<string, number>();
-
-    gridData.points.forEach(pt => {
-      const key = `${pt.lat.toFixed(4)},${pt.lng.toFixed(4)}`;
-      // Use total wave height (wave_height) not swell_wave_height.
-      // Eastern Med is wind-sea dominated — swell_wave_height is 0 most of the time,
-      // causing every pixel to discard at the H0 < MIN_H0 guard in the shader.
-      // wave_height is the total significant wave height (all components combined)
-      // and is the physically correct input for nearshore shoaling/breaking.
-      H0Map.set(key, pt.isOcean ? (pt.waveHeight ?? NaN) : NaN);
-      TMap.set(key,  pt.isOcean ? (pt.wavePeriod ?? NaN) : NaN);
-    });
-
-    const H0Grid: number[][] = [];
-    const TGrid:  number[][] = [];
-
-    for (let latIdx = 0; latIdx < lats.length; latIdx++) {
-      const H0Row: number[] = [];
-      const TRow:  number[] = [];
-      for (let lonIdx = 0; lonIdx < lons.length; lonIdx++) {
-        const key = `${lats[latIdx].toFixed(4)},${lons[lonIdx].toFixed(4)}`;
-        H0Row.push(H0Map.get(key) ?? NaN);
-        TRow.push(TMap.get(key)   ?? NaN);
-      }
-      H0Grid.push(H0Row);
-      TGrid.push(TRow);
-    }
-
-    const minLon = lons[0];
-    const maxLon = lons[lons.length - 1];
-    const minLat = lats[0];
-    const maxLat = lats[lats.length - 1];
-
-    processBounds.current = { minLon, maxLon, minLat, maxLat };
-
-    const tideM = gridData.points.find(p => p.isOcean)?.seaLevelHeight ?? 0;
-    engineRef.current.setTideOffset(tideM);
-    engineRef.current.updateSwellData(H0Grid, TGrid, minLon, maxLon, minLat, maxLat);
-
-    updateCoordinates(boundsToCorners(minLon, maxLon, minLat, maxLat));
-
-    // Fetch depth for the current viewport (independent of swell extent).
-    // Shader remaps depth UV via u_swell_bounds/u_depth_bounds uniforms.
-    fetchDepth();
-  }, [updateCoordinates, fetchDepth]);
-
-  // ── Respond to incoming swell data ───────────────────────────────────────
+  // ── Respond to new swell data ────────────────────────────────────────────
   useEffect(() => {
     if (!visible || !sharedGridData) return;
-    processSwellData(sharedGridData);
-  }, [sharedGridData, visible, processSwellData]);
+    swellDataRef.current = sharedGridData;
+    buildViewport();
+  }, [sharedGridData, visible, buildViewport]);
 
+  // ── Rebuild on map move ──────────────────────────────────────────────────
   useEffect(() => {
     if (!map || !visible) return;
 
-    fetchDepth();
+    buildViewport();
 
-    const onMoveEnd = () => fetchDepth();
+    const onMoveEnd = () => buildViewport();
     map.on('moveend', onMoveEnd);
     return () => { map.off('moveend', onMoveEnd); };
-  }, [map, visible, fetchDepth]);
+  }, [map, visible, buildViewport]);
 
   return null;
 }
