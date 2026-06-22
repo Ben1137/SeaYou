@@ -200,27 +200,36 @@ void main() {
   bool  isBreaking  = H_shoaled > breakingCap;
   float H_final     = isBreaking ? breakingCap : H_shoaled;
 
-  // ── Depth-proximity alpha weighting ─────────────────────────────────────
-  // Fade the signal so that:
-  //   • shallow water (d → 0)   → full opacity (strong shoaling / breaking)
-  //   • transition band (50–200 m) → partial opacity (moderate shoaling)
-  //   • approaching 200 m cutoff  → fades to transparent (no perceptible shoaling)
-  // sqrt gives a gentler roll-off than linear so the 10–50 m band stays visible.
-  float depthFraction  = clamp(d_eff / DEEP_WATER_CUTOFF, 0.0, 1.0); // 0=shore, 1=200m
-  float depthAlpha     = 1.0 - sqrt(depthFraction);                   // 1.0 → 0.0
+  // ── Energy-gated alpha (fix: opacity must track offshore H0, not shallowness alone) ──
+  //
+  // Bug confirmed by 4-spot test: the old depth-proximity + Ks-boost formula gave
+  // Auckland (H0=0.3m, d=2m) alpha=1.0 via shallowness alone, while Hikkaduwa
+  // (H0=1.9m, d=20m) only got alpha=0.68 — the CALM place rendered louder.
+  //
+  // Fix: alpha = energyGate × depthAlpha.
+  //
+  // energyGate — smoothstep on H0 so a pixel needs real wave energy to be visible.
+  // H0 < H0_QUIET (0.4m) → energyGate≈0 (transparent for flat seas / Hauraki Gulf).
+  // H0 > H0_FULL  (1.5m) → energyGate=1 (full energy weight for real swell).
+  // In between: smooth ramp. Constants tuned against the 4-spot ordering:
+  //   Hikkaduwa 1.9m > San Diego 0.9m > Tel Aviv 0.7m > Auckland 0.3m.
+  const float H0_QUIET = 0.4;   // below this, energy gate ≈ 0 (flat-sea suppression)
+  const float H0_FULL  = 1.5;   // above this, full energy weight
+  float energyGate = smoothstep(H0_QUIET, H0_FULL, H0);
 
-  // Shoaling boost: Ks > 1 means energy is concentrating — reinforce that visually.
-  // Extra opacity proportional to how much above 1.0 Ks is, capped at +0.3.
-  float shoalingBoost  = clamp((Ks - 1.0) * 0.5, 0.0, 0.3);
+  // depthAlpha — keep a mild depth-proximity fade so pixels far from the surf zone
+  // (deep shelf, 100–200m) are still suppressed. Reduced weight (×0.5) so depth
+  // alone cannot boost a low-energy pixel to full opacity.
+  float depthFraction = clamp(d_eff / DEEP_WATER_CUTOFF, 0.0, 1.0); // 0=shore, 1=200m
+  float depthAlpha    = 1.0 - sqrt(depthFraction);                   // 1.0 → 0.0
 
-  // Breaking bonus: if depth-limited breaking fires, push to full opacity.
-  float breakingBonus  = isBreaking ? 0.3 : 0.0;
+  // breaking bonus: firing the breaking cap is a strong signal of real impact.
+  float breakingBonus = isBreaking ? 0.2 : 0.0;
 
-  float effectAlpha    = clamp(depthAlpha + shoalingBoost + breakingBonus, 0.0, 1.0);
+  // Final alpha: energy gate × depth weighting (depth modulates within the energy envelope;
+  // it can no longer inflate a low-H0 pixel to full opacity on its own).
+  float effectAlpha = clamp(energyGate * depthAlpha + breakingBonus, 0.0, 1.0);
 
-  // Minimum floor: discard only truly negligible pixels (very near the 200m boundary).
-  // Eastern Med wave_height is 0.3–0.8m — the effectAlpha fade must not cut the
-  // entire nearshore band. Lowered from 0.05 to avoid blank rendering at low H0.
   if (effectAlpha < 0.01) {
     discard;
   }
