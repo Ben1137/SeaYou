@@ -128,7 +128,7 @@ export function CoastalDynamicsLayerML({
 
     const engine = createCoastalDynamicsEngine({
       colorRamp: BREAKING_WAVE_COLORS,
-      maxBreakingHeight: 2.5,  // Global-safe ceiling: overhead+ surf, ~0.5m Med reads aquamarine
+      maxBreakingHeight: 4.0,  // Matches BREAKING_WAVE_COLORS labels (0–4m); honest global ceiling
       opacity: 1.0,
       logPrefix: '[CoastalDynamics]',
     });

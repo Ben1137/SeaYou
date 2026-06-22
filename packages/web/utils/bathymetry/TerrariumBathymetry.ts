@@ -170,13 +170,22 @@ export async function fetchDepthGrid(
     }
   }
 
-  // Resolve tile images, keyed by tx/ty
+  // Resolve tile images, keyed by tx/ty. Count missing tiles for a single batch warning.
   const tileImages = new Map<string, ImageData | null>();
+  let missingTileCount = 0;
   await Promise.all(
     tilePromises.map(async ({ tx, ty, promise }) => {
-      tileImages.set(`${tx},${ty}`, await promise);
+      const imageData = await promise;
+      tileImages.set(`${tx},${ty}`, imageData);
+      if (imageData === null) missingTileCount++;
     })
   );
+  if (missingTileCount > 0) {
+    console.warn(
+      `[TerrariumBathymetry] ${missingTileCount} tile(s) unavailable (404/error) at z${zoom}` +
+      ` — rendering as transparent (no breaking signal).`
+    );
+  }
 
   // Sample depth at each output grid point
   const grid: number[][] = [];
@@ -194,7 +203,9 @@ export async function fetchDepthGrid(
       const imageData = tileImages.get(`${tx},${ty}`);
 
       if (!imageData) {
-        gridRow.push(0); // missing tile → treat as sea level
+        // NaN sentinel → engine's `!isNaN(d) && d > 0` guard → A=0 → shader discards (transparent).
+        // This means missing tiles render as no-data transparent, not false shallow/breaking signal.
+        gridRow.push(NaN);
         continue;
       }
 
