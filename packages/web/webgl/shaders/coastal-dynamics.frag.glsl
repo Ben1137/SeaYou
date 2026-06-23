@@ -213,7 +213,7 @@ void main() {
   // H0 > H0_FULL  (1.5m) → energyGate=1 (full energy weight for real swell).
   // In between: smooth ramp. Constants tuned against the 4-spot ordering:
   //   Hikkaduwa 1.9m > San Diego 0.9m > Tel Aviv 0.7m > Auckland 0.3m.
-  const float H0_QUIET = 0.4;   // below this, energy gate ≈ 0 (flat-sea suppression)
+  const float H0_QUIET = 0.30;  // below this, energy gate ≈ 0 (flat-sea suppression)
   const float H0_FULL  = 1.5;   // above this, full energy weight
   float energyGate = smoothstep(H0_QUIET, H0_FULL, H0);
 
@@ -223,8 +223,9 @@ void main() {
   float depthFraction = clamp(d_eff / DEEP_WATER_CUTOFF, 0.0, 1.0); // 0=shore, 1=200m
   float depthAlpha    = 1.0 - sqrt(depthFraction);                   // 1.0 → 0.0
 
-  // breaking bonus: firing the breaking cap is a strong signal of real impact.
-  float breakingBonus = isBreaking ? 0.2 : 0.0;
+  // breaking bonus: energy-gated so very-shallow low-H0 pixels (Hauraki Gulf) don't
+  // exceed same-H0 open-coast pixels (Tel Aviv) via shallowness alone.
+  float breakingBonus = isBreaking ? 0.2 * energyGate : 0.0;
 
   // Final alpha: energy gate × depth weighting (depth modulates within the energy envelope;
   // it can no longer inflate a low-H0 pixel to full opacity on its own).
