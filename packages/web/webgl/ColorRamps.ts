@@ -231,20 +231,33 @@ export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
   [  0,  15,  70, 240],    // 6000 m — hadal: very dark navy
 ];
 
-// Breaking-wave height colour ramp — calm (transparent) → bright cyan → vivid purple →
-// hot pink → crimson. High-contrast palette for global visibility.
-// Input range: 0–4 m breaking height (H_final / 4.0 → ramp index).
-// Control points: 0.0m transparent, 0.4m bright cyan, 1.2m vivid purple,
-//                 2.4m hot pink, 4.0m crimson.
+// Breaking-wave height colour ramp — worldwide-differentiating:
+//   calm (transparent cyan) → small surf (purple) → solid surf (hot pink) → big/dangerous (crimson)
+// Input range: 0–4 m (H_final / 4.0 → ramp index). 21 stops at 0.2 m intervals.
+// Spec anchors exactly reproduced: 0.4 m cyan, 1.6 m hot pink, 2.6 m crimson, 4.0 m deep crimson.
+// 0.9 m purple (r=0.225) interpolated from stops at 0.8 m / 1.0 m → [111,21,248,224] ≈ spec [112,0,255,224].
 export const BREAKING_WAVE_COLORS: [number, number, number, number][] = [
-  [  0, 210, 255,   0],   //  0.0 m — calm, fully transparent (#00d2ff)
-  [  0, 210, 255, 204],   //  0.4 m — bright cyan (#00d2ff, alpha 0.80)
-  [ 80,  53, 255, 225],   //  1.0 m — blue-purple transition
-  [112,   0, 255, 230],   //  1.2 m — vivid purple (#7000ff)
-  [184,   0, 208, 230],   //  1.8 m — purple→pink midpoint
-  [255,   0, 160, 230],   //  2.4 m — hot pink (#ff00a0)
-  [255,   0, 100, 230],   //  3.2 m — pink→crimson midpoint
-  [255,   0,  43, 230],   //  4.0 m — crimson (#ff002b)
+  [  0, 210, 255,   0],   //  0.0 m r=0.000 — transparent (#00d2ff)
+  [  0, 210, 255, 109],   //  0.2 m r=0.050 — faint cyan
+  [  0, 210, 255, 217],   //  0.4 m r=0.100 — bright cyan ← spec anchor (α=0.85)
+  [ 45, 126, 255, 220],   //  0.6 m r=0.150 — cyan→purple
+  [ 90,  42, 255, 223],   //  0.8 m r=0.200 — blue-purple
+  [132,   0, 241, 225],   //  1.0 m r=0.250 — mid-purple
+  [173,   0, 214, 227],   //  1.2 m r=0.300 — purple
+  [214,   0, 187, 228],   //  1.4 m r=0.350 — purple→pink
+  [255,   0, 160, 230],   //  1.6 m r=0.400 — hot pink ← spec anchor (α=0.90)
+  [255,   0, 137, 231],   //  1.8 m r=0.450 — hot pink
+  [255,   0, 113, 232],   //  2.0 m r=0.500 — pink-red
+  [255,   0,  90, 233],   //  2.2 m r=0.550 — pink-crimson
+  [255,   0,  66, 234],   //  2.4 m r=0.600 — near-crimson
+  [255,   0,  43, 235],   //  2.6 m r=0.650 — crimson ← spec anchor (α=0.92)
+  [243,   0,  41, 236],   //  2.8 m r=0.700 — dark crimson
+  [231,   0,  39, 237],   //  3.0 m r=0.750 — dark crimson
+  [219,   0,  37, 238],   //  3.2 m r=0.800 — dark crimson
+  [206,   0,  36, 239],   //  3.4 m r=0.850 — deep crimson
+  [194,   0,  34, 240],   //  3.6 m r=0.900 — deep crimson
+  [182,   0,  32, 241],   //  3.8 m r=0.950 — deep crimson
+  [170,   0,  30, 242],   //  4.0 m r=1.000 — deep crimson ← spec anchor (α=0.95)
 ];
 
 // Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds

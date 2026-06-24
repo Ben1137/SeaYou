@@ -43,12 +43,16 @@ const COASTAL_DIAG =
   typeof window !== 'undefined' && window.location.search.includes('coastalDiag=1');
 
 // Shader constants — must stay in sync with coastal-dynamics.frag.glsl
-const _D_H0_QUIET = 0.30;
-const _D_H0_FULL  = 1.50;
-const _D_DEEP     = 200.0;
-const _D_MAX_H    = 4.0;
-const _D_MIN_H0   = 0.05;
-const _D_FLOOR    = 0.01;
+const _D_H0_QUIET       = 0.30;
+const _D_H0_FULL        = 1.50;
+const _D_DEEP           = 200.0;
+const _D_MAX_H          = 4.0;
+const _D_MIN_H0         = 0.05;
+const _D_FLOOR          = 0.01;
+const _D_VIS_FLOOR      = 0.22;   // Phase R1
+const _D_ENERGY_GAIN    = 0.78;
+const _D_NEARSHORE_FULL = 20.0;
+const _D_NEARSHORE_FADE = 120.0;
 
 function _ss(e0: number, e1: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -64,7 +68,7 @@ function _ramp(norm: number, c: [number, number, number, number][]): string {
 
 interface _DiagRow {
   H0: number; T: number; d: number; Ks: number; H_final: number;
-  isBreaking: boolean; energyGate: number; depthAlpha: number;
+  isBreaking: boolean; energyGate: number; nearshoreMask: number;
   breakingBonus: number; effectAlpha: number; rampIndex: number;
   rampRGBA: string; gate: string;
 }
@@ -72,7 +76,7 @@ interface _DiagRow {
 function _diagPixel(H0: number, T: number, d: number): _DiagRow {
   const nan: _DiagRow = {
     H0, T, d, Ks: NaN, H_final: NaN, isBreaking: false,
-    energyGate: NaN, depthAlpha: NaN, breakingBonus: NaN, effectAlpha: NaN,
+    energyGate: NaN, nearshoreMask: NaN, breakingBonus: NaN, effectAlpha: NaN,
     rampIndex: NaN, rampRGBA: 'discard', gate: '',
   };
   if (!isFinite(H0) || !isFinite(T) || H0 < _D_MIN_H0 || T < 1) return { ...nan, gate: 'MIN_H0/T' };
@@ -80,14 +84,14 @@ function _diagPixel(H0: number, T: number, d: number): _DiagRow {
   if (d >= _D_DEEP)           return { ...nan, gate: 'deep≥200m' };
 
   const { H: H_final, Ks, breaking } = nearshoreTransform(H0, T, d);
-  const eg = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
-  const da = 1 - Math.sqrt(Math.min(1, d / _D_DEEP));
-  const bb = breaking ? 0.2 * eg : 0;
-  const ea = Math.min(1, Math.max(0, eg * da + bb));
-  const ri = Math.min(1, H_final / _D_MAX_H);
+  const eg  = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
+  const nm  = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
+  const bb  = breaking ? 0.15 * eg : 0;
+  const ea  = Math.min(1, Math.max(0, (_D_VIS_FLOOR + _D_ENERGY_GAIN * eg) * nm + bb));
+  const ri  = Math.min(1, H_final / _D_MAX_H);
   return {
     H0, T, d: +d.toFixed(1), Ks: +Ks.toFixed(3), H_final: +H_final.toFixed(2),
-    isBreaking: breaking, energyGate: +eg.toFixed(3), depthAlpha: +da.toFixed(3),
+    isBreaking: breaking, energyGate: +eg.toFixed(3), nearshoreMask: +nm.toFixed(3),
     breakingBonus: +bb.toFixed(3), effectAlpha: +ea.toFixed(3),
     rampIndex: +ri.toFixed(3),
     rampRGBA: ea < _D_FLOOR ? 'discard' : _ramp(ri, BREAKING_WAVE_COLORS),
@@ -131,7 +135,7 @@ function runCoastalDiag(
   }
   console.groupEnd();
 
-  // AREA stats — iterate full 64×64 grid
+  // AREA stats — iterate full 64×64 grid (Phase R1 formula)
   let water = 0, band30 = 0, lit = 0, sumEa = 0, maxEa = 0;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -139,12 +143,13 @@ function runCoastalDiag(
       if (!isFinite(d) || d <= 0) continue;
       water++;
       if (d < 30) band30++;
+      if (d >= _D_DEEP) continue;
       const H0 = H0Grid[r]?.[c] ?? NaN, T = TGrid[r]?.[c] ?? NaN;
-      if (!isFinite(H0) || !isFinite(T) || H0 < _D_MIN_H0 || T < 1 || d >= _D_DEEP) continue;
+      if (!isFinite(H0) || !isFinite(T) || H0 < _D_MIN_H0 || T < 1) continue;
       const { breaking } = nearshoreTransform(H0, T, d);
       const eg = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
-      const da = 1 - Math.sqrt(Math.min(1, d / _D_DEEP));
-      const ea = Math.min(1, Math.max(0, eg * da + (breaking ? 0.2 * eg : 0)));
+      const nm = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
+      const ea = Math.min(1, Math.max(0, (_D_VIS_FLOOR + _D_ENERGY_GAIN * eg) * nm + (breaking ? 0.15 * eg : 0)));
       if (ea >= 0.08) lit++;
       sumEa += ea;
       if (ea > maxEa) maxEa = ea;
