@@ -1698,6 +1698,14 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
         />
       )}
 
+      {advancedLayer === 'COASTAL_DYNAMICS' && (
+        <ColorScaleLegend
+          scale={COLOR_SCALES.breakingWaves}
+          unit="m"
+          title={t('map.legend.breakingWaves') || 'Breaking Wave Height'}
+        />
+      )}
+
       {geoJSONLayers.bathymetry && (
         <ColorScaleLegend
           scale={COLOR_SCALES.bathymetry}

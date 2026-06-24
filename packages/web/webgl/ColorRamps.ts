@@ -231,19 +231,20 @@ export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
   [  0,  15,  70, 240],    // 6000 m — hadal: very dark navy
 ];
 
-// Breaking-wave height colour ramp — calm (transparent) → small chop (green) →
-// surfable swell (yellow/orange) → powerful/dangerous surf (red/magenta).
-// Input range: 0–4 m breaking height. Designed to be striking near shore while
-// transparent offshore (where deep water means near-zero nearshore transform effect).
+// Breaking-wave height colour ramp — calm (transparent) → bright cyan → vivid purple →
+// hot pink → crimson. High-contrast palette for global visibility.
+// Input range: 0–4 m breaking height (H_final / 4.0 → ramp index).
+// Control points: 0.0m transparent, 0.4m bright cyan, 1.2m vivid purple,
+//                 2.4m hot pink, 4.0m crimson.
 export const BREAKING_WAVE_COLORS: [number, number, number, number][] = [
-  [  0,   0,   0,   0],   //  0.0 m — calm / no transform, fully transparent
-  [ 30, 200, 160, 140],   //  0.3 m — very small chop: aquamarine (alpha raised for Med visibility)
-  [ 20, 220, 120, 175],   //  0.7 m — ankle to knee high: green (alpha raised)
-  [ 80, 220,  50, 175],   //  1.2 m — waist high: lime-green
-  [200, 220,  20, 205],   //  1.8 m — head high: yellow-green
-  [255, 165,   0, 220],   //  2.5 m — overhead: orange
-  [255,  80,  20, 235],   //  3.2 m — double overhead: red-orange
-  [200,  20, 100, 248],   //  4.0 m — dangerous / XXL: magenta
+  [  0, 210, 255,   0],   //  0.0 m — calm, fully transparent (#00d2ff)
+  [  0, 210, 255, 204],   //  0.4 m — bright cyan (#00d2ff, alpha 0.80)
+  [ 80,  53, 255, 225],   //  1.0 m — blue-purple transition
+  [112,   0, 255, 230],   //  1.2 m — vivid purple (#7000ff)
+  [184,   0, 208, 230],   //  1.8 m — purple→pink midpoint
+  [255,   0, 160, 230],   //  2.4 m — hot pink (#ff00a0)
+  [255,   0, 100, 230],   //  3.2 m — pink→crimson midpoint
+  [255,   0,  43, 230],   //  4.0 m — crimson (#ff002b)
 ];
 
 // Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds

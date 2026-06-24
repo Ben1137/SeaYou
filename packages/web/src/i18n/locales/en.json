@@ -427,7 +427,8 @@
       "diveSuitability": "Dive Suitability",
       "chopLevel": "Chop Level",
       "gustDelta": "Gust Delta",
-      "currentHeatmap": "Current Speed"
+      "currentHeatmap": "Current Speed",
+      "breakingWaves": "Breaking Wave Height"
     },
     "advancedLayers": "Advanced Layers",
     "windParticles": "Wind Particles",
