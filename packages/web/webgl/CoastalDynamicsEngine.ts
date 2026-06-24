@@ -37,13 +37,16 @@ export interface CoastalDynamicsConfig {
 
 export interface CoastalDynamicsEngine {
   init(canvas: HTMLCanvasElement): void;
-  /** Upload swell grid: each cell has [H0, T] — stored as R=H0, G=T, A=valid */
+  /** Upload swell grid: each cell has [H0, T, Dir°] — stored as R=H0, G=T, B=dir/360, A=valid */
   updateSwellData(
     H0Grid: number[][],
     TGrid: number[][],
     minLon: number, maxLon: number,
     minLat: number, maxLat: number,
+    DirGrid?: number[][],
   ): void;
+  /** Enable/disable the exposure raycast (R2 feature flag). Default false = R1 behaviour. */
+  setExposureEnabled(enabled: boolean): void;
   /** Upload bathymetry depth grid (m, positive down). Called from fetchDepthGrid(). */
   updateBathymetryData(
     depthGrid: number[][],
@@ -85,12 +88,14 @@ export function createCoastalDynamicsEngine(
   let depthTexture: WebGLTexture | null = null;
   let colorRampTexture: WebGLTexture | null = null;
   let dummyLandMask: WebGLTexture | null = null;
+  let exposureEnabled = false;
 
   let swellMeta: { minLon: number; maxLon: number; minLat: number; maxLat: number } | null = null;
   let depthMeta:  { minLon: number; maxLon: number; minLat: number; maxLat: number } | null = null;
 
   let pendingSwell: {
     H0Grid: number[][]; TGrid: number[][];
+    DirGrid?: number[][];
     minLon: number; maxLon: number; minLat: number; maxLat: number;
   } | null = null;
   let pendingDepth: {
@@ -101,14 +106,15 @@ export function createCoastalDynamicsEngine(
   let destroyed = false;
 
   /**
-   * Upload a 2-channel swell texture: R=H0, G=T, A=valid.
-   * Float32 RGBA if mode=float, Uint8 otherwise (normalized to 0–255).
+   * Upload a 3-channel swell texture: R=H0, G=T, B=dir/360 (0=N, 0.25=E…), A=valid.
+   * Float32 RGBA if mode=float, Uint8 otherwise. DirGrid is optional (defaults to 0).
    * Max H0 = 30 m, Max T = 30 s for Uint8 range.
    */
   function uploadSwellTexture(
     H0Grid: number[][],
     TGrid:  number[][],
     existing: WebGLTexture | null,
+    DirGrid?: number[][],
   ): WebGLTexture {
     if (!gl) throw new Error('GL not initialized');
     const height = H0Grid.length;
@@ -128,13 +134,14 @@ export function createCoastalDynamicsEngine(
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
-          const H0 = H0Grid[y][x];
-          const T  = TGrid[y][x];
+          const H0  = H0Grid[y][x];
+          const T   = TGrid[y][x];
+          const dir = DirGrid?.[y]?.[x] ?? 0;
           if (H0 != null && T != null && !isNaN(H0) && !isNaN(T) && H0 > 0 && T > 0) {
-            data[i]     = H0;   // R = H0
-            data[i + 1] = T;    // G = T
-            data[i + 2] = 0;
-            data[i + 3] = 1.0;  // A = valid
+            data[i]     = H0;          // R = H0 (m)
+            data[i + 1] = T;           // G = T (s)
+            data[i + 2] = dir / 360.0; // B = swell "from" direction / 360 → [0,1]
+            data[i + 3] = 1.0;         // A = valid
           }
           // else: A stays 0 → shader discards
         }
@@ -148,17 +155,18 @@ export function createCoastalDynamicsEngine(
       gl.texImage2D(gl.TEXTURE_2D, 0, internalFmt, width, height, 0, gl.RGBA, gl.FLOAT, data);
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     } else {
-      // Uint8 fallback: pack H0/30 and T/30 into R/G bytes
+      // Uint8 fallback: pack H0/30, T/30, dir/360 into R/G/B bytes
       const data = new Uint8Array(width * height * 4);
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
-          const H0 = H0Grid[y][x];
-          const T  = TGrid[y][x];
+          const H0  = H0Grid[y][x];
+          const T   = TGrid[y][x];
+          const dir = DirGrid?.[y]?.[x] ?? 0;
           if (H0 != null && T != null && !isNaN(H0) && !isNaN(T) && H0 > 0 && T > 0) {
             data[i]     = Math.round(Math.min(1, H0 / 30) * 255);
             data[i + 1] = Math.round(Math.min(1, T  / 30) * 255);
-            data[i + 2] = 0;
+            data[i + 2] = Math.round((dir / 360.0) * 255);
             data[i + 3] = 255;
           }
         }
@@ -298,10 +306,12 @@ export function createCoastalDynamicsEngine(
       }
     },
 
-    updateSwellData(H0Grid, TGrid, minLon, maxLon, minLat, maxLat) {
-      pendingSwell = { H0Grid, TGrid, minLon, maxLon, minLat, maxLat };
+    updateSwellData(H0Grid, TGrid, minLon, maxLon, minLat, maxLat, DirGrid?) {
+      pendingSwell = { H0Grid, TGrid, DirGrid, minLon, maxLon, minLat, maxLat };
       engine.render();
     },
+
+    setExposureEnabled(enabled: boolean) { exposureEnabled = enabled; },
 
     updateBathymetryData(depthGrid, minLon, maxLon, minLat, maxLat) {
       pendingDepth = { grid: depthGrid, minLon, maxLon, minLat, maxLat };
@@ -323,7 +333,7 @@ export function createCoastalDynamicsEngine(
       if (pendingSwell) {
         try {
           swellTexture = uploadSwellTexture(
-            pendingSwell.H0Grid, pendingSwell.TGrid, swellTexture,
+            pendingSwell.H0Grid, pendingSwell.TGrid, swellTexture, pendingSwell.DirGrid,
           );
           swellMeta = {
             minLon: pendingSwell.minLon, maxLon: pendingSwell.maxLon,
@@ -384,6 +394,7 @@ export function createCoastalDynamicsEngine(
       gl.uniform1f(gl.getUniformLocation(program, 'u_max_breaking_height'), maxBreakingHeight);
       gl.uniform1f(gl.getUniformLocation(program, 'u_tide_offset'), tideOffset);
       gl.uniform1f(gl.getUniformLocation(program, 'u_use_land_mask'), 0.0); // depth handles it
+      gl.uniform1f(gl.getUniformLocation(program, 'u_exposure_enable'), exposureEnabled ? 1.0 : 0.0);
 
       // Single-viewport architecture: both swell and depth cover the same rect.
       // The shader samples both at v_texcoord directly — no bounds uniforms needed.

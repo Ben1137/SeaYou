@@ -42,19 +42,56 @@ import { nearshoreTransform } from '@seame/core';
 const COASTAL_DIAG =
   typeof window !== 'undefined' && window.location.search.includes('coastalDiag=1');
 
+// R2 exposure feature flag — enable with ?coastalExposure=1
+const COASTAL_EXPOSURE =
+  typeof window !== 'undefined' && window.location.search.includes('coastalExposure=1');
+
 // Shader constants — must stay in sync with coastal-dynamics.frag.glsl
-const _D_H0_QUIET       = 0.55;   // Phase R1 corrected knee
+const _D_H0_QUIET       = 0.55;
 const _D_H0_FULL        = 1.50;
 const _D_DEEP           = 200.0;
 const _D_MAX_H          = 4.0;
 const _D_MIN_H0         = 0.05;
 const _D_FLOOR          = 0.01;
-const _D_NEARSHORE_FULL = 30.0;   // Phase R1 corrected
+const _D_NEARSHORE_FULL = 30.0;
 const _D_NEARSHORE_FADE = 200.0;
+const _D_PRESENCE_CAP   = 0.25;
+const _D_EXP_STEPS      = 14;
+const _D_EXP_STEP_MAG   = 0.04;   // UV units per step (~half-viewport over 14 steps)
+const _D_EXP_DEEP_OK    = 200.0;
+const _D_EXP_LAND_D     = 0.5;
 
 function _ss(e0: number, e1: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
+}
+
+// CPU mirror of computeExposure() in the shader. Must stay byte-identical.
+function _computeExposure(
+  row: number, col: number,          // origin cell
+  dirDeg: number,                    // swell "from" direction
+  depthGrid: number[][],             // depthGrid[row][col] (row 0 = maxLat)
+  rows: number, cols: number,
+): number {
+  const PI = Math.PI;
+  const rad = dirDeg * PI / 180;
+  const du =  Math.sin(rad);         // +east in UV
+  const dv = -Math.cos(rad);         // -north in UV (row 0 = north)
+  // Convert cell indices to UV [0,1]
+  const u0 = col / (cols - 1);
+  const v0 = row / (rows - 1);
+  let blockedAt = _D_EXP_STEPS;
+  for (let i = 1; i <= _D_EXP_STEPS; i++) {
+    const su = Math.max(0, Math.min(1, u0 + i * du * _D_EXP_STEP_MAG));
+    const sv = Math.max(0, Math.min(1, v0 + i * dv * _D_EXP_STEP_MAG));
+    const sc = Math.round(su * (cols - 1));
+    const sr = Math.round(sv * (rows - 1));
+    const d = depthGrid[sr]?.[sc] ?? NaN;
+    if (!isFinite(d)) { blockedAt = i; break; }            // no data → land (conservative)
+    if (d <= _D_EXP_LAND_D) { blockedAt = i; break; }     // land / very shallow
+    if (d >= _D_EXP_DEEP_OK) return 1.0;                  // open ocean
+  }
+  return Math.min(1, Math.max(0, blockedAt / _D_EXP_STEPS));
 }
 
 function _ramp(norm: number, c: [number, number, number, number][]): string {
@@ -65,16 +102,20 @@ function _ramp(norm: number, c: [number, number, number, number][]): string {
 }
 
 interface _DiagRow {
-  H0: number; T: number; d: number; Ks: number; H_final: number;
-  isBreaking: boolean; energyGate: number; nearshoreMask: number;
-  breakingBonus: number; effectAlpha: number; rampIndex: number;
+  H0: number; T: number; dir: number; d: number; Ks: number; H_final: number;
+  isBreaking: boolean; energyGate: number; nearshoreMask: number; exposure: number;
+  presence: number; breakingBonus: number; effectAlpha: number; rampIndex: number;
   rampRGBA: string; gate: string;
 }
 
-function _diagPixel(H0: number, T: number, d: number): _DiagRow {
+function _diagPixel(
+  H0: number, T: number, dir: number, d: number,
+  row: number, col: number, depthGrid: number[][], rows: number, cols: number,
+): _DiagRow {
   const nan: _DiagRow = {
-    H0, T, d, Ks: NaN, H_final: NaN, isBreaking: false,
-    energyGate: NaN, nearshoreMask: NaN, breakingBonus: NaN, effectAlpha: NaN,
+    H0, T, dir, d, Ks: NaN, H_final: NaN, isBreaking: false,
+    energyGate: NaN, nearshoreMask: NaN, exposure: NaN, presence: NaN,
+    breakingBonus: NaN, effectAlpha: NaN,
     rampIndex: NaN, rampRGBA: 'discard', gate: '',
   };
   if (!isFinite(H0) || !isFinite(T) || H0 < _D_MIN_H0 || T < 1) return { ...nan, gate: 'MIN_H0/T' };
@@ -85,11 +126,17 @@ function _diagPixel(H0: number, T: number, d: number): _DiagRow {
   const eg  = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
   const nm  = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
   const bb  = breaking ? 0.2 * eg : 0;
-  const ea  = Math.min(1, Math.max(0, eg * nm + bb));
+
+  const exp_val = COASTAL_EXPOSURE
+    ? _computeExposure(row, col, dir, depthGrid, rows, cols)
+    : 1.0;
+  const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.30, 0.60, H0) * _D_PRESENCE_CAP : 0;
+  const ea  = Math.min(1, Math.max(0, Math.max(eg * nm, ps) + bb));
   const ri  = Math.min(1, H_final / _D_MAX_H);
   return {
-    H0, T, d: +d.toFixed(1), Ks: +Ks.toFixed(3), H_final: +H_final.toFixed(2),
+    H0, T, dir: +dir.toFixed(0), d: +d.toFixed(1), Ks: +Ks.toFixed(3), H_final: +H_final.toFixed(2),
     isBreaking: breaking, energyGate: +eg.toFixed(3), nearshoreMask: +nm.toFixed(3),
+    exposure: +exp_val.toFixed(3), presence: +ps.toFixed(3),
     breakingBonus: +bb.toFixed(3), effectAlpha: +ea.toFixed(3),
     rampIndex: +ri.toFixed(3),
     rampRGBA: ea < _D_FLOOR ? 'discard' : _ramp(ri, BREAKING_WAVE_COLORS),
@@ -102,13 +149,14 @@ function runCoastalDiag(
   H0Grid: number[][] | null,
   TGrid:  number[][] | null,
   depthGrid: number[][],
+  DirGrid?: number[][] | null,
 ): void {
   if (!H0Grid || !TGrid) { console.warn('[CoastalDiag] No swell data yet'); return; }
   const rows = depthGrid.length, cols = depthGrid[0]?.length ?? 0;
   if (!rows || !cols) return;
 
   // One representative cell per depth band (walk every 4th cell)
-  type Pick = { row: number; col: number; d: number; H0: number; T: number };
+  type Pick = { row: number; col: number; d: number; H0: number; T: number; dir: number };
   const bands = [
     { name: 'shallow  (d  0–10 m)',  lo: 0,  hi: 10,  pick: null as Pick | null },
     { name: 'mid-shelf(d 10–50 m)',  lo: 10, hi: 50,  pick: null as Pick | null },
@@ -116,24 +164,29 @@ function runCoastalDiag(
   ];
   outer: for (let r = 0; r < rows; r += 4) {
     for (let c = 0; c < cols; c += 4) {
-      const d = depthGrid[r]?.[c] ?? NaN, H0 = H0Grid[r]?.[c] ?? NaN, T = TGrid[r]?.[c] ?? NaN;
+      const d   = depthGrid[r]?.[c] ?? NaN;
+      const H0  = H0Grid[r]?.[c]   ?? NaN;
+      const T   = TGrid[r]?.[c]    ?? NaN;
+      const dir = DirGrid?.[r]?.[c] ?? 0;
       if (!isFinite(d) || d <= 0 || !isFinite(H0) || !isFinite(T)) continue;
       for (const b of bands) {
-        if (!b.pick && d >= b.lo && d < b.hi) b.pick = { row: r, col: c, d, H0, T };
+        if (!b.pick && d >= b.lo && d < b.hi) b.pick = { row: r, col: c, d, H0, T, dir };
       }
       if (bands.every(b => b.pick)) break outer;
     }
   }
 
   const vbLbl = `${vb.minLat.toFixed(2)}..${vb.maxLat.toFixed(2)}N / ${vb.minLon.toFixed(2)}..${vb.maxLon.toFixed(2)}E`;
-  console.group(`%c[CoastalDiag] Per-pixel — ${vbLbl}`, 'color:#0af;font-weight:bold');
+  const expFlag = COASTAL_EXPOSURE ? ' [R2 exposure ON]' : ' [R1 only]';
+  console.group(`%c[CoastalDiag] Per-pixel — ${vbLbl}${expFlag}`, 'color:#0af;font-weight:bold');
   for (const b of bands) {
     if (!b.pick) { console.log(`  ${b.name}: no cells in this viewport`); continue; }
-    console.log(`  ${b.name}:`, _diagPixel(b.pick.H0, b.pick.T, b.pick.d));
+    const p = b.pick;
+    console.log(`  ${b.name}:`, _diagPixel(p.H0, p.T, p.dir, p.d, p.row, p.col, depthGrid, rows, cols));
   }
   console.groupEnd();
 
-  // AREA stats — iterate full 64×64 grid (Phase R1 formula)
+  // AREA stats — iterate full 64×64 grid (R1 + optional R2 formula)
   let water = 0, band30 = 0, lit = 0, sumEa = 0, maxEa = 0;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -142,12 +195,17 @@ function runCoastalDiag(
       water++;
       if (d < 30) band30++;
       if (d >= _D_DEEP) continue;
-      const H0 = H0Grid[r]?.[c] ?? NaN, T = TGrid[r]?.[c] ?? NaN;
+      const H0  = H0Grid[r]?.[c]   ?? NaN;
+      const T   = TGrid[r]?.[c]    ?? NaN;
+      const dir = DirGrid?.[r]?.[c] ?? 0;
       if (!isFinite(H0) || !isFinite(T) || H0 < _D_MIN_H0 || T < 1) continue;
       const { breaking } = nearshoreTransform(H0, T, d);
       const eg = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
       const nm = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
-      const ea = Math.min(1, Math.max(0, eg * nm + (breaking ? 0.2 * eg : 0)));
+      const bb = breaking ? 0.2 * eg : 0;
+      const exp_val = COASTAL_EXPOSURE ? _computeExposure(r, c, dir, depthGrid, rows, cols) : 1.0;
+      const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.30, 0.60, H0) * _D_PRESENCE_CAP : 0;
+      const ea  = Math.min(1, Math.max(0, Math.max(eg * nm, ps) + bb));
       if (ea >= 0.08) lit++;
       sumEa += ea;
       if (ea > maxEa) maxEa = ea;
@@ -257,6 +315,7 @@ export function CoastalDynamicsLayerML({
       logPrefix: '[CoastalDynamics]',
     });
     engine.init(handle.canvas);
+    engine.setExposureEnabled(COASTAL_EXPOSURE);
     engineRef.current = engine;
     setCanvasElement(handle.canvas);
 
@@ -321,8 +380,9 @@ export function CoastalDynamicsLayerML({
     fetchAbortRef.current = token;
 
     // Diag: capture resampled grids so runCoastalDiag can access them after depth arrives
-    let _diagH0Grid: number[][] | null = null;
-    let _diagTGrid:  number[][] | null = null;
+    let _diagH0Grid:  number[][] | null = null;
+    let _diagTGrid:   number[][] | null = null;
+    let _diagDirGrid: number[][] | null = null;
 
     // ── Swell: resample coarse grid onto viewport 64×64 ─────────────────────
     const gridData = swellDataRef.current;
@@ -330,10 +390,12 @@ export function CoastalDynamicsLayerML({
       const lats = [...new Set(gridData.points.map(p => p.lat))].sort((a, b) => a - b);
       const lons = [...new Set(gridData.points.map(p => p.lng))].sort((a, b) => a - b);
 
-      const H0CoarseGrid: number[][] = [];
-      const TCoarseGrid:  number[][] = [];
-      const H0Map = new Map<string, number>();
-      const TMap  = new Map<string, number>();
+      const H0CoarseGrid:  number[][] = [];
+      const TCoarseGrid:   number[][] = [];
+      const DirCoarseGrid: number[][] = [];
+      const H0Map  = new Map<string, number>();
+      const TMap   = new Map<string, number>();
+      const DirMap = new Map<string, number>();
       gridData.points.forEach(pt => {
         const key = `${pt.lat.toFixed(4)},${pt.lng.toFixed(4)}`;
         // Swell-primary H0 policy: use swell_wave_height where meaningful (open-ocean
@@ -342,45 +404,57 @@ export function CoastalDynamicsLayerML({
         const SWELL_FLOOR = 0.1;
         const swH = pt.swellHeight ?? 0;
         const swP = pt.swellPeriod ?? 0;
+        const swD = pt.swellDirection ?? pt.waveDirection ?? 0;
+        const wD  = pt.waveDirection ?? 0;
         const h0 = pt.isOcean ? ((swH > SWELL_FLOOR ? swH : (pt.waveHeight ?? 0)) || NaN) : NaN;
         const t  = pt.isOcean ? ((swH > SWELL_FLOOR ? (swP > 0 ? swP : (pt.wavePeriod ?? 0)) : (pt.wavePeriod ?? 0)) || NaN) : NaN;
+        const d  = pt.isOcean ? (swH > SWELL_FLOOR ? swD : wD) : 0;
         H0Map.set(key, h0);
         TMap.set(key,  t);
+        DirMap.set(key, d);
       });
       for (let li = 0; li < lats.length; li++) {
-        const H0Row: number[] = [];
-        const TRow:  number[] = [];
+        const H0Row:  number[] = [];
+        const TRow:   number[] = [];
+        const DirRow: number[] = [];
         for (let lo = 0; lo < lons.length; lo++) {
           const key = `${lats[li].toFixed(4)},${lons[lo].toFixed(4)}`;
-          H0Row.push(H0Map.get(key) ?? NaN);
-          TRow.push(TMap.get(key)   ?? NaN);
+          H0Row.push(H0Map.get(key)   ?? NaN);
+          TRow.push(TMap.get(key)     ?? NaN);
+          DirRow.push(DirMap.get(key) ?? 0);
         }
         H0CoarseGrid.push(H0Row);
         TCoarseGrid.push(TRow);
+        DirCoarseGrid.push(DirRow);
       }
 
       // Resample onto viewport 64×64 with row 0 = maxLat (north), matching depth
-      const H0Grid: number[][] = [];
-      const TGrid:  number[][] = [];
+      const H0Grid:  number[][] = [];
+      const TGrid:   number[][] = [];
+      const DirGrid: number[][] = [];
       for (let row = 0; row < GRID_ROWS; row++) {
         // row 0 = maxLat (north), row GRID_ROWS-1 = minLat (south)
         const lat = vb.maxLat - (row / (GRID_ROWS - 1)) * (vb.maxLat - vb.minLat);
-        const H0Row: number[] = [];
-        const TRow:  number[] = [];
+        const H0Row:  number[] = [];
+        const TRow:   number[] = [];
+        const DirRow: number[] = [];
         for (let col = 0; col < GRID_COLS; col++) {
           const lon = vb.minLon + (col / (GRID_COLS - 1)) * (vb.maxLon - vb.minLon);
-          H0Row.push(bilinearInterp(H0CoarseGrid, lats, lons, lat, lon));
-          TRow.push(bilinearInterp(TCoarseGrid,  lats, lons, lat, lon));
+          H0Row.push(bilinearInterp(H0CoarseGrid,  lats, lons, lat, lon));
+          TRow.push(bilinearInterp(TCoarseGrid,    lats, lons, lat, lon));
+          DirRow.push(bilinearInterp(DirCoarseGrid, lats, lons, lat, lon));
         }
         H0Grid.push(H0Row);
         TGrid.push(TRow);
+        DirGrid.push(DirRow);
       }
 
       const tideM = gridData.points.find(p => p.isOcean)?.seaLevelHeight ?? 0;
       engine.setTideOffset(tideM);
-      engine.updateSwellData(H0Grid, TGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
-      _diagH0Grid = H0Grid;
-      _diagTGrid  = TGrid;
+      engine.updateSwellData(H0Grid, TGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat, DirGrid);
+      _diagH0Grid  = H0Grid;
+      _diagTGrid   = TGrid;
+      _diagDirGrid = DirGrid;
     }
 
     // ── Depth: fetch at viewport ─────────────────────────────────────────────
@@ -390,7 +464,7 @@ export function CoastalDynamicsLayerML({
 
       engine.updateBathymetryData(depthGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
 
-      if (COASTAL_DIAG) runCoastalDiag(vb, _diagH0Grid, _diagTGrid, depthGrid);
+      if (COASTAL_DIAG) runCoastalDiag(vb, _diagH0Grid, _diagTGrid, depthGrid, _diagDirGrid);
 
       // Drape the CanvasSource at the viewport bounds
       updateCoordinates(boundsToCorners(vb.minLon, vb.maxLon, vb.minLat, vb.maxLat));
