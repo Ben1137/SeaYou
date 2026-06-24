@@ -43,16 +43,14 @@ const COASTAL_DIAG =
   typeof window !== 'undefined' && window.location.search.includes('coastalDiag=1');
 
 // Shader constants — must stay in sync with coastal-dynamics.frag.glsl
-const _D_H0_QUIET       = 0.30;
+const _D_H0_QUIET       = 0.55;   // Phase R1 corrected knee
 const _D_H0_FULL        = 1.50;
 const _D_DEEP           = 200.0;
 const _D_MAX_H          = 4.0;
 const _D_MIN_H0         = 0.05;
 const _D_FLOOR          = 0.01;
-const _D_VIS_FLOOR      = 0.22;   // Phase R1
-const _D_ENERGY_GAIN    = 0.78;
-const _D_NEARSHORE_FULL = 20.0;
-const _D_NEARSHORE_FADE = 120.0;
+const _D_NEARSHORE_FULL = 30.0;   // Phase R1 corrected
+const _D_NEARSHORE_FADE = 200.0;
 
 function _ss(e0: number, e1: number, x: number): number {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -86,8 +84,8 @@ function _diagPixel(H0: number, T: number, d: number): _DiagRow {
   const { H: H_final, Ks, breaking } = nearshoreTransform(H0, T, d);
   const eg  = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
   const nm  = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
-  const bb  = breaking ? 0.15 * eg : 0;
-  const ea  = Math.min(1, Math.max(0, (_D_VIS_FLOOR + _D_ENERGY_GAIN * eg) * nm + bb));
+  const bb  = breaking ? 0.2 * eg : 0;
+  const ea  = Math.min(1, Math.max(0, eg * nm + bb));
   const ri  = Math.min(1, H_final / _D_MAX_H);
   return {
     H0, T, d: +d.toFixed(1), Ks: +Ks.toFixed(3), H_final: +H_final.toFixed(2),
@@ -149,7 +147,7 @@ function runCoastalDiag(
       const { breaking } = nearshoreTransform(H0, T, d);
       const eg = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
       const nm = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
-      const ea = Math.min(1, Math.max(0, (_D_VIS_FLOOR + _D_ENERGY_GAIN * eg) * nm + (breaking ? 0.15 * eg : 0)));
+      const ea = Math.min(1, Math.max(0, eg * nm + (breaking ? 0.2 * eg : 0)));
       if (ea >= 0.08) lit++;
       sumEa += ea;
       if (ea > maxEa) maxEa = ea;

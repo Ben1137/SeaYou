@@ -200,28 +200,21 @@ void main() {
   bool  isBreaking  = H_shoaled > breakingCap;
   float H_final     = isBreaking ? breakingCap : H_shoaled;
 
-  // ── Phase R1 opacity model — coverage floor + energy salience + coast-hug mask ──
+  // ── Phase R1 opacity model (corrected) — pure energy gate + coast-hug mask ──
   //
-  // Goal: worldwide coverage (every nearshore cell stays visible) + faithful rendering
-  // (stronger swell is MORE OPAQUE, not just differently coloured). Strength is encoded
-  // by HUE (cyan→crimson via H_final); opacity encodes salience so strong coasts pop.
+  // Strength is encoded by HUE (H_final → cyan→crimson ramp); opacity encodes salience
+  // (strong swell more opaque, calm water dark). NO base-visibility floor — calm coasts
+  // become dark, not invisible-then-cyan. Worldwide signal comes from real wave energy.
   //
-  // Key change from the old energyGate*depthAlpha formula:
-  //   Old: low-energy cells get alpha≈0, so calm coasts go invisible ("worldwide = broken").
-  //   New: VIS_FLOOR guarantees every cell ≥ 0.22 opacity; ENERGY_GAIN adds salience on top;
-  //        nearshoreMask limits the lit band to d ≤ 120 m (no broad offshore wash).
-  //
-  const float H0_QUIET       = 0.30;   // energyGate knee (unchanged)
-  const float H0_FULL        = 1.50;
-  const float VIS_FLOOR      = 0.22;   // worldwide coverage: no coast goes invisible
-  const float ENERGY_GAIN    = 0.78;   // salience: strong swell pushes toward 1.0
-  const float NEARSHORE_FULL = 20.0;   // full opacity at d ≤ 20 m (breaking zone)
-  const float NEARSHORE_FADE = 120.0;  // fades to 0 by 120 m (trims broad offshore basins)
+  const float H0_QUIET       = 0.55;   // energyGate knee: H0 < 0.55 m → alpha ≈ 0
+  const float H0_FULL        = 1.50;   // H0 > 1.5 m → full energy weight
+  const float NEARSHORE_FULL = 30.0;   // full mask at d ≤ 30 m (breaking zone)
+  const float NEARSHORE_FADE = 200.0;  // fades to 0 by 200 m (trims broad offshore basins)
 
   float energyGate    = smoothstep(H0_QUIET, H0_FULL, H0);
   float nearshoreMask = 1.0 - smoothstep(NEARSHORE_FULL, NEARSHORE_FADE, d_eff);
-  float breakingBonus = isBreaking ? 0.15 * energyGate : 0.0;
-  float effectAlpha   = clamp((VIS_FLOOR + ENERGY_GAIN * energyGate) * nearshoreMask + breakingBonus, 0.0, 1.0);
+  float breakingBonus = isBreaking ? 0.2 * energyGate : 0.0;
+  float effectAlpha   = clamp(energyGate * nearshoreMask + breakingBonus, 0.0, 1.0);
 
   if (effectAlpha < 0.01) {
     discard;
