@@ -224,10 +224,25 @@ function runCoastalDiag(
     const p = b.pick;
     const mirror = _diagPixel(p.H0, p.T, p.dir, p.d, p.row, p.col, depthGrid, rows, cols);
     const gpuAlpha = gl ? _gpuAlpha(gl, p.row, p.col, rows, cols) : null;
-    // gpuAlpha = ramp.color.a * effectAlpha * u_opacity (premultipliedAlpha:false)
-    // Compare mirror.effectAlpha to gpuAlpha: delta = gpuAlpha - mirror.effectAlpha
-    // (they differ by ramp color.a; large gaps indicate mirror/shader divergence)
-    console.log(`  ${b.name}:`, { ...mirror, gpuAlpha, gpuVsMirrorDelta: gpuAlpha != null ? +(gpuAlpha - mirror.effectAlpha).toFixed(3) : null });
+    // gpuAlpha = ramp.color.a * effectAlpha * u_opacity (linear after blend fix).
+    // gpuExposureInferred: when presence dominates (R2 on, low energyGate), we can
+    // back out the GPU's exposure from gpuAlpha ÷ (nm * presenceShape * CAP * rampA).
+    // rampA ≈ gpuAlpha / mirror.effectAlpha when available (self-calibrating).
+    let gpuExposureInferred: number | null = null;
+    if (COASTAL_EXPOSURE && gpuAlpha != null && mirror.nearshoreMask > 0.1) {
+      const presenceShape = _ss(0.30, 0.60, p.H0);
+      const denominator   = mirror.nearshoreMask * presenceShape * _D_PRESENCE_CAP;
+      // rampAlpha ≈ 0.85–0.95 for most cells; use measured ratio if mirror.effectAlpha > 0
+      const rampAlphaEst  = mirror.effectAlpha > 0.02 ? gpuAlpha / mirror.effectAlpha : 0.90;
+      if (denominator > 0.01 && rampAlphaEst > 0.1) {
+        gpuExposureInferred = +Math.min(1, Math.max(0, gpuAlpha / (denominator * rampAlphaEst))).toFixed(3);
+      }
+    }
+    const R2check = COASTAL_EXPOSURE
+      ? (gpuAlpha != null ? (gpuAlpha < 0.08 ? 'SHELTERED✓' : gpuAlpha < 0.20 ? 'faint' : 'EXPOSED') : '—')
+      : null;
+    console.log(`  ${b.name}:`, { ...mirror, gpuAlpha, gpuExposureInferred, R2check,
+      gpuVsMirrorDelta: gpuAlpha != null ? +(gpuAlpha - mirror.effectAlpha).toFixed(3) : null });
   }
   console.groupEnd();
 
