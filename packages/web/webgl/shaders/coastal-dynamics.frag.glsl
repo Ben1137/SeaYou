@@ -281,13 +281,15 @@ void main() {
   float nearshoreMask = 1.0 - smoothstep(NEARSHORE_FULL, NEARSHORE_FADE, d_eff);
   float breakingBonus = isBreaking ? 0.2 * energyGate : 0.0;
 
-  // R2: exposure raycast (behind u_exposure_enable flag)
+  // R2: exposure raycast + presence floor (behind u_exposure_enable flag).
+  // When flag is OFF: presence=0, effectAlpha=pure R1 (byte-identical).
   float exposure = 1.0;
+  float presence = 0.0;
   if (u_exposure_enable > 0.5) {
     exposure = computeExposure(uv, dir_from_deg);
+    float presenceShape = smoothstep(0.30, 0.60, H0);
+    presence = exposure * nearshoreMask * presenceShape * PRESENCE_CAP;
   }
-  float presenceShape = smoothstep(0.30, 0.60, H0);
-  float presence      = exposure * nearshoreMask * presenceShape * PRESENCE_CAP;
 
   // R1+R2: max(energyGate path, presence path) + breakingBonus
   float effectAlpha   = clamp(max(energyGate * nearshoreMask, presence) + breakingBonus, 0.0, 1.0);

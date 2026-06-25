@@ -144,16 +144,40 @@ function _diagPixel(
   };
 }
 
+// GPU readback: sample the engine canvas framebuffer at a grid cell position.
+// Returns alpha in [0,1] — this is color.a * effectAlpha * u_opacity (premultipliedAlpha:false).
+// The engine canvas is 1024×1024; row 0 of the 64×64 grid = canvas top = maxLat.
+// GL readPixels y=0 is at canvas BOTTOM, so we flip: gl_y = canvasH-1 - canvas_y.
+function _gpuAlpha(
+  gl: WebGLRenderingContext | WebGL2RenderingContext,
+  row: number, col: number, rows: number, cols: number,
+): number {
+  const cW = (gl.canvas as HTMLCanvasElement).width;
+  const cH = (gl.canvas as HTMLCanvasElement).height;
+  const cx = Math.round((col / (cols - 1)) * (cW - 1));
+  const cy = Math.round((row / (rows - 1)) * (cH - 1));
+  const gl_y = cH - 1 - cy;
+  const buf = new Uint8Array(4);
+  gl.readPixels(cx, gl_y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+  return +(buf[3] / 255).toFixed(3);
+}
+
 function runCoastalDiag(
   vb: { minLon: number; maxLon: number; minLat: number; maxLat: number },
   H0Grid: number[][] | null,
   TGrid:  number[][] | null,
   depthGrid: number[][],
   DirGrid?: number[][] | null,
+  canvas?: HTMLCanvasElement | null,
 ): void {
   if (!H0Grid || !TGrid) { console.warn('[CoastalDiag] No swell data yet'); return; }
   const rows = depthGrid.length, cols = depthGrid[0]?.length ?? 0;
   if (!rows || !cols) return;
+
+  // Grab GL context for readback (same context the engine already owns)
+  const gl = canvas
+    ? (canvas.getContext('webgl2') ?? canvas.getContext('webgl')) as WebGLRenderingContext | null
+    : null;
 
   // One representative cell per depth band (walk every 4th cell)
   type Pick = { row: number; col: number; d: number; H0: number; T: number; dir: number };
@@ -176,13 +200,34 @@ function runCoastalDiag(
     }
   }
 
+  // GPU sanity: find one deep cell (should read 0) and one strong cell if possible
+  if (gl) {
+    let deepPx = null as Pick | null, strongPx = null as Pick | null;
+    for (let r = 0; r < rows && (!deepPx || !strongPx); r += 8) {
+      for (let c = 0; c < cols && (!deepPx || !strongPx); c += 8) {
+        const d = depthGrid[r]?.[c] ?? NaN;
+        const H0 = H0Grid[r]?.[c] ?? NaN;
+        if (!isFinite(d) || !isFinite(H0)) continue;
+        if (!deepPx  && d >= 200)         deepPx  = { row: r, col: c, d, H0, T: 0, dir: 0 };
+        if (!strongPx && H0 >= 1.2 && d < 30) strongPx = { row: r, col: c, d, H0, T: 0, dir: 0 };
+      }
+    }
+    if (deepPx)   console.log('[CoastalDiag][GPU sentinel] deep (d≥200, expect≈0):',   _gpuAlpha(gl, deepPx.row,   deepPx.col,   rows, cols), 'H0='+deepPx.H0.toFixed(2));
+    if (strongPx) console.log('[CoastalDiag][GPU sentinel] strong (H0≥1.2, expect>0):', _gpuAlpha(gl, strongPx.row, strongPx.col, rows, cols), 'H0='+strongPx.H0.toFixed(2));
+  }
+
   const vbLbl = `${vb.minLat.toFixed(2)}..${vb.maxLat.toFixed(2)}N / ${vb.minLon.toFixed(2)}..${vb.maxLon.toFixed(2)}E`;
   const expFlag = COASTAL_EXPOSURE ? ' [R2 exposure ON]' : ' [R1 only]';
   console.group(`%c[CoastalDiag] Per-pixel — ${vbLbl}${expFlag}`, 'color:#0af;font-weight:bold');
   for (const b of bands) {
     if (!b.pick) { console.log(`  ${b.name}: no cells in this viewport`); continue; }
     const p = b.pick;
-    console.log(`  ${b.name}:`, _diagPixel(p.H0, p.T, p.dir, p.d, p.row, p.col, depthGrid, rows, cols));
+    const mirror = _diagPixel(p.H0, p.T, p.dir, p.d, p.row, p.col, depthGrid, rows, cols);
+    const gpuAlpha = gl ? _gpuAlpha(gl, p.row, p.col, rows, cols) : null;
+    // gpuAlpha = ramp.color.a * effectAlpha * u_opacity (premultipliedAlpha:false)
+    // Compare mirror.effectAlpha to gpuAlpha: delta = gpuAlpha - mirror.effectAlpha
+    // (they differ by ramp color.a; large gaps indicate mirror/shader divergence)
+    console.log(`  ${b.name}:`, { ...mirror, gpuAlpha, gpuVsMirrorDelta: gpuAlpha != null ? +(gpuAlpha - mirror.effectAlpha).toFixed(3) : null });
   }
   console.groupEnd();
 
@@ -464,7 +509,7 @@ export function CoastalDynamicsLayerML({
 
       engine.updateBathymetryData(depthGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
 
-      if (COASTAL_DIAG) runCoastalDiag(vb, _diagH0Grid, _diagTGrid, depthGrid, _diagDirGrid);
+      if (COASTAL_DIAG) runCoastalDiag(vb, _diagH0Grid, _diagTGrid, depthGrid, _diagDirGrid, canvasHandleRef.current?.canvas);
 
       // Drape the CanvasSource at the viewport bounds
       updateCoordinates(boundsToCorners(vb.minLon, vb.maxLon, vb.minLat, vb.maxLat));
