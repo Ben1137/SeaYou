@@ -275,7 +275,7 @@ void main() {
   const float H0_FULL        = 1.50;
   const float NEARSHORE_FULL = 30.0;
   const float NEARSHORE_FADE = 200.0;
-  const float PRESENCE_CAP   = 0.25;   // R2: max presence floor opacity
+  const float PRESENCE_CAP   = 0.40;   // R2: presence floor — raised 0.25→0.40 for Tel Aviv visibility
 
   float energyGate    = smoothstep(H0_QUIET, H0_FULL, H0);
   float nearshoreMask = 1.0 - smoothstep(NEARSHORE_FULL, NEARSHORE_FADE, d_eff);
