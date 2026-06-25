@@ -400,9 +400,17 @@ export function createCoastalDynamicsEngine(
       // The shader samples both at v_texcoord directly — no bounds uniforms needed.
 
 
-      // Draw fullscreen quad (straight alpha, premultipliedAlpha: false canvas)
+      // Draw fullscreen quad (straight alpha, premultipliedAlpha: false canvas).
+      // blendFuncSeparate: RGB uses standard Porter-Duff over; alpha channel uses
+      // gl.ONE / ONE_MINUS_SRC_ALPHA to ACCUMULATE (not square) the alpha.
+      // With plain blendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA), drawing alpha=a onto a
+      // transparent canvas writes canvas_alpha = a·a = a², crushing small values
+      // (effectAlpha=0.085 → gpuAlpha=0.004). Separate blend fixes this: alpha = a.
       gl.enable(gl.BLEND);
-      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.blendFuncSeparate(
+        gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA,  // RGB: unchanged
+        gl.ONE,       gl.ONE_MINUS_SRC_ALPHA,  // Alpha: accumulate (no squaring)
+      );
       gl.disable(gl.DEPTH_TEST);
 
       gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
