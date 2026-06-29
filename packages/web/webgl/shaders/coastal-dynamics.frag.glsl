@@ -287,7 +287,7 @@ void main() {
   float presence = 0.0;
   if (u_exposure_enable > 0.5) {
     exposure = computeExposure(uv, dir_from_deg);
-    float presenceShape = smoothstep(0.25, 0.45, H0);  // full floor at ≥0.45m; dark below 0.25m
+    float presenceShape = smoothstep(0.20, 0.30, H0);  // near-binary: full floor at ≥0.30m; dark below 0.20m
     presence = exposure * nearshoreMask * presenceShape * PRESENCE_CAP;
   }
 
