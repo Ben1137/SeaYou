@@ -55,7 +55,7 @@ const _D_MIN_H0         = 0.05;
 const _D_FLOOR          = 0.01;
 const _D_NEARSHORE_FULL = 30.0;
 const _D_NEARSHORE_FADE = 200.0;
-const _D_PRESENCE_CAP   = 0.40;   // must match PRESENCE_CAP in coastal-dynamics.frag.glsl
+const _D_PRESENCE_CAP   = 0.50;   // must match PRESENCE_CAP in coastal-dynamics.frag.glsl
 const _D_EXP_STEPS      = 14;
 const _D_EXP_STEP_MAG   = 0.04;   // UV units per step (~half-viewport over 14 steps)
 const _D_EXP_DEEP_OK    = 200.0;
@@ -130,7 +130,7 @@ function _diagPixel(
   const exp_val = COASTAL_EXPOSURE
     ? _computeExposure(row, col, dir, depthGrid, rows, cols)
     : 1.0;
-  const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.30, 0.60, H0) * _D_PRESENCE_CAP : 0;
+  const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.25, 0.45, H0) * _D_PRESENCE_CAP : 0;
   const ea  = Math.min(1, Math.max(0, Math.max(eg * nm, ps) + bb));
   const ri  = Math.min(1, H_final / _D_MAX_H);
   return {
@@ -230,7 +230,7 @@ function runCoastalDiag(
     // rampA ≈ gpuAlpha / mirror.effectAlpha when available (self-calibrating).
     let gpuExposureInferred: number | null = null;
     if (COASTAL_EXPOSURE && gpuAlpha != null && mirror.nearshoreMask > 0.1) {
-      const presenceShape = _ss(0.30, 0.60, p.H0);
+      const presenceShape = _ss(0.25, 0.45, p.H0);
       const denominator   = mirror.nearshoreMask * presenceShape * _D_PRESENCE_CAP;
       // rampAlpha ≈ 0.85–0.95 for most cells; use measured ratio if mirror.effectAlpha > 0
       const rampAlphaEst  = mirror.effectAlpha > 0.02 ? gpuAlpha / mirror.effectAlpha : 0.90;
@@ -264,7 +264,7 @@ function runCoastalDiag(
       const nm = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
       const bb = breaking ? 0.2 * eg : 0;
       const exp_val = COASTAL_EXPOSURE ? _computeExposure(r, c, dir, depthGrid, rows, cols) : 1.0;
-      const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.30, 0.60, H0) * _D_PRESENCE_CAP : 0;
+      const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.25, 0.45, H0) * _D_PRESENCE_CAP : 0;
       const ea  = Math.min(1, Math.max(0, Math.max(eg * nm, ps) + bb));
       if (ea >= 0.08) lit++;
       sumEa += ea;

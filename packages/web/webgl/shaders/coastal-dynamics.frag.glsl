@@ -275,7 +275,7 @@ void main() {
   const float H0_FULL        = 1.50;
   const float NEARSHORE_FULL = 30.0;
   const float NEARSHORE_FADE = 200.0;
-  const float PRESENCE_CAP   = 0.40;   // R2: presence floor — raised 0.25→0.40 for Tel Aviv visibility
+  const float PRESENCE_CAP   = 0.50;   // R2: presence floor ceiling (raised 0.25→0.40→0.50)
 
   float energyGate    = smoothstep(H0_QUIET, H0_FULL, H0);
   float nearshoreMask = 1.0 - smoothstep(NEARSHORE_FULL, NEARSHORE_FADE, d_eff);
@@ -287,7 +287,7 @@ void main() {
   float presence = 0.0;
   if (u_exposure_enable > 0.5) {
     exposure = computeExposure(uv, dir_from_deg);
-    float presenceShape = smoothstep(0.30, 0.60, H0);
+    float presenceShape = smoothstep(0.25, 0.45, H0);  // full floor at ≥0.45m; dark below 0.25m
     presence = exposure * nearshoreMask * presenceShape * PRESENCE_CAP;
   }
 
