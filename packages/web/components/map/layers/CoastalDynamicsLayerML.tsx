@@ -42,9 +42,13 @@ import { nearshoreTransform } from '@seame/core';
 const COASTAL_DIAG =
   typeof window !== 'undefined' && window.location.search.includes('coastalDiag=1');
 
-// R2 exposure feature flag — enable with ?coastalExposure=1
+// R4: exposure validated on GPU (97b21fd: gpuExposureInferred matches CPU 0.07→1.0;
+// sheltered cell gpuAlpha < 0.10 confirmed). Default ON.
+// Override OFF for debugging with ?coastalExposure=0
 const COASTAL_EXPOSURE =
-  typeof window !== 'undefined' && window.location.search.includes('coastalExposure=1');
+  typeof window === 'undefined'
+    ? true
+    : !window.location.search.includes('coastalExposure=0');
 
 // Shader constants — must stay in sync with coastal-dynamics.frag.glsl
 const _D_H0_QUIET       = 0.55;
