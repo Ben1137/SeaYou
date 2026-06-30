@@ -520,8 +520,8 @@ function generateGustDeltaColorScale(): ColorScalePoint[] {
  */
 function generateBreakingWavesColorScale(): ColorScalePoint[] {
   return [
-    { value: 0,   color: 'rgba(0,210,255,0)',    label: '0 m'  }, // transparent (calm)
-    { value: 0.4, color: 'rgb(0,210,255)',        label: '0.4'  }, // bright cyan
+    { value: 0,   color: 'rgba(100,240,255,0)',  label: '0 m'  }, // transparent (calm)
+    { value: 0.4, color: 'rgb(100,240,255)',      label: '0.4'  }, // electric ice-blue
     { value: 1.2, color: 'rgb(112,0,255)',        label: '1.2'  }, // vivid purple
     { value: 2.4, color: 'rgb(255,0,160)',        label: '2.4'  }, // hot pink
     { value: 4.0, color: 'rgb(255,0,43)',         label: '4+ m' }, // crimson

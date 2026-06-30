@@ -232,14 +232,15 @@ export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
 ];
 
 // Breaking-wave height colour ramp — worldwide-differentiating:
-//   calm (transparent cyan) → small surf (purple) → solid surf (hot pink) → big/dangerous (crimson)
+//   calm (transparent ice-blue) → small surf (purple) → solid surf (hot pink) → big/dangerous (crimson)
 // Input range: 0–4 m (H_final / 4.0 → ramp index). 21 stops at 0.2 m intervals.
-// Spec anchors exactly reproduced: 0.4 m cyan, 1.6 m hot pink, 2.6 m crimson, 4.0 m deep crimson.
-// 0.9 m purple (r=0.225) interpolated from stops at 0.8 m / 1.0 m → [111,21,248,224] ≈ spec [112,0,255,224].
+// R3.3: low-end 0–0.4 m stops upgraded from saturated cyan (#00d2ff, α≈0.72–0.85) to Electric Ice
+// Blue (#64f0ff, α≈0.84–0.90). Higher luminance + higher alpha → Tel Aviv band reads clearly on the
+// dark Night Watch basemap. RGB at stop 3+ unchanged; magenta/crimson end untouched.
 export const BREAKING_WAVE_COLORS: [number, number, number, number][] = [
-  [  0, 210, 255,   0],   //  0.0 m r=0.000 — transparent (#00d2ff)
-  [  0, 210, 255, 109],   //  0.2 m r=0.050 — faint cyan
-  [  0, 210, 255, 217],   //  0.4 m r=0.100 — bright cyan ← spec anchor (α=0.85)
+  [100, 240, 255,   0],   //  0.0 m r=0.000 — transparent (RGB shown for LUT interpolation)
+  [100, 240, 255, 214],   //  0.2 m r=0.050 — ice-blue α=0.84 (was cyan α=0.43)
+  [100, 240, 255, 230],   //  0.4 m r=0.100 — ice-blue α=0.90 (was cyan α=0.85)
   [ 45, 126, 255, 220],   //  0.6 m r=0.150 — cyan→purple
   [ 90,  42, 255, 223],   //  0.8 m r=0.200 — blue-purple
   [132,   0, 241, 225],   //  1.0 m r=0.250 — mid-purple
