@@ -135,8 +135,7 @@ function _diagPixel(
     ? _computeExposure(row, col, dir, depthGrid, rows, cols)
     : 1.0;
   const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.20, 0.30, H0) * _D_PRESENCE_CAP : 0;
-  // R5: energy term and breakingBonus gated by exposure; flag-off exp_val=1.0 → no-op.
-  const ea  = Math.min(1, Math.max(0, Math.max(eg * nm * exp_val, ps) + bb * exp_val));
+  const ea  = Math.min(1, Math.max(0, Math.max(eg * nm, ps) + bb));
   const ri  = Math.min(1, H_final / _D_MAX_H);
   return {
     H0, T, dir: +dir.toFixed(0), d: +d.toFixed(1), Ks: +Ks.toFixed(3), H_final: +H_final.toFixed(2),
@@ -270,8 +269,7 @@ function runCoastalDiag(
       const bb = breaking ? 0.2 * eg : 0;
       const exp_val = COASTAL_EXPOSURE ? _computeExposure(r, c, dir, depthGrid, rows, cols) : 1.0;
       const ps  = COASTAL_EXPOSURE ? exp_val * nm * _ss(0.20, 0.30, H0) * _D_PRESENCE_CAP : 0;
-      // R5: energy term and breakingBonus gated by exposure; flag-off exp_val=1.0 → no-op.
-      const ea  = Math.min(1, Math.max(0, Math.max(eg * nm * exp_val, ps) + bb * exp_val));
+      const ea  = Math.min(1, Math.max(0, Math.max(eg * nm, ps) + bb));
       if (ea >= 0.08) lit++;
       sumEa += ea;
       if (ea > maxEa) maxEa = ea;
