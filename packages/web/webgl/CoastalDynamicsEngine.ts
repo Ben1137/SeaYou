@@ -16,6 +16,7 @@
  *   TEXTURE0  u_data        Swell grid (R=H0, G=T, A=valid)
  *   TEXTURE1  u_color_ramp  Breaking-height colour ramp (256×1)
  *   TEXTURE2  u_land_mask   Land/sea mask (unused in Phase 3, dummy 1×1)
+ *   TEXTURE3  u_exposure_tex CPU-computed exposure grid (R=[0,1], same row/col as depth)
  *   TEXTURE4  u_depth       Bathymetry grid (R=depth_m, A=valid)
  */
 
@@ -45,8 +46,16 @@ export interface CoastalDynamicsEngine {
     minLat: number, maxLat: number,
     DirGrid?: number[][],
   ): void;
-  /** Enable/disable the exposure raycast (R2 feature flag). Default false = R1 behaviour. */
+  /** Enable/disable the exposure feature flag. Default false = R1 behaviour (exposure=1). */
   setExposureEnabled(enabled: boolean): void;
+  /** Enable ?coastalExposureDebug=1 mode: shader writes exposure→R channel for direct readPixels. */
+  setExposureDebug(enabled: boolean): void;
+  /**
+   * Upload CPU-computed exposure grid (one float per cell, [0,1]).
+   * Must be called after updateBathymetryData + updateSwellData; same rows/cols as depth grid.
+   * Uploaded as TEXTURE3 (u_exposure_tex) with UNPACK_FLIP_Y=1 to match depth texture orientation.
+   */
+  updateExposureData(exposureGrid: number[][], rows: number, cols: number): void;
   /** Upload bathymetry depth grid (m, positive down). Called from fetchDepthGrid(). */
   updateBathymetryData(
     depthGrid: number[][],
@@ -86,9 +95,12 @@ export function createCoastalDynamicsEngine(
 
   let swellTexture: WebGLTexture | null = null;
   let depthTexture: WebGLTexture | null = null;
+  let exposureTexture: WebGLTexture | null = null;
   let colorRampTexture: WebGLTexture | null = null;
   let dummyLandMask: WebGLTexture | null = null;
   let exposureEnabled = false;
+  let exposureDebugMode = false;
+  let pendingExposure: { data: Float32Array; width: number; height: number } | null = null;
 
   let swellMeta: { minLon: number; maxLon: number; minLat: number; maxLat: number } | null = null;
   let depthMeta:  { minLon: number; maxLon: number; minLat: number; maxLat: number } | null = null;
@@ -252,6 +264,41 @@ export function createCoastalDynamicsEngine(
     return tex;
   }
 
+  /**
+   * Upload the CPU-computed exposure grid as a single-channel float texture (TEXTURE3).
+   * Uses the same UNPACK_FLIP_Y_WEBGL=1 as the depth texture so that texture v-coord
+   * maps to the same geographic position for both u_depth and u_exposure_tex samples.
+   * R channel = exposure [0,1]. A channel = 1 (always valid).
+   */
+  function uploadExposureTexture(
+    data: Float32Array,  // rows * cols floats, row 0 = maxLat (north)
+    width: number,
+    height: number,
+    existing: WebGLTexture | null,
+  ): WebGLTexture {
+    if (!gl) throw new Error('GL not initialized');
+    if (existing) gl.deleteTexture(existing);
+    const tex = gl.createTexture()!;
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // Pack exposure [0,1] into RGBA: R=exposure, A=1. Same UNPACK_FLIP_Y as depth texture.
+    const rgba = new Uint8Array(width * height * 4);
+    for (let i = 0; i < width * height; i++) {
+      rgba[i * 4]     = Math.round(Math.max(0, Math.min(1, data[i])) * 255); // R = exposure
+      rgba[i * 4 + 1] = 0;
+      rgba[i * 4 + 2] = 0;
+      rgba[i * 4 + 3] = 255; // A = valid
+    }
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, rgba);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    return tex;
+  }
+
   const engine: CoastalDynamicsEngine = {
     init(canvas: HTMLCanvasElement) {
       if (destroyed) return;
@@ -312,6 +359,18 @@ export function createCoastalDynamicsEngine(
     },
 
     setExposureEnabled(enabled: boolean) { exposureEnabled = enabled; },
+    setExposureDebug(enabled: boolean) { exposureDebugMode = enabled; },
+
+    updateExposureData(exposureGrid, rows, cols) {
+      const flat = new Float32Array(rows * cols);
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          flat[r * cols + c] = exposureGrid[r]?.[c] ?? 0;
+        }
+      }
+      pendingExposure = { data: flat, width: cols, height: rows };
+      engine.render();
+    },
 
     updateBathymetryData(depthGrid, minLon, maxLon, minLat, maxLat) {
       pendingDepth = { grid: depthGrid, minLon, maxLon, minLat, maxLat };
@@ -361,6 +420,18 @@ export function createCoastalDynamicsEngine(
         pendingDepth = null;
       }
 
+      // Upload pending exposure texture (CPU-computed, same grid size as depth)
+      if (pendingExposure) {
+        try {
+          exposureTexture = uploadExposureTexture(
+            pendingExposure.data, pendingExposure.width, pendingExposure.height, exposureTexture,
+          );
+        } catch (e) {
+          console.error(`${prefix} Exposure upload failed:`, e);
+        }
+        pendingExposure = null;
+      }
+
       if (!swellTexture || !depthTexture) return;
 
       const canvas = gl.canvas as HTMLCanvasElement;
@@ -384,6 +455,11 @@ export function createCoastalDynamicsEngine(
       gl.bindTexture(gl.TEXTURE_2D, dummyLandMask);
       gl.uniform1i(gl.getUniformLocation(program, 'u_land_mask'), 2);
 
+      // TEXTURE3: CPU-computed exposure grid (R=[0,1]). Falls back to dummy if not yet uploaded.
+      gl.activeTexture(gl.TEXTURE0 + 3);
+      gl.bindTexture(gl.TEXTURE_2D, exposureTexture ?? dummyLandMask);
+      gl.uniform1i(gl.getUniformLocation(program, 'u_exposure_tex'), 3);
+
       // TEXTURE4: bathymetry depth
       gl.activeTexture(gl.TEXTURE0 + 4);
       gl.bindTexture(gl.TEXTURE_2D, depthTexture);
@@ -395,6 +471,7 @@ export function createCoastalDynamicsEngine(
       gl.uniform1f(gl.getUniformLocation(program, 'u_tide_offset'), tideOffset);
       gl.uniform1f(gl.getUniformLocation(program, 'u_use_land_mask'), 0.0); // depth handles it
       gl.uniform1f(gl.getUniformLocation(program, 'u_exposure_enable'), exposureEnabled ? 1.0 : 0.0);
+      gl.uniform1f(gl.getUniformLocation(program, 'u_exposure_debug'), exposureDebugMode ? 1.0 : 0.0);
 
       // Single-viewport architecture: both swell and depth cover the same rect.
       // The shader samples both at v_texcoord directly — no bounds uniforms needed.
@@ -437,6 +514,7 @@ export function createCoastalDynamicsEngine(
         if (quadBuffer)      gl.deleteBuffer(quadBuffer);
         if (swellTexture)    gl.deleteTexture(swellTexture);
         if (depthTexture)    gl.deleteTexture(depthTexture);
+        if (exposureTexture) gl.deleteTexture(exposureTexture);
         if (colorRampTexture) gl.deleteTexture(colorRampTexture);
         if (dummyLandMask)   gl.deleteTexture(dummyLandMask);
 
@@ -445,7 +523,7 @@ export function createCoastalDynamicsEngine(
       }
 
       program = null; quadBuffer = null;
-      swellTexture = null; depthTexture = null;
+      swellTexture = null; depthTexture = null; exposureTexture = null;
       colorRampTexture = null; dummyLandMask = null;
       gl = null;
       mode = 'disabled';

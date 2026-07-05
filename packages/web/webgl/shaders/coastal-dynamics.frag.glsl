@@ -48,17 +48,19 @@
 #endif
 
 // ── Texture inputs ─────────────────────────────────────────────────────────
-uniform sampler2D u_data;       // Swell: R=H0(m), G=T(s), A=valid (TEXTURE0)
-uniform sampler2D u_color_ramp; // Breaking-height colour ramp 256×1 (TEXTURE1)
-uniform sampler2D u_land_mask;  // Land mask: R>0.5=land (TEXTURE2)
-uniform sampler2D u_depth;      // Bathymetry: R=depth(m), A=valid (TEXTURE4)
+uniform sampler2D u_data;         // Swell: R=H0(m), G=T(s), A=valid (TEXTURE0)
+uniform sampler2D u_color_ramp;   // Breaking-height colour ramp 256×1 (TEXTURE1)
+uniform sampler2D u_land_mask;    // Land mask: R>0.5=land (TEXTURE2)
+uniform sampler2D u_exposure_tex; // CPU exposure grid: R=[0,1] per cell (TEXTURE3)
+uniform sampler2D u_depth;        // Bathymetry: R=depth(m), A=valid (TEXTURE4)
 
 // ── Uniforms ────────────────────────────────────────────────────────────────
 uniform float u_opacity;           // Layer opacity [0,1]
 uniform float u_max_breaking_height; // Colour ramp max (m), default 4.0
 uniform float u_tide_offset;       // sea_level_height_msl (m) — adds to depth
 uniform float u_use_land_mask;     // 1.0 = apply land mask, 0.0 = skip
-uniform float u_exposure_enable;   // 1.0 = R2 exposure raycast on, 0.0 = R1 only
+uniform float u_exposure_enable;   // 1.0 = R2 exposure (CPU texture) on, 0.0 = R1 only
+uniform float u_exposure_debug;    // 1.0 = write exposure to R channel for gl.readPixels (?coastalExposureDebug=1)
 // Single-viewport architecture: both swell (TEXTURE0) and depth (TEXTURE4) cover
 // the same geographic rectangle (the map viewport). The shader samples both at
 // v_texcoord directly. No bounds uniforms or UV remap needed.
@@ -135,67 +137,11 @@ float shoalingCoeff(float T, float d) {
   return sqrt(Cg0 / max(Cg, 0.000001));
 }
 
-// ── R2: Depth-based exposure raycast ────────────────────────────────────────
-// March EXP_STEPS steps of total EXP_KM km toward the up-swell direction.
-// "From" convention: dir_deg is where swell comes FROM → we march TOWARD that bearing.
-// Returns 1.0 = fully exposed (open ocean ahead), 0.0 = fully blocked.
-// The ray uses the DEPTH TEXTURE (same viewport rectangle) for land-finding.
-//
-// Tunable constants:
-const int   EXP_STEPS   = 14;
-const float EXP_KM      = 20.0;
-const float EXP_DEEP_OK = 200.0; // depth ≥ this = open ocean
-const float EXP_LAND_D  = 0.5;   // depth ≤ this = land / very shallow = blocked
-
-float computeExposure(vec2 uv_origin, float dir_deg) {
-  // Ray step in UV space.
-  // uv_origin is in [0,1]² mapping to the viewport rectangle.
-  // The viewport spans ~(maxLon-minLon) degrees lon × (maxLat-minLat) degrees lat.
-  // We approximate 1 km ≈ 1/111 degrees lat; lon scaled by cos(lat).
-  // However, since we don't have viewport size in km here, we use a fixed
-  // small UV step and scale: one full step = 1 UV / EXP_STEPS → covers the
-  // whole viewport. We want ~EXP_KM/111 degrees ≈ 0.18 degrees per full ray.
-  // If viewport ≈ 2 degrees wide, one step = EXP_KM/(111*viewport_deg) ≈ 0.09 UV.
-  // We approximate: use a step magnitude tuned to viewport scale via a constant.
-  // This is "good enough for large-feature blocking (islands, headlands)".
-  //
-  // dir_deg is the "from" bearing (meteorological); marching UP-swell = toward dir_deg.
-  // Bearing: 0=N, 90=E, 180=S, 270=W.
-  // In UV space: u increases east, v increases south (row 0 = maxLat = north).
-  // North (+v is south) → du=0, dv=-1. East → du=+1, dv=0. Etc.
-  float rad = dir_deg * PI / 180.0;
-  float du =  sin(rad);   // east component
-  float dv = -cos(rad);   // north component → negative v because v=0 is north
-
-  // Total UV distance = EXP_KM / (approx km per UV unit).
-  // We use a rough per-step UV magnitude and run EXP_STEPS steps.
-  // 0.04 UV per step × 14 steps = 0.56 UV ~ half the viewport → ~EXP_KM km typical.
-  float stepMag = 0.04;
-  vec2 step_uv  = vec2(du * stepMag, dv * stepMag);
-
-  float blockedAt = float(EXP_STEPS); // steps until first block (default = no block)
-  for (int i = 1; i <= EXP_STEPS; i++) {
-    vec2 sampleUV = clamp(uv_origin + float(i) * step_uv, 0.0, 1.0);
-    vec4 ds = texture2D(u_depth, sampleUV);
-    if (ds.a < 0.1) {
-      // No depth data — treat as land (conservative)
-      blockedAt = float(i);
-      break;
-    }
-    float d_sample = ds.r + u_tide_offset;
-    if (d_sample <= EXP_LAND_D) {
-      // Encountered land or very shallow water → blocked
-      blockedAt = float(i);
-      break;
-    }
-    if (d_sample >= EXP_DEEP_OK) {
-      // Reached open ocean → fully exposed
-      return 1.0;
-    }
-  }
-  // Blocked before open ocean: partial exposure proportional to how far we got
-  return clamp(blockedAt / float(EXP_STEPS), 0.0, 1.0);
-}
+// ── R2: Exposure — sampled from CPU-computed texture (u_exposure_tex, TEXTURE3) ──────────────────
+// The GPU raycast was replaced by a CPU-computed exposure grid (_computeExposure in the layer).
+// The CPU grid is correct and provable; the GPU raycast had UNPACK_FLIP_Y orientation issues that
+// produced wrong results on cells with strong N-S swell components (e.g. Sri Lanka S-coast).
+// Shader just samples u_exposure_tex at the same uv as the depth/swell — no raycast needed.
 
 // ── Main ────────────────────────────────────────────────────────────────────
 void main() {
@@ -281,14 +227,24 @@ void main() {
   float nearshoreMask = 1.0 - smoothstep(NEARSHORE_FULL, NEARSHORE_FADE, d_eff);
   float breakingBonus = isBreaking ? 0.2 * energyGate : 0.0;
 
-  // R2: exposure raycast + presence floor (behind u_exposure_enable flag).
-  // When flag is OFF: presence=0, effectAlpha=pure R1 (byte-identical).
+  // R2: CPU-computed exposure + presence floor (behind u_exposure_enable flag).
+  // When flag is OFF: exposure=1.0, presence=0, effectAlpha=pure R1 (byte-identical to pre-R2).
+  // When flag is ON: exposure = texture sample from u_exposure_tex (CPU-computed, correct).
   float exposure = 1.0;
   float presence = 0.0;
   if (u_exposure_enable > 0.5) {
-    exposure = computeExposure(uv, dir_from_deg);
-    float presenceShape = smoothstep(0.20, 0.30, H0);  // near-binary: full floor at ≥0.30m; dark below 0.20m
+    // Sample CPU exposure grid — same uv as depth/swell, same UNPACK_FLIP_Y orientation.
+    exposure = texture2D(u_exposure_tex, uv).r;
+    float presenceShape = smoothstep(0.20, 0.30, H0);
     presence = exposure * nearshoreMask * presenceShape * PRESENCE_CAP;
+  }
+
+  // ── Debug mode: ?coastalExposureDebug=1 ─────────────────────────────────
+  // Write exposure directly into the R channel so gl.readPixels can measure it.
+  // Enabled by setting u_exposure_debug uniform to 1.0. Normal render is unchanged.
+  if (u_exposure_debug > 0.5) {
+    gl_FragColor = vec4(exposure, 0.0, 0.0, 1.0);
+    return;
   }
 
   // R1+R2: max(energyGate path, presence path) + breakingBonus

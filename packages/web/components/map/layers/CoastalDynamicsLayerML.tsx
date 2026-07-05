@@ -42,13 +42,17 @@ import { nearshoreTransform } from '@seame/core';
 const COASTAL_DIAG =
   typeof window !== 'undefined' && window.location.search.includes('coastalDiag=1');
 
-// R4: exposure validated on GPU (97b21fd: gpuExposureInferred matches CPU 0.07→1.0;
-// sheltered cell gpuAlpha < 0.10 confirmed). Default ON.
-// Override OFF for debugging with ?coastalExposure=0
+// CPU-computed exposure grid: runs _computeExposure on every cell, uploads as u_exposure_tex.
+// Default ON. Override OFF with ?coastalExposure=0 (shader uses exposure=1.0, pre-R2 behaviour).
 const COASTAL_EXPOSURE =
   typeof window === 'undefined'
     ? true
     : !window.location.search.includes('coastalExposure=0');
+
+// Direct GPU-exposure readback: shader writes exposure→R channel for per-cell verification.
+// Enable with ?coastalExposureDebug=1. Logs gpuExposureSampled vs mirror per probe cell.
+const COASTAL_EXPOSURE_DEBUG =
+  typeof window !== 'undefined' && window.location.search.includes('coastalExposureDebug=1');
 
 // Shader constants — must stay in sync with coastal-dynamics.frag.glsl
 const _D_H0_QUIET       = 0.55;
@@ -497,6 +501,7 @@ export function CoastalDynamicsLayerML({
     });
     engine.init(handle.canvas);
     engine.setExposureEnabled(COASTAL_EXPOSURE);
+    engine.setExposureDebug(COASTAL_EXPOSURE_DEBUG);
     engineRef.current = engine;
     setCanvasElement(handle.canvas);
 
@@ -645,7 +650,71 @@ export function CoastalDynamicsLayerML({
 
       engine.updateBathymetryData(depthGrid, vb.minLon, vb.maxLon, vb.minLat, vb.maxLat);
 
+      // ── CPU exposure grid ────────────────────────────────────────────────
+      // Compute _computeExposure for every cell using the proven-correct CPU raycast.
+      // Upload as u_exposure_tex (TEXTURE3) so the shader samples it instead of raycasting.
+      // Only computed when COASTAL_EXPOSURE is ON; when off, shader uses exposure=1.0.
+      if (COASTAL_EXPOSURE && _diagDirGrid) {
+        const expRows = depthGrid.length;
+        const expCols = depthGrid[0]?.length ?? 0;
+        if (expRows > 0 && expCols > 0) {
+          const expGrid: number[][] = [];
+          for (let r = 0; r < expRows; r++) {
+            const row: number[] = [];
+            for (let c = 0; c < expCols; c++) {
+              const dir = _diagDirGrid[r]?.[c] ?? 0;
+              row.push(_computeExposure(r, c, dir, depthGrid, expRows, expCols));
+            }
+            expGrid.push(row);
+          }
+          engine.updateExposureData(expGrid, expRows, expCols);
+        }
+      }
+
       if (COASTAL_DIAG) runCoastalDiag(vb, _diagH0Grid, _diagTGrid, depthGrid, _diagDirGrid, canvasHandleRef.current?.canvas);
+
+      // ── Exposure debug mode: direct GPU readback of the sampled exposure ─
+      // ?coastalExposureDebug=1: shader writes exposure→R, we read it back per probe cell.
+      // This gives us gpuExposureSampled to compare against mirror exposure directly.
+      if (COASTAL_EXPOSURE_DEBUG && _diagDirGrid) {
+        const canvas = canvasHandleRef.current?.canvas;
+        const gl2 = canvas ? (canvas.getContext('webgl2') ?? canvas.getContext('webgl')) as WebGLRenderingContext | null : null;
+        if (gl2) {
+          engine.setExposureDebug(true);
+          engine.render();
+          const expRows = depthGrid.length, expCols = depthGrid[0]?.length ?? 0;
+          const cW = gl2.canvas.width, cH = gl2.canvas.height;
+          // Sample ~12 spread cells and log gpuExposureSampled vs mirror
+          const probes: Array<{r: number; c: number}> = [];
+          for (let r = 0; r < expRows; r += Math.max(1, Math.floor(expRows / 4))) {
+            for (let c = 0; c < expCols; c += Math.max(1, Math.floor(expCols / 4))) {
+              probes.push({r, c});
+            }
+          }
+          console.group('%c[CoastalDiag][EXPOSURE-DEBUG] Direct GPU exposure readback', 'color:#0f0;font-weight:bold');
+          for (const {r, c} of probes) {
+            const d = depthGrid[r]?.[c] ?? NaN;
+            if (!isFinite(d) || d <= 0 || d >= 200) continue;
+            const dir = _diagDirGrid[r]?.[c] ?? 0;
+            const mirrorExp = _computeExposure(r, c, dir, depthGrid, expRows, expCols);
+            // readPixels: flip y same as _gpuAlpha
+            const cx = Math.round((c / (expCols - 1)) * (cW - 1));
+            const cy = Math.round((r / (expRows - 1)) * (cH - 1));
+            const glY = cH - 1 - cy;
+            const buf = new Uint8Array(4);
+            gl2.readPixels(cx, glY, 1, 1, gl2.RGBA, gl2.UNSIGNED_BYTE, buf);
+            const gpuExpSampled = +(buf[0] / 255).toFixed(3);
+            const lat = vb.maxLat - (r / (expRows - 1)) * (vb.maxLat - vb.minLat);
+            const lon = vb.minLon + (c / (expCols - 1)) * (vb.maxLon - vb.minLon);
+            const delta = +(gpuExpSampled - mirrorExp).toFixed(3);
+            console.log(`  row=${r} col=${c} lat=${lat.toFixed(2)} lon=${lon.toFixed(2)} d=${d.toFixed(1)}m dir=${dir.toFixed(0)}°`,
+              { mirrorExp: mirrorExp.toFixed(3), gpuExpSampled, delta, MATCH: Math.abs(delta) < 0.05 ? '✓' : '✗ MISMATCH' });
+          }
+          console.groupEnd();
+          engine.setExposureDebug(false);
+          engine.render(); // restore normal render
+        }
+      }
 
       // Drape the CanvasSource at the viewport bounds
       updateCoordinates(boundsToCorners(vb.minLon, vb.maxLon, vb.minLat, vb.maxLat));
