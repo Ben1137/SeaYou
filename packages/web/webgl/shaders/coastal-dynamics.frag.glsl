@@ -247,8 +247,10 @@ void main() {
     return;
   }
 
-  // R1+R2: max(energyGate path, presence path) + breakingBonus
-  float effectAlpha   = clamp(max(energyGate * nearshoreMask, presence) + breakingBonus, 0.0, 1.0);
+  // R1+R2+R5: energy term and breakingBonus multiplied by exposure so sheltered cells go dark.
+  // Flag-off: exposure=1.0 (default when u_exposure_enable=0) → byte-identical to pre-R5.
+  // presence is already exposure-gated (see above); untouched.
+  float effectAlpha   = clamp(max(energyGate * nearshoreMask * exposure, presence) + breakingBonus * exposure, 0.0, 1.0);
 
   if (effectAlpha < 0.01) {
     discard;
