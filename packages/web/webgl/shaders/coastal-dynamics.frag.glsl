@@ -161,11 +161,17 @@ float computeExposure(vec2 uv_origin, float dir_deg) {
   //
   // dir_deg is the "from" bearing (meteorological); marching UP-swell = toward dir_deg.
   // Bearing: 0=N, 90=E, 180=S, 270=W.
-  // In UV space: u increases east, v increases south (row 0 = maxLat = north).
-  // North (+v is south) → du=0, dv=-1. East → du=+1, dv=0. Etc.
+  // Texture UV convention after UNPACK_FLIP_Y_WEBGL=1: v=0=south, v=1=north.
+  // North (+lat) = increasing v → dv = +cos(rad).
+  //
+  // NOTE: dv is +cos here (NOT -cos like the CPU mirror _computeExposure).
+  // The depth texture is uploaded with UNPACK_FLIP_Y_WEBGL=1, so texture v increases
+  // NORTHWARD (v=0=south, v=1=north), while the CPU mirror's row-grid increases SOUTHWARD
+  // (row 0=north). The opposite sign makes this march the SAME geographic direction as the
+  // mirror. Do NOT "unify" the sign with the CPU mirror — that would reintroduce the bug.
   float rad = dir_deg * PI / 180.0;
-  float du =  sin(rad);   // east component
-  float dv = -cos(rad);   // north component → negative v because v=0 is north
+  float du =  sin(rad);   // east component (u increases east — correct, unaffected by flip)
+  float dv = +cos(rad);   // north component: +cos because texture v=0=south, v=1=north
 
   // Total UV distance = EXP_KM / (approx km per UV unit).
   // We use a rough per-step UV magnitude and run EXP_STEPS steps.

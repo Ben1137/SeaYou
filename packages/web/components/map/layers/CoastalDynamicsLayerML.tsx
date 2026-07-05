@@ -98,52 +98,61 @@ function _computeExposure(
   return Math.min(1, Math.max(0, blockedAt / _D_EXP_STEPS));
 }
 
-// ── [DIAG] Shader raycast replica — reproduces computeExposure() in the shader EXACTLY ──────────
-// This is a CPU replica of the GLSL computeExposure() for diagnostic tracing only.
-// Key difference from _computeExposure (the mirror): the shader's depth texture is uploaded
-// with UNPACK_FLIP_Y_WEBGL=1, making texture v=0=south, v=1=north. The shader comment
-// incorrectly states "v=0 is north" and uses dv=-cos(rad) — which is correct for the
-// row-index convention (row 0=north) but WRONG for the actual flipped texture UV.
-// This replica reproduces that wrong convention faithfully so we can see where the march goes.
-// Gate: COASTAL_DIAG only.
+// ── [DIAG] Raycast orientation probes — prove UNPACK_FLIP_Y v-axis bug ───────────────────────────
+// Three orientations demonstrate the mechanism. Gate: COASTAL_DIAG only.
+//
+// After UNPACK_FLIP_Y_WEBGL=1, the depth texture has v=0=south, v=1=north (because GL's bottom-
+// left origin is south on a north-up map, and the flip reverses rows). The fullscreen quad gives
+// v_texcoord=0 at screen bottom (south) and v_texcoord=1 at screen top (north), which is correct
+// for sampling. But the shader's dv=-cos(rad) was written assuming v=0=north (row-grid convention)
+// — so north-swell (dir≈0, dv≈-1) steps toward v=0=south in texture space: wrong direction.
+//
+// Grid-orient probe (= existing _computeExposure mirror, correct for JS row-grid):
+//   v0 = row/(rows-1), sr = round(sv*(rows-1)), dv = -cos(rad)  [row 0 = north = v=0]
+// Tex-orient-buggy probe (= what the SHADER actually does):
+//   v0 = 1-row/(rows-1), sr = round((1-sv)*(rows-1)), dv = -cos(rad)  [v=1=north, dv sign WRONG]
+// Tex-orient-fixed probe (= what the SHADER should do after the fix):
+//   v0 = 1-row/(rows-1), sr = round((1-sv)*(rows-1)), dv = +cos(rad)  [v=1=north, dv sign CORRECT]
+//
+// Expected: grid-orient ≈ tex-orient-fixed ≈ 1.0 on exposed from-S cells; tex-orient-buggy ≈ 0.07.
 interface _RayStep { stepIdx: number; u: number; v: number; d: number | null; decision: string; }
-interface _ShaderReplicaResult { exposure: number; trace: _RayStep[]; }
-function _computeExposureShaderReplica(
+interface _RaycastProbeResult { exposure: number; trace: _RayStep[]; }
+function _raycastProbe(
   row: number, col: number,
   dirDeg: number,
   depthGrid: number[][],
   rows: number, cols: number,
   vb: { minLat: number; maxLat: number; minLon: number; maxLon: number },
-): _ShaderReplicaResult {
+  useTexOrientation: boolean,  // true = UNPACK_FLIP_Y texture space; false = grid row space
+  dvPositiveCos: boolean,      // true = dv=+cos (fix); false = dv=-cos (shader bug / grid-correct)
+): _RaycastProbeResult {
   const PI = Math.PI;
   const stepMag = 0.04;
   const rad = dirDeg * PI / 180;
-  const du =  Math.sin(rad);
-  const dv = -Math.cos(rad); // shader uses this — WRONG for UNPACK_FLIP_Y texture (v=0=south)
-  // Shader UV origin: v_texcoord comes from the quad vertex, where the fullscreen quad maps
-  // NDC [-1,1] → texcoord [0,1]. After UNPACK_FLIP_Y: v=0=south, v=1=north.
-  // But the shader was written assuming v=0=north, so dv sign is inverted vs. reality.
-  // We replicate the shader's convention exactly: v_origin = row/(rows-1) treating row-0=v=0.
+  const du = Math.sin(rad);
+  // Tex orientation: v=0=south, v=1=north; increasing v → north.
+  // Grid orientation: v=0=north (row 0), v=1=south; increasing v → south.
+  // dv=-cos is correct for grid-orient (north = -v). For tex-orient north = +v → need +cos.
+  const dv = dvPositiveCos ? Math.cos(rad) : -Math.cos(rad);
+  // UV origin in respective convention
   const u0 = col / (cols - 1);
-  const v0 = row / (rows - 1); // shader: v_texcoord at this cell (row 0 maps to some v)
+  const v0 = useTexOrientation ? 1 - row / (rows - 1) : row / (rows - 1);
   const trace: _RayStep[] = [];
   let blockedAt = _D_EXP_STEPS;
   for (let i = 1; i <= _D_EXP_STEPS; i++) {
     const su = Math.max(0, Math.min(1, u0 + i * du * stepMag));
     const sv = Math.max(0, Math.min(1, v0 + i * dv * stepMag));
-    // In the shader's actual texture (v=0=south after UNPACK_FLIP_Y), sv is interpreted as:
-    // sv → geographic lat = minLat + sv*(maxLat-minLat)  [south→north as v increases]
-    // But the shader samples depthGrid row as if sv=0=north:
-    //   shader texcoord sv → depthGrid row = round(sv*(rows-1))  [row 0 = v=0 in shader]
-    // Since UNPACK_FLIP_Y flips during upload, what the shader samples at sv is actually
-    // depthGrid row (rows-1 - round(sv*(rows-1))) in our JS grid.
-    // We replicate the shader's sampling (wrong row) to reproduce the bug:
+    // Convert sample UV back to depth-grid row
     const sc = Math.round(su * (cols - 1));
-    const sr = Math.round(sv * (rows - 1)); // shader's row — FLIPPED relative to reality
-    const d = depthGrid[sr]?.[sc] ?? null;
-    // Compute the actual lat/lon this UV maps to (for trace readability)
-    const geoLat = vb.maxLat - sv * (vb.maxLat - vb.minLat); // shader thinks v=0=north
+    const sr = useTexOrientation
+      ? Math.round((1 - sv) * (rows - 1))  // tex: sv=1=north=row 0, sv=0=south=row rows-1
+      : Math.round(sv * (rows - 1));         // grid: sv=0=north=row 0
+    // Geographic position of this sample (for trace readability)
+    const geoLat = useTexOrientation
+      ? vb.minLat + sv * (vb.maxLat - vb.minLat)  // tex: sv=0=south=minLat, sv=1=north=maxLat
+      : vb.maxLat - sv * (vb.maxLat - vb.minLat); // grid: sv=0=north=maxLat
     const geoLon = vb.minLon + su * (vb.maxLon - vb.minLon);
+    const d = depthGrid[sr]?.[sc] ?? null;
     let decision: string;
     if (d === null || !isFinite(d)) {
       decision = 'NO_DATA→land'; blockedAt = i;
@@ -348,17 +357,25 @@ function runCoastalDiag(
     }
     const diagCells = [cellExposed, cellExposedMid, cellSheltered].filter(Boolean) as DiagCell[];
     if (diagCells.length > 0) {
-      console.group('%c[CoastalDiag][RAYCAST] Shader-replica trace', 'color:#f80;font-weight:bold');
+      console.group('%c[CoastalDiag][RAYCAST] Three-orientation probe (grid / tex-buggy / tex-fixed)', 'color:#f80;font-weight:bold');
       for (const cell of diagCells) {
-        const expGrid   = _computeExposure(cell.row, cell.col, cell.dir, depthGrid, rows, cols);
-        const expShader = _computeExposureShaderReplica(cell.row, cell.col, cell.dir, depthGrid, rows, cols, vb);
+        // Grid-orientation: dv=-cos, v=0=north (CPU mirror convention — correct)
+        const probeGrid    = _raycastProbe(cell.row, cell.col, cell.dir, depthGrid, rows, cols, vb, false, false);
+        // Tex-orientation-buggy: dv=-cos but v=0=south (replicates the shader bug)
+        const probeTexBug  = _raycastProbe(cell.row, cell.col, cell.dir, depthGrid, rows, cols, vb, true,  false);
+        // Tex-orientation-fixed: dv=+cos, v=0=south (what the shader SHOULD do after the fix)
+        const probeTexFix  = _raycastProbe(cell.row, cell.col, cell.dir, depthGrid, rows, cols, vb, true,  true);
+        const bugConfirmed = Math.abs(probeGrid.exposure - 1.0) < 0.15 && probeTexBug.exposure < 0.15;
+        const fixConfirmed = Math.abs(probeTexFix.exposure - probeGrid.exposure) < 0.15;
         console.log(`[RAYCAST] ${cell.label}`, {
           H0: cell.H0.toFixed(2), T: cell.T.toFixed(1), dir: cell.dir.toFixed(0),
           d: cell.d.toFixed(1), lat: cell.lat.toFixed(2), lon: cell.lon.toFixed(2),
-          gridMirror: expGrid.toFixed(3),
-          shaderReplica: expShader.exposure.toFixed(3),
-          MATCH: Math.abs(expGrid - expShader.exposure) < 0.1 ? '✓' : '✗ DIVERGE',
-          trace: expShader.trace,
+          replicaGridOrient:  probeGrid.exposure.toFixed(3),   // correct; should ≈ 1.0 on exposed
+          replicaTexBuggy:    probeTexBug.exposure.toFixed(3),  // reproduces GPU bug; should ≈ 0.07 on from-S exposed
+          replicaTexFixed:    probeTexFix.exposure.toFixed(3),  // after fix; should ≈ 1.0 again
+          BUG_CONFIRMED:      bugConfirmed ? '✓ flip IS the bug' : '✗ not reproduced',
+          FIX_CONFIRMED:      fixConfirmed ? '✓ flip fixes it'  : '✗ fix incomplete',
+          traceTexBuggy: probeTexBug.trace,
         });
       }
       console.groupEnd();
