@@ -102,73 +102,6 @@ function _computeExposure(
   return Math.min(1, Math.max(0, blockedAt / _D_EXP_STEPS));
 }
 
-// ── [DIAG] Shader raycast replica — reproduces computeExposure() in the shader EXACTLY ──────────
-// This is a CPU replica of the GLSL computeExposure() for diagnostic tracing only.
-// Key difference from _computeExposure (the mirror): the shader's depth texture is uploaded
-// with UNPACK_FLIP_Y_WEBGL=1, making texture v=0=south, v=1=north. The shader comment
-// incorrectly states "v=0 is north" and uses dv=-cos(rad) — which is correct for the
-// row-index convention (row 0=north) but WRONG for the actual flipped texture UV.
-// This replica reproduces that wrong convention faithfully so we can see where the march goes.
-// Gate: COASTAL_DIAG only.
-interface _RayStep { stepIdx: number; u: number; v: number; d: number | null; decision: string; }
-interface _ShaderReplicaResult { exposure: number; trace: _RayStep[]; }
-function _computeExposureShaderReplica(
-  row: number, col: number,
-  dirDeg: number,
-  depthGrid: number[][],
-  rows: number, cols: number,
-  vb: { minLat: number; maxLat: number; minLon: number; maxLon: number },
-): _ShaderReplicaResult {
-  const PI = Math.PI;
-  const stepMag = 0.04;
-  const rad = dirDeg * PI / 180;
-  const du =  Math.sin(rad);
-  const dv = -Math.cos(rad); // shader uses this — WRONG for UNPACK_FLIP_Y texture (v=0=south)
-  // Shader UV origin: v_texcoord comes from the quad vertex, where the fullscreen quad maps
-  // NDC [-1,1] → texcoord [0,1]. After UNPACK_FLIP_Y: v=0=south, v=1=north.
-  // But the shader was written assuming v=0=north, so dv sign is inverted vs. reality.
-  // We replicate the shader's convention exactly: v_origin = row/(rows-1) treating row-0=v=0.
-  const u0 = col / (cols - 1);
-  const v0 = row / (rows - 1); // shader: v_texcoord at this cell (row 0 maps to some v)
-  const trace: _RayStep[] = [];
-  let blockedAt = _D_EXP_STEPS;
-  for (let i = 1; i <= _D_EXP_STEPS; i++) {
-    const su = Math.max(0, Math.min(1, u0 + i * du * stepMag));
-    const sv = Math.max(0, Math.min(1, v0 + i * dv * stepMag));
-    // In the shader's actual texture (v=0=south after UNPACK_FLIP_Y), sv is interpreted as:
-    // sv → geographic lat = minLat + sv*(maxLat-minLat)  [south→north as v increases]
-    // But the shader samples depthGrid row as if sv=0=north:
-    //   shader texcoord sv → depthGrid row = round(sv*(rows-1))  [row 0 = v=0 in shader]
-    // Since UNPACK_FLIP_Y flips during upload, what the shader samples at sv is actually
-    // depthGrid row (rows-1 - round(sv*(rows-1))) in our JS grid.
-    // We replicate the shader's sampling (wrong row) to reproduce the bug:
-    const sc = Math.round(su * (cols - 1));
-    const sr = Math.round(sv * (rows - 1)); // shader's row — FLIPPED relative to reality
-    const d = depthGrid[sr]?.[sc] ?? null;
-    // Compute the actual lat/lon this UV maps to (for trace readability)
-    const geoLat = vb.maxLat - sv * (vb.maxLat - vb.minLat); // shader thinks v=0=north
-    const geoLon = vb.minLon + su * (vb.maxLon - vb.minLon);
-    let decision: string;
-    if (d === null || !isFinite(d)) {
-      decision = 'NO_DATA→land'; blockedAt = i;
-      trace.push({ stepIdx: i, u: +su.toFixed(3), v: +sv.toFixed(3), d: null, decision: `${decision} lat=${geoLat.toFixed(2)} lon=${geoLon.toFixed(2)} row=${sr}` });
-      break;
-    } else if (d <= _D_EXP_LAND_D) {
-      decision = `d=${d.toFixed(1)}≤${_D_EXP_LAND_D}→land`; blockedAt = i;
-      trace.push({ stepIdx: i, u: +su.toFixed(3), v: +sv.toFixed(3), d: +d.toFixed(1), decision: `${decision} lat=${geoLat.toFixed(2)} lon=${geoLon.toFixed(2)} row=${sr}` });
-      break;
-    } else if (d >= _D_EXP_DEEP_OK) {
-      decision = `d=${d.toFixed(0)}≥${_D_EXP_DEEP_OK}→openOcean`;
-      trace.push({ stepIdx: i, u: +su.toFixed(3), v: +sv.toFixed(3), d: +d.toFixed(1), decision: `${decision} lat=${geoLat.toFixed(2)} lon=${geoLon.toFixed(2)} row=${sr}` });
-      return { exposure: 1.0, trace };
-    } else {
-      decision = `d=${d.toFixed(1)} shelf`;
-      trace.push({ stepIdx: i, u: +su.toFixed(3), v: +sv.toFixed(3), d: +d.toFixed(1), decision: `${decision} lat=${geoLat.toFixed(2)} lon=${geoLon.toFixed(2)} row=${sr}` });
-    }
-  }
-  return { exposure: Math.min(1, Math.max(0, blockedAt / _D_EXP_STEPS)), trace };
-}
-
 function _ramp(norm: number, c: [number, number, number, number][]): string {
   const t = Math.max(0, Math.min(1, norm)) * (c.length - 1);
   const lo = Math.floor(t), hi = Math.min(lo + 1, c.length - 1), f = t - lo;
@@ -321,56 +254,6 @@ function runCoastalDiag(
       gpuVsMirrorDelta: gpuAlpha != null ? +(gpuAlpha - mirror.effectAlpha).toFixed(3) : null });
   }
   console.groupEnd();
-
-  // ── [DIAG] Shader-replica raycast trace — three reference cells ──────────────
-  // Picks (a) an exposed low-lat cell (best candidate near Sri Lanka S coast if visible),
-  // (b) an exposed mid-lat cell, (c) a sheltered cell. Logs grid-mirror vs shader-replica
-  // exposure side-by-side with the per-step trace so we can see where they diverge.
-  if (COASTAL_DIAG) {
-    // Scan for three diagnostic cells: strong exposed nearshore, any exposed nearshore, any sheltered
-    type DiagCell = { row: number; col: number; d: number; H0: number; T: number; dir: number; lat: number; lon: number; label: string };
-    let cellExposed: DiagCell | null = null;
-    let cellExposedMid: DiagCell | null = null;
-    let cellSheltered: DiagCell | null = null;
-    for (let r = 0; r < rows && !(cellExposed && cellExposedMid && cellSheltered); r++) {
-      for (let c = 0; c < cols && !(cellExposed && cellExposedMid && cellSheltered); c++) {
-        const d = depthGrid[r]?.[c] ?? NaN;
-        const H0 = H0Grid?.[r]?.[c] ?? NaN;
-        const T  = TGrid?.[r]?.[c]  ?? NaN;
-        const dir = DirGrid?.[r]?.[c] ?? 0;
-        if (!isFinite(d) || d <= 0 || d >= 200 || !isFinite(H0) || H0 < 1.2 || !isFinite(T) || T < 1) continue;
-        const lat = vb.maxLat - (r / (rows - 1)) * (vb.maxLat - vb.minLat);
-        const lon = vb.minLon + (c / (cols - 1)) * (vb.maxLon - vb.minLon);
-        const expGrid = _computeExposure(r, c, dir, depthGrid, rows, cols);
-        if (!cellExposed && expGrid > 0.8 && lat < 20) {
-          cellExposed = { row: r, col: c, d, H0, T, dir, lat, lon, label: `exposed-low-lat(${lat.toFixed(1)}°N)` };
-        } else if (!cellExposedMid && expGrid > 0.8 && lat >= 20) {
-          cellExposedMid = { row: r, col: c, d, H0, T, dir, lat, lon, label: `exposed-mid-lat(${lat.toFixed(1)}°N)` };
-        } else if (!cellSheltered && expGrid < 0.3) {
-          cellSheltered = { row: r, col: c, d, H0, T, dir, lat, lon, label: `sheltered(${lat.toFixed(1)}°)` };
-        }
-      }
-    }
-    const diagCells = [cellExposed, cellExposedMid, cellSheltered].filter(Boolean) as DiagCell[];
-    if (diagCells.length > 0) {
-      console.group('%c[CoastalDiag][RAYCAST] Shader-replica trace', 'color:#f80;font-weight:bold');
-      for (const cell of diagCells) {
-        const expGrid   = _computeExposure(cell.row, cell.col, cell.dir, depthGrid, rows, cols);
-        const expShader = _computeExposureShaderReplica(cell.row, cell.col, cell.dir, depthGrid, rows, cols, vb);
-        console.log(`[RAYCAST] ${cell.label}`, {
-          H0: cell.H0.toFixed(2), T: cell.T.toFixed(1), dir: cell.dir.toFixed(0),
-          d: cell.d.toFixed(1), lat: cell.lat.toFixed(2), lon: cell.lon.toFixed(2),
-          gridMirror: expGrid.toFixed(3),
-          shaderReplica: expShader.exposure.toFixed(3),
-          MATCH: Math.abs(expGrid - expShader.exposure) < 0.1 ? '✓' : '✗ DIVERGE',
-          trace: expShader.trace,
-        });
-      }
-      console.groupEnd();
-    } else {
-      console.log('[CoastalDiag][RAYCAST] No suitable cells found in this viewport — pan to Sri Lanka or Auckland');
-    }
-  }
 
   // AREA stats — iterate full 64×64 grid (R1 + optional R2 formula)
   let water = 0, band30 = 0, lit = 0, sumEa = 0, maxEa = 0;
