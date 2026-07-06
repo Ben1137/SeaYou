@@ -47,3 +47,11 @@ export { SeaTemperatureLayerML, type SeaTemperatureLayerMLProps } from './SeaTem
 export { AirTemperatureLayerML, type AirTemperatureLayerMLProps } from './AirTemperatureLayerML';
 export { PrecipitationLayerML, type PrecipitationLayerMLProps } from './PrecipitationLayerML';
 export { CloudCoverLayerML, type CloudCoverLayerMLProps } from './CloudCoverLayerML';
+
+/**
+ * Bathymetry Debug Layer — Phase 2 verification of Terrarium depth grid pipeline.
+ * Renders decoded ocean depth as a heatmap. Remove or gate behind DEV_MODE once
+ * CoastalDynamicsLayerML (Phase 3) is working.
+ */
+export { BathymetryDebugLayerML, type BathymetryDebugLayerMLProps } from './BathymetryDebugLayerML';
+export { CoastalDynamicsLayerML, type CoastalDynamicsLayerMLProps } from './CoastalDynamicsLayerML';

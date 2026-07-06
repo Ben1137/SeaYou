@@ -218,6 +218,49 @@ export const GUST_DELTA_COLORS: [number, number, number, number][] = [
   [200,  20, 120, 255],    // 35+ km/h — Extreme: magenta
 ];
 
+// Ocean depth debug ramp — shallow (transparent/teal) → deep (dark navy)
+// Input range: 0–6000 m depth (positive = below sea level; land/negative clamped to transparent).
+// Used by BathymetryDebugLayerML to verify Terrarium tile decode end-to-end.
+export const DEPTH_DEBUG_COLORS: [number, number, number, number][] = [
+  [  0,   0,   0,   0],    //    0 m — land / sea surface, fully transparent
+  [ 80, 200, 220,  60],    //  100 m — very shallow: pale teal
+  [ 40, 160, 200, 120],    //  300 m — shelf edge: blue-teal
+  [ 20, 110, 180, 160],    //  800 m — upper slope: medium blue
+  [ 10,  70, 150, 195],    // 1500 m — mid slope: deep blue
+  [  5,  40, 120, 220],    // 3000 m — abyssal: dark blue
+  [  0,  15,  70, 240],    // 6000 m — hadal: very dark navy
+];
+
+// Breaking-wave height colour ramp — worldwide-differentiating:
+//   calm (transparent ice-blue) → small surf (purple) → solid surf (hot pink) → big/dangerous (crimson)
+// Input range: 0–4 m (H_final / 4.0 → ramp index). 21 stops at 0.2 m intervals.
+// R3.3: low-end 0–0.4 m stops upgraded from saturated cyan (#00d2ff, α≈0.72–0.85) to Electric Ice
+// Blue (#64f0ff, α≈0.84–0.90). Higher luminance + higher alpha → Tel Aviv band reads clearly on the
+// dark Night Watch basemap. RGB at stop 3+ unchanged; magenta/crimson end untouched.
+export const BREAKING_WAVE_COLORS: [number, number, number, number][] = [
+  [100, 240, 255,   0],   //  0.0 m r=0.000 — transparent (RGB shown for LUT interpolation)
+  [100, 240, 255, 214],   //  0.2 m r=0.050 — ice-blue α=0.84 (was cyan α=0.43)
+  [100, 240, 255, 230],   //  0.4 m r=0.100 — ice-blue α=0.90 (was cyan α=0.85)
+  [ 45, 126, 255, 220],   //  0.6 m r=0.150 — cyan→purple
+  [ 90,  42, 255, 223],   //  0.8 m r=0.200 — blue-purple
+  [132,   0, 241, 225],   //  1.0 m r=0.250 — mid-purple
+  [173,   0, 214, 227],   //  1.2 m r=0.300 — purple
+  [214,   0, 187, 228],   //  1.4 m r=0.350 — purple→pink
+  [255,   0, 160, 230],   //  1.6 m r=0.400 — hot pink ← spec anchor (α=0.90)
+  [255,   0, 137, 231],   //  1.8 m r=0.450 — hot pink
+  [255,   0, 113, 232],   //  2.0 m r=0.500 — pink-red
+  [255,   0,  90, 233],   //  2.2 m r=0.550 — pink-crimson
+  [255,   0,  66, 234],   //  2.4 m r=0.600 — near-crimson
+  [255,   0,  43, 235],   //  2.6 m r=0.650 — crimson ← spec anchor (α=0.92)
+  [243,   0,  41, 236],   //  2.8 m r=0.700 — dark crimson
+  [231,   0,  39, 237],   //  3.0 m r=0.750 — dark crimson
+  [219,   0,  37, 238],   //  3.2 m r=0.800 — dark crimson
+  [206,   0,  36, 239],   //  3.4 m r=0.850 — deep crimson
+  [194,   0,  34, 240],   //  3.6 m r=0.900 — deep crimson
+  [182,   0,  32, 241],   //  3.8 m r=0.950 — deep crimson
+  [170,   0,  30, 242],   //  4.0 m r=1.000 — deep crimson ← spec anchor (α=0.95)
+];
+
 // Cloud cover color ramp (0% → 100%) — satellite-style: transparent → soft white clouds
 // Mimics real satellite infrared imagery: clear sky = invisible, clouds = bright white
 export const CLOUD_COVER_COLORS: [number, number, number, number][] = [

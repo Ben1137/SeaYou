@@ -515,6 +515,20 @@ function generateGustDeltaColorScale(): ColorScalePoint[] {
 }
 
 /**
+ * Breaking-wave height color scale matching BREAKING_WAVE_COLORS WebGL ramp (0 → 4 m).
+ * Transparent cyan → vivid purple → hot pink → crimson.
+ */
+function generateBreakingWavesColorScale(): ColorScalePoint[] {
+  return [
+    { value: 0,   color: 'rgba(100,240,255,0)',  label: '0 m'  }, // transparent (calm)
+    { value: 0.4, color: 'rgb(100,240,255)',      label: '0.4'  }, // electric ice-blue
+    { value: 1.2, color: 'rgb(112,0,255)',        label: '1.2'  }, // vivid purple
+    { value: 2.4, color: 'rgb(255,0,160)',        label: '2.4'  }, // hot pink
+    { value: 4.0, color: 'rgb(255,0,43)',         label: '4+ m' }, // crimson
+  ];
+}
+
+/**
  * Current heatmap color scale matching CURRENT_COLORS WebGL ramp (0 → 2+ m/s).
  * Same palette as the Current particle layer — kept as a separate legend entry
  * so the "Speed" framing (m/s) is unambiguous in the heatmap UI.
@@ -567,6 +581,7 @@ export const COLOR_SCALES = {
   chopLevel: generateChopLevelColorScale(),
   gustDelta: generateGustDeltaColorScale(),
   currentHeatmap: generateCurrentHeatmapColorScale(),
+  breakingWaves: generateBreakingWavesColorScale(),
   // Other
   bathymetry: generateBathymetryColorScale(),
   marineAreas: generateMarineAreasColorScale(),

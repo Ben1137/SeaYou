@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return false;
       }
       setError(null);
-      const res = await signUpWithEmail(email, password);
+      const res = await signUpWithEmail(email, password, window.location.origin);
       if (res.error) {
         setError(res.error);
         return false;

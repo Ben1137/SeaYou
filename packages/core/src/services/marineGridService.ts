@@ -120,6 +120,11 @@ export interface MarineGridPoint {
   swellDirection?: number;    // degrees
   swellPeriod?: number;       // seconds
 
+  // Secondary swell partition (model-dependent; undefined when not provided)
+  secondarySwellHeight?: number;
+  secondarySwellDirection?: number;
+  secondarySwellPeriod?: number;
+
   // Wind wave data (locally generated waves)
   windWaveHeight?: number;    // meters
   windWaveDirection?: number; // degrees
@@ -407,6 +412,8 @@ export async function fetchMarineGridData(
           'wave_height', 'wave_direction', 'wave_period', 'wave_peak_period',
           // Swell data (long-period waves from distant storms)
           'swell_wave_height', 'swell_wave_direction', 'swell_wave_period',
+          // Secondary swell partition (model-dependent; nullable)
+          'secondary_swell_wave_height', 'secondary_swell_wave_direction', 'secondary_swell_wave_period',
           // Wind wave data (locally generated waves)
           'wind_wave_height', 'wind_wave_direction', 'wind_wave_period',
           // Ocean currents
@@ -536,6 +543,11 @@ export async function fetchMarineGridData(
         swellHeight: marine.current?.swell_wave_height || 0,
         swellDirection: marine.current?.swell_wave_direction || 0,
         swellPeriod: marine.current?.swell_wave_period || 0,
+
+        // Secondary swell partition (nullable — only some models provide this)
+        secondarySwellHeight: marine.current?.secondary_swell_wave_height ?? undefined,
+        secondarySwellDirection: marine.current?.secondary_swell_wave_direction ?? undefined,
+        secondarySwellPeriod: marine.current?.secondary_swell_wave_period ?? undefined,
 
         // Wind Waves (locally generated)
         windWaveHeight: marine.current?.wind_wave_height || 0,

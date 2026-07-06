@@ -18,9 +18,17 @@ export interface AuthResult {
 
 // ─── Email / Password ───
 
-export async function signUpWithEmail(email: string, password: string): Promise<AuthResult> {
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  emailRedirectTo?: string
+): Promise<AuthResult> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: emailRedirectTo ? { emailRedirectTo } : undefined,
+  });
   return {
     user: data.user,
     session: data.session,
