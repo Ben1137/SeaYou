@@ -19,6 +19,7 @@ import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
+import { useCoastalReading } from '../hooks/useCoastalReading';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
 
 interface DashboardProps {
@@ -258,6 +259,37 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       [ActivityPersona.BEACHGOER]: findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex }),
     };
   }, [weatherData, currentHourIndex]);
+
+  // ── P5.1: Per-spot Coastal Dynamics reading ────────────────────────────────
+  // Reuses @seame/core nearshoreTransform with the same H0/T policy as the map.
+  // coastalReading is null when the spot is on land, deep water, or data unavailable.
+  const coastalReadingConditions = currentConditions ? {
+    swellHeight:   currentConditions.swell    ?? 0,
+    swellPeriod:   currentConditions.swellPeriod ?? 0,
+    swellDirection:currentConditions.swellDirection ?? 0,
+    waveHeight:    currentConditions.wave      ?? 0,
+    wavePeriod:    currentConditions.wavePeriod ?? 0,
+    waveDirection: currentConditions.swellDirection ?? 0,
+  } : null;
+  const coastalReading = useCoastalReading(currentLat, currentLng, coastalReadingConditions);
+
+  // P5.1 debug log — flag-gated on ?coastalReadingDebug=1
+  // Cross-check HFinal against ?coastalDiag=1 map output at the same lat/lon.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.search.includes('coastalReadingDebug=1')) return;
+    if (coastalReading) {
+      console.log('[CoastalReading]', locationName, {
+        lat: currentLat, lon: currentLng,
+        H0: coastalReading.H0.toFixed(2), T: coastalReading.T.toFixed(1),
+        d: coastalReading.d.toFixed(1),
+        HFinal: coastalReading.HFinal.toFixed(2),
+        Ks: coastalReading.Ks.toFixed(3), Kr: coastalReading.Kr.toFixed(3),
+        breaking: coastalReading.breaking, breakingCap: coastalReading.breakingCap.toFixed(2),
+      });
+    } else {
+      console.log('[CoastalReading]', locationName, 'null (land / deep / no data)');
+    }
+  }, [coastalReading, locationName, currentLat, currentLng]);
 
   const forecastTableBlocks = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return [];

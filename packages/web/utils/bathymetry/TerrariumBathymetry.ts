@@ -127,6 +127,22 @@ export function clearBathymetryCache(): void {
   tileCache.clear();
 }
 
+/**
+ * Fetch depth at a single lat/lon point. Returns depth in metres (+ve = below sea level).
+ * Negative = land/above sea level. Uses zoom 10 by default (same as the map at nearshore zoom).
+ * Reuses the tile cache, so repeated calls at nearby points are cheap.
+ */
+export async function fetchDepthAtPoint(lat: number, lon: number, zoom = 10): Promise<number> {
+  // Wrap the point in a 1×1 grid bounds and delegate to fetchDepthGrid.
+  const EPS = 0.0001; // ~11 m at equator — avoids degenerate zero-size bounds
+  const bounds: DepthGridBounds = {
+    minLon: lon - EPS, maxLon: lon + EPS,
+    minLat: lat - EPS, maxLat: lat + EPS,
+  };
+  const grid = await fetchDepthGrid(bounds, 1, 1, zoom);
+  return grid[0]?.[0] ?? NaN;
+}
+
 // ── Public API ──────────────────────────────────────────────────────────────
 
 export interface DepthGridBounds {
