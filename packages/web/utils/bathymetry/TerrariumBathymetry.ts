@@ -128,19 +128,68 @@ export function clearBathymetryCache(): void {
 }
 
 /**
- * Fetch depth at a single lat/lon point. Returns depth in metres (+ve = below sea level).
- * Negative = land/above sea level. Uses zoom 10 by default (same as the map at nearshore zoom).
- * Reuses the tile cache, so repeated calls at nearby points are cheap.
+ * Fetch depth at a single lat/lon point. Returns depth in metres (+ve = below sea level,
+ * negative = land / above). Uses zoom 10 by default (same as the map at nearshore zoom).
+ * Reuses the tile cache — repeated calls near the same point are cheap.
+ *
+ * NOTE: does NOT delegate to fetchDepthGrid(bounds, 1, 1) — that path has a 0/0 NaN when
+ * rows=1 or cols=1 (row/(rows-1) and col/(cols-1) both evaluate to 0/0). Instead we
+ * directly load the single tile and call sampleTileAtLonLat, matching fetchDepthGrid's
+ * inner loop exactly.
  */
 export async function fetchDepthAtPoint(lat: number, lon: number, zoom = 10): Promise<number> {
-  // Wrap the point in a 1×1 grid bounds and delegate to fetchDepthGrid.
-  const EPS = 0.0001; // ~11 m at equator — avoids degenerate zero-size bounds
+  const tx = lonToTileX(lon, zoom);
+  const ty = latToTileY(lat, zoom);
+  const imageData = await loadTile(zoom, tx, ty);
+  if (!imageData) return NaN;
+  const lon0 = tileToLon(tx, zoom);
+  const lon1 = tileToLon(tx + 1, zoom);
+  const lat0 = tileToLat(ty, zoom);      // north edge
+  const lat1 = tileToLat(ty + 1, zoom);  // south edge
+  return sampleTileAtLonLat(imageData, lon0, lon1, lat0, lat1, lon, lat);
+}
+
+/**
+ * Fetch nearshore depth for a spot. Returns the depth (m, +down) best representing the
+ * breaking zone at this location.
+ *
+ * Behaviour:
+ *  1. Sample the exact point. If depth is in a usable nearshore range (0 < d < 200 m) return it.
+ *  2. If the exact point is on land / waterline (d ≤ 0) or has no tile data (NaN), the marker
+ *     may sit on the beach. Search a ~2 km box (5×5 grid) for the shallowest surf-zone cell
+ *     (1–20 m first choice; any ocean cell < 200 m as fallback). This makes any coastal marker
+ *     work, not just ones that are already in the water.
+ *  3. If no usable depth found anywhere nearby → return NaN (hook returns null, P5.2 shows nothing).
+ *
+ * Rule: deep-water points (d ≥ 200 m) also trigger the search, since the engine only renders
+ * nearshore and a deep result means the marker is offshore of the surf zone.
+ */
+export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): Promise<number> {
+  const d = await fetchDepthAtPoint(lat, lon, zoom);
+  if (isFinite(d) && d > 0 && d < 200) return d;
+
+  // Exact point is on land, waterline, no-data, or deep water — search nearby.
+  const BOX_DEG = 2 / 111; // ~2 km in degrees (conservative; 111 km/degree at equator)
   const bounds: DepthGridBounds = {
-    minLon: lon - EPS, maxLon: lon + EPS,
-    minLat: lat - EPS, maxLat: lat + EPS,
+    minLon: lon - BOX_DEG, maxLon: lon + BOX_DEG,
+    minLat: lat - BOX_DEG, maxLat: lat + BOX_DEG,
   };
-  const grid = await fetchDepthGrid(bounds, 1, 1, zoom);
-  return grid[0]?.[0] ?? NaN;
+  const grid = await fetchDepthGrid(bounds, 5, 5, zoom);
+
+  const SURF_MIN = 1, SURF_MAX = 20; // m — surf-zone preference window
+  let shallowest: number | null = null;  // nearest surf-zone depth (1–20 m)
+  let anyOcean:   number | null = null;  // any valid nearshore depth (< 200 m fallback)
+
+  for (const row of grid) {
+    for (const cell of row) {
+      if (!isFinite(cell) || cell <= 0 || cell >= 200) continue;
+      if (anyOcean === null || cell < anyOcean) anyOcean = cell;
+      if (cell >= SURF_MIN && cell <= SURF_MAX) {
+        if (shallowest === null || cell < shallowest) shallowest = cell;
+      }
+    }
+  }
+  return shallowest ?? anyOcean ?? NaN;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────

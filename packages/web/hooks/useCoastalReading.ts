@@ -20,7 +20,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { nearshoreTransform } from '@seame/core';
-import { fetchDepthAtPoint } from '../utils/bathymetry/TerrariumBathymetry';
+import { fetchNearshoreDepth } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
 const SWELL_FLOOR  = 0.1;   // m — same as map's SWELL_FLOOR
@@ -101,9 +101,17 @@ export function useCoastalReading(
 
     let cancelled = false;
 
-    fetchDepthAtPoint(spotLat, spotLon, DEPTH_ZOOM)
+    const dbg = typeof window !== 'undefined' && window.location.search.includes('coastalReadingDebug=1');
+
+    fetchNearshoreDepth(spotLat, spotLon, DEPTH_ZOOM)
       .then(d => {
         if (cancelled) return;
+        if (dbg) {
+          console.log('[CoastalReading][depth]', {
+            inLat: spotLat, inLon: spotLon, rawDepth: d,
+            note: !isFinite(d) ? 'NaN/no-tile' : d <= 0 ? 'land' : d >= DEEP_CUTOFF ? 'deep' : 'surf-zone',
+          });
+        }
         if (!isFinite(d) || d <= 0 || d >= DEEP_CUTOFF) {
           setReading(null);
           return;
