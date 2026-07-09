@@ -678,7 +678,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       })()}
 
       {/* ─── Conditions Grid ─── */}
-      <section className={`grid grid-cols-2 gap-4 ${weatherData.tides ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
+      <section className={`grid grid-cols-2 gap-4 ${weatherData.tides ? 'lg:grid-cols-7' : 'lg:grid-cols-6'}`}>
         {/* Wave Height */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
@@ -717,6 +717,47 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             </p>
           </div>
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
+        </div>
+
+        {/* Coastal Dynamics — engine's breaking-wave height at the spot */}
+        <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
+          <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
+            <Ruler size={11} className="mr-1.5 shrink-0 text-teal-400" />
+            {t('coastalDynamics.label', 'Coastal Break')}
+          </h3>
+          <div className="relative z-10 mt-2">
+            {coastalReading ? (
+              <>
+                <div className="flex items-end mb-1">
+                  <span className={`text-4xl font-bold leading-none tabular-nums ${coastalReading.breaking ? 'text-amber-400' : 'text-teal-300'}`}>
+                    {coastalReading.HFinal.toFixed(1)}
+                  </span>
+                  <span className="text-lg ml-1 mb-1 font-medium">m</span>
+                </div>
+                <p className={`text-[11px] tabular-nums flex items-center gap-1 ${coastalReading.breaking ? 'text-amber-400/80' : 'text-teal-400/80'}`}>
+                  {coastalReading.breaking
+                    ? t('coastalDynamics.breaking', 'Breaking')
+                    : t('coastalDynamics.shoaling', 'Shoaling')}
+                  <span className="text-white/30 mx-0.5">·</span>
+                  <span className="text-white/60">{coastalReading.T.toFixed(1)}s</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-end mb-1">
+                  <span className="text-4xl font-bold leading-none text-white/20">—</span>
+                </div>
+                <p className="text-[11px] text-white/30">
+                  {t('coastalDynamics.noData', 'No nearshore data')}
+                </p>
+              </>
+            )}
+          </div>
+          {/* Honest modelled-estimate caveat */}
+          <p className="text-[9px] text-white/25 mt-2 leading-tight relative z-10" title={t('coastalDynamics.caveat', 'Modelled estimate from swell + seafloor depth. Not a spot-calibrated forecast.')}>
+            {t('coastalDynamics.caveatShort', 'Modelled · not a forecast')}
+          </p>
+          <Ruler className="absolute bottom-2 right-3 text-white/[0.05]" size={48} />
         </div>
 
         {/* Air Temperature */}
