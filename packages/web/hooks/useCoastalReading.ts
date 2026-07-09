@@ -18,7 +18,7 @@
  *   - H0 or T below engine minimums
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { nearshoreTransform } from '@seame/core';
 import { fetchNearshoreDepth } from '../utils/bathymetry/TerrariumBathymetry';
 
@@ -78,34 +78,29 @@ export function useCoastalReading(
 ): CoastalReading | null {
   const [reading, setReading] = useState<CoastalReading | null>(null);
 
-  // Track the last inputs to avoid redundant fetches
-  const lastKey = useRef<string>('');
+  // Extract primitive scalars so deps are stable numbers, not object identity.
+  // When conditions is null (no data yet) → H0=0, T=0 → fails MIN checks → null path.
+  const { H0, T } = conditions ? deriveSwellInputs(conditions) : { H0: 0, T: 0 };
 
   useEffect(() => {
-    if (spotLat == null || spotLon == null || !conditions) {
+    if (spotLat == null || spotLon == null ||
+        !isFinite(H0) || H0 < MIN_H0 ||
+        !isFinite(T)  || T  < MIN_T) {
       setReading(null);
       return;
     }
 
-    const { H0, T } = deriveSwellInputs(conditions);
+    // Clear stale reading immediately — return null while the new fetch is in-flight
+    // rather than showing the previous spot's values.
+    setReading(null);
 
-    if (!isFinite(H0) || H0 < MIN_H0 || !isFinite(T) || T < MIN_T) {
-      setReading(null);
-      return;
-    }
-
-    // Deduplicate: skip re-fetch when coords + inputs are unchanged
-    const key = `${spotLat.toFixed(4)},${spotLon.toFixed(4)},${H0.toFixed(3)},${T.toFixed(2)}`;
-    if (key === lastKey.current) return;
-    lastKey.current = key;
-
-    let cancelled = false;
+    let ignore = false;
 
     const dbg = typeof window !== 'undefined' && window.location.search.includes('coastalReadingDebug=1');
 
     fetchNearshoreDepth(spotLat, spotLon, DEPTH_ZOOM)
       .then(d => {
-        if (cancelled) return;
+        if (ignore) return;
         if (dbg) {
           console.log('[CoastalReading][depth]', {
             inLat: spotLat, inLon: spotLon, rawDepth: d,
@@ -129,11 +124,11 @@ export function useCoastalReading(
         });
       })
       .catch(() => {
-        if (!cancelled) setReading(null);
+        if (!ignore) setReading(null);
       });
 
-    return () => { cancelled = true; };
-  }, [spotLat, spotLon, conditions]);
+    return () => { ignore = true; };
+  }, [spotLat, spotLon, H0, T]);  // primitive deps — no object-identity churn
 
   return reading;
 }
