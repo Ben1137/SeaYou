@@ -260,6 +260,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     };
   }, [weatherData, currentHourIndex]);
 
+  // Tide is decision-relevant for mariners and divers; surfers/beachgoers don't need it in
+  // the conditions grid (they use the tide chart instead). WAVE_SURFER may be added here
+  // at reef/point breaks — deferred to D.3 which builds full persona card-filtering.
+  const TIDE_PERSONAS = new Set<string>(['mariner', 'diver']);
+  const showTide = !!(weatherData?.tides && (persona == null || TIDE_PERSONAS.has(persona)));
+
   // ── P5.1: Per-spot Coastal Dynamics reading ────────────────────────────────
   // Reuses @seame/core nearshoreTransform with the same H0/T policy as the map.
   // coastalReading is null when the spot is on land, deep water, or data unavailable.
@@ -678,7 +684,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       })()}
 
       {/* ─── Conditions Grid ─── */}
-      <section className={`grid grid-cols-2 gap-4 ${weatherData.tides ? 'lg:grid-cols-7' : 'lg:grid-cols-6'}`}>
+      <section className={`grid grid-cols-2 gap-4 ${showTide ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
         {/* Wave Height */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
@@ -760,27 +766,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <Ruler className="absolute bottom-2 right-3 text-white/[0.05]" size={48} />
         </div>
 
-        {/* Air Temperature */}
+        {/* Water & Air Temperature — sea temp is hero (drives activity decision) */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
-            <Thermometer size={11} className="mr-1.5 shrink-0" /> {t('weather.air')}
-          </h3>
-          <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1">
-              <span className="text-4xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
-              <span className="text-lg ml-1 mb-1 font-medium">°C</span>
-            </div>
-            <p className="text-[11px] text-white/60 tabular-nums">
-              {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
-            </p>
-          </div>
-          <Thermometer className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
-        </div>
-
-        {/* Sea Temperature */}
-        <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
-          <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
-            <Thermometer size={11} className="mr-1.5 shrink-0 text-orange-400" /> {t('weather.sea')}
+            <Thermometer size={11} className="mr-1.5 shrink-0 text-orange-400" /> {t('weather.waterAir', 'Water & Air')}
           </h3>
           <div className="relative z-10 mt-2">
             <div className="flex items-end mb-1">
@@ -788,14 +777,16 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <span className="text-lg ml-1 mb-1 font-medium">°C</span>
             </div>
             <p className="text-[11px] text-white/60 tabular-nums">
+              {t('weather.air')} {weatherData.general?.temperature.toFixed(0)}°
+              <span className="text-white/30 mx-1">·</span>
               {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
             </p>
           </div>
           <Droplets className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
         </div>
 
-        {/* Sea Level / Tidal Trend — only rendered when real tide data is available */}
-        {weatherData.tides && (
+        {/* Tidal Trend — shown for mariners + divers; surfers/beachgoers defer to tide chart (D.3) */}
+        {showTide && weatherData.tides && (
           <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
             <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
               <Waves size={11} className="mr-1.5" /> {t('forecast.tideHeight')}
