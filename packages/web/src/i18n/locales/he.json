@@ -175,6 +175,10 @@
       "label": "קייט סרף",
       "desc": "תנאי קייט סרפינג"
     },
+    "boogieBoarder": {
+      "label": "Boogie Board",
+      "desc": "Bodyboarding conditions"
+    },
     "sailor": {
       "label": "שיט",
       "desc": "תנאי שיט"
@@ -253,7 +257,8 @@
     "diverForecast": "תחזית צוללנים",
     "noTideData": "אין נתוני גאות ושפל זמינים עבור מיקום זה",
     "rising": "עולה",
-    "falling": "יורד"
+    "falling": "יורד",
+    "boogieBoarderForecast": "Boogie Boarder's Forecast"
   },
   "table": {
     "period": "תקופה",

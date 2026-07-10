@@ -29,12 +29,13 @@ interface AlertConfigModalProps {
 // ─── Persona selector config ───
 
 const PERSONA_OPTIONS: { persona: ActivityPersona; label: string; emoji: string; color: string }[] = [
-  { persona: ActivityPersona.WAVE_SURFER, label: 'Wave Surf', emoji: '\uD83C\uDFC4', color: 'bg-purple-500/60' },
-  { persona: ActivityPersona.WIND_SURFER, label: 'Wind Surf', emoji: '\uD83D\uDCA8', color: 'bg-cyan-500/60' },
-  { persona: ActivityPersona.KITE_SURFER, label: 'Kite', emoji: '\uD83E\uDE81', color: 'bg-amber-500/60' },
-  { persona: ActivityPersona.SAILOR, label: 'Sailing', emoji: '\u26F5', color: 'bg-teal-500/60' },
-  { persona: ActivityPersona.DIVER, label: 'Dive', emoji: '\uD83E\uDD3F', color: 'bg-blue-500/60' },
-  { persona: ActivityPersona.BEACHGOER, label: 'Beach', emoji: '\uD83C\uDFD6\uFE0F', color: 'bg-amber-400/60' },
+  { persona: ActivityPersona.WAVE_SURFER,    label: 'Wave Surf',     emoji: '\uD83C\uDFC4',     color: 'bg-purple-500/60' },
+  { persona: ActivityPersona.WIND_SURFER,    label: 'Wind Surf',     emoji: '\uD83D\uDCA8',     color: 'bg-cyan-500/60' },
+  { persona: ActivityPersona.KITE_SURFER,    label: 'Kite',          emoji: '\uD83E\uDE81',     color: 'bg-amber-500/60' },
+  { persona: ActivityPersona.BOOGIE_BOARDER, label: 'Boogie Board',  emoji: '\uD83C\uDF0A',     color: 'bg-rose-500/60' },
+  { persona: ActivityPersona.SAILOR,         label: 'Sailing',       emoji: '\u26F5',           color: 'bg-teal-500/60' },
+  { persona: ActivityPersona.DIVER,          label: 'Dive',          emoji: '\uD83E\uDD3F',     color: 'bg-blue-500/60' },
+  { persona: ActivityPersona.BEACHGOER,      label: 'Beach',         emoji: '\uD83C\uDFD6\uFE0F', color: 'bg-amber-400/60' },
 ];
 
 export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onClose, currentLat, currentLng }) => {

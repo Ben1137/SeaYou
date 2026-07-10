@@ -77,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const { thresholds, isDismissed, dismiss, resetDismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
   const [showSettings, setShowSettings] = useState(false);
-  type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
+  type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'boogie_boarder' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
   // Selected activity persona for the Explainable-UI breakdown modal
@@ -239,24 +239,26 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const activityScores = useMemo(() => {
     if (!scoringConditions) return null;
     return {
-      [ActivityPersona.SAILOR]: scoreActivity(ActivityPersona.SAILOR, scoringConditions),
-      [ActivityPersona.WAVE_SURFER]: scoreActivity(ActivityPersona.WAVE_SURFER, scoringConditions),
-      [ActivityPersona.WIND_SURFER]: scoreActivity(ActivityPersona.WIND_SURFER, scoringConditions),
-      [ActivityPersona.KITE_SURFER]: scoreActivity(ActivityPersona.KITE_SURFER, scoringConditions),
-      [ActivityPersona.DIVER]: scoreActivity(ActivityPersona.DIVER, scoringConditions),
-      [ActivityPersona.BEACHGOER]: scoreActivity(ActivityPersona.BEACHGOER, scoringConditions),
+      [ActivityPersona.SAILOR]:         scoreActivity(ActivityPersona.SAILOR, scoringConditions),
+      [ActivityPersona.WAVE_SURFER]:    scoreActivity(ActivityPersona.WAVE_SURFER, scoringConditions),
+      [ActivityPersona.WIND_SURFER]:    scoreActivity(ActivityPersona.WIND_SURFER, scoringConditions),
+      [ActivityPersona.KITE_SURFER]:    scoreActivity(ActivityPersona.KITE_SURFER, scoringConditions),
+      [ActivityPersona.BOOGIE_BOARDER]: scoreActivity(ActivityPersona.BOOGIE_BOARDER, scoringConditions),
+      [ActivityPersona.DIVER]:          scoreActivity(ActivityPersona.DIVER, scoringConditions),
+      [ActivityPersona.BEACHGOER]:      scoreActivity(ActivityPersona.BEACHGOER, scoringConditions),
     };
   }, [scoringConditions]);
 
   const bestWindows = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return null;
     return {
-      [ActivityPersona.SAILOR]: findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.WAVE_SURFER]: findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.WIND_SURFER]: findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.KITE_SURFER]: findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.DIVER]: findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.BEACHGOER]: findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.SAILOR]:         findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.WAVE_SURFER]:    findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.WIND_SURFER]:    findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.KITE_SURFER]:    findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.BOOGIE_BOARDER]: findBestWindow(weatherData, ActivityPersona.BOOGIE_BOARDER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.DIVER]:          findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.BEACHGOER]:      findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex }),
     };
   }, [weatherData, currentHourIndex]);
 
@@ -349,11 +351,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return blocks;
   }, [weatherData, currentHourIndex]);
 
-  const ALL_FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'diver', 'beach'];
+  const ALL_FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'boogie_boarder', 'diver', 'beach'];
   // Filter forecast tabs to only those relevant to the user's onboarding persona
   const PERSONA_TAB_MAP: Record<OnboardingPersona, ForecastTab[]> = {
     mariner: ['mariner'],
-    surfer: ['wave_surfer', 'wind_surfer', 'kite_surfer', 'beach'],
+    surfer: ['wave_surfer', 'wind_surfer', 'kite_surfer', 'boogie_boarder', 'beach'],
     diver: ['diver'],
     beachgoer: ['beach'],
   };
@@ -387,23 +389,25 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   const forecastTabLabel = (tab: ForecastTab): string => {
     const map: Record<ForecastTab, string> = {
-      mariner: t('forecast.marinerForecast'),
-      wave_surfer: t('forecast.waveSurferForecast'),
-      wind_surfer: t('forecast.windSurferForecast'),
-      kite_surfer: t('forecast.kiteForecast'),
-      diver: t('forecast.diverForecast'),
-      beach: t('forecast.beachForecast'),
+      mariner:        t('forecast.marinerForecast'),
+      wave_surfer:    t('forecast.waveSurferForecast'),
+      wind_surfer:    t('forecast.windSurferForecast'),
+      kite_surfer:    t('forecast.kiteForecast'),
+      boogie_boarder: t('forecast.boogieBoarderForecast', "Boogie Boarder's Forecast"),
+      diver:          t('forecast.diverForecast'),
+      beach:          t('forecast.beachForecast'),
     };
     return map[tab];
   };
 
   const forecastTabPersona = (tab: ForecastTab): ActivityPersona | null => {
     const map: Partial<Record<ForecastTab, ActivityPersona>> = {
-      wave_surfer: ActivityPersona.WAVE_SURFER,
-      wind_surfer: ActivityPersona.WIND_SURFER,
-      kite_surfer: ActivityPersona.KITE_SURFER,
-      diver: ActivityPersona.DIVER,
-      beach: ActivityPersona.BEACHGOER,
+      wave_surfer:    ActivityPersona.WAVE_SURFER,
+      wind_surfer:    ActivityPersona.WIND_SURFER,
+      kite_surfer:    ActivityPersona.KITE_SURFER,
+      boogie_boarder: ActivityPersona.BOOGIE_BOARDER,
+      diver:          ActivityPersona.DIVER,
+      beach:          ActivityPersona.BEACHGOER,
     };
     return map[tab] ?? null;
   };
@@ -520,12 +524,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <h3 className="text-sm font-semibold text-white/90 mb-3 uppercase tracking-wider flex items-center"><Flag size={13} className="mr-2" /> {t('activity.report')}</h3>
         {(() => {
           const ALL_CARDS: { persona: ActivityPersona; icon: typeof Sailboat; iconColor: string; labelKey: string }[] = [
-            { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
-            { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
-            { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
-            { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
-            { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
-            { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
+            { persona: ActivityPersona.SAILOR,         icon: Sailboat,  iconColor: 'text-white',     labelKey: 'activity.sailor.label' },
+            { persona: ActivityPersona.WAVE_SURFER,    icon: Waves,     iconColor: 'text-teal-400',  labelKey: 'activity.waveSurfer.label' },
+            { persona: ActivityPersona.WIND_SURFER,    icon: Wind,      iconColor: 'text-cyan-400',  labelKey: 'activity.windSurfer.label' },
+            { persona: ActivityPersona.KITE_SURFER,    icon: Wind,      iconColor: 'text-sky-400',   labelKey: 'activity.kiteSurfer.label' },
+            { persona: ActivityPersona.BOOGIE_BOARDER, icon: Activity,  iconColor: 'text-rose-400',  labelKey: 'activity.boogieBoarder.label' },
+            { persona: ActivityPersona.DIVER,          icon: Anchor,    iconColor: 'text-blue-400',  labelKey: 'activity.diver.label' },
+            { persona: ActivityPersona.BEACHGOER,      icon: Palmtree,  iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
           ];
 
           // selectedActivities (from AlertConfigModal) takes priority.
@@ -536,7 +541,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           } else if (persona) {
             const PERSONA_CARD_MAP: Record<OnboardingPersona, ActivityPersona[]> = {
               mariner: [ActivityPersona.SAILOR],
-              surfer: [ActivityPersona.WAVE_SURFER, ActivityPersona.WIND_SURFER, ActivityPersona.KITE_SURFER, ActivityPersona.BEACHGOER],
+              surfer: [ActivityPersona.WAVE_SURFER, ActivityPersona.WIND_SURFER, ActivityPersona.KITE_SURFER, ActivityPersona.BOOGIE_BOARDER, ActivityPersona.BEACHGOER],
               diver: [ActivityPersona.DIVER],
               beachgoer: [ActivityPersona.BEACHGOER],
             };
@@ -666,12 +671,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       {/* ─── Explainable UI: Score Breakdown Modal ─── */}
       {(() => {
         const LABEL_MAP: Record<ActivityPersona, string> = {
-          [ActivityPersona.SAILOR]:      t('activity.sailor.label'),
-          [ActivityPersona.WAVE_SURFER]: t('activity.waveSurfer.label'),
-          [ActivityPersona.WIND_SURFER]: t('activity.windSurfer.label'),
-          [ActivityPersona.KITE_SURFER]: t('activity.kiteSurfer.label'),
-          [ActivityPersona.DIVER]:       t('activity.diver.label'),
-          [ActivityPersona.BEACHGOER]:   t('activity.beachgoer.label'),
+          [ActivityPersona.SAILOR]:         t('activity.sailor.label'),
+          [ActivityPersona.WAVE_SURFER]:    t('activity.waveSurfer.label'),
+          [ActivityPersona.WIND_SURFER]:    t('activity.windSurfer.label'),
+          [ActivityPersona.KITE_SURFER]:    t('activity.kiteSurfer.label'),
+          [ActivityPersona.BOOGIE_BOARDER]: t('activity.boogieBoarder.label', 'Boogie Board'),
+          [ActivityPersona.DIVER]:          t('activity.diver.label'),
+          [ActivityPersona.BEACHGOER]:      t('activity.beachgoer.label'),
         };
         return (
           <ScoreBreakdownModal

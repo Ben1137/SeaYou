@@ -1,10 +1,11 @@
 export enum ActivityPersona {
-  WAVE_SURFER = 'wave_surfer',
-  WIND_SURFER = 'wind_surfer',
-  KITE_SURFER = 'kite_surfer',
-  SAILOR = 'sailor',
-  DIVER = 'diver',
-  BEACHGOER = 'beachgoer',
+  WAVE_SURFER    = 'wave_surfer',
+  WIND_SURFER    = 'wind_surfer',
+  KITE_SURFER    = 'kite_surfer',
+  BOOGIE_BOARDER = 'boogie_boarder',
+  SAILOR         = 'sailor',
+  DIVER          = 'diver',
+  BEACHGOER      = 'beachgoer',
 }
 
 export interface HourlyConditions {

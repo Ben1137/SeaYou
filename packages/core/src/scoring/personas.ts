@@ -82,6 +82,40 @@ export function scoreWaveSurfer(c: HourlyConditions): ActivityScore {
   return buildScore(overall, factors, warnings, breakdown);
 }
 
+// Bodyboarding: power/height dominant (0.42), period less critical than surfing
+// (steep short-period shorebreak is ideal), onshore wind tolerated (wider sweet-spot),
+// chop weighted same as surfing (bodyboarders ride prone/mush but still care about chop).
+// Weights: height 0.42 · period 0.18 · wind 0.20 · chop 0.10 · weather 0.10 = 1.00
+export function scoreBoogieBoarder(c: HourlyConditions): ActivityScore {
+  const warnings: string[] = [];
+  if (c.swellHeight > 4.5) warnings.push('Heavy shore-break — experienced bodyboarders only');
+  if (c.windGusts > 45) warnings.push('Strong gusts');
+
+  const factors: Record<string, number> = {
+    swellHeight: sweetSpotScore(c.swellHeight, 0.4, 1.0, 3.0, 5.0),
+    swellPeriod: sweetSpotScore(c.swellPeriod, 3, 5, 12, 18),
+    windSpeed:   sweetSpotScore(c.windSpeed, 0, 5, 22, 42),
+    chop:        (1 - chopIndex(c.windWaveHeight || 0, c.swellHeight)) * 100,
+    weather:     weatherBonus(c.weatherCode),
+  };
+
+  const overall = factors.swellHeight * 0.42
+    + factors.swellPeriod * 0.18
+    + factors.windSpeed   * 0.20
+    + factors.chop        * 0.10
+    + factors.weather     * 0.10;
+
+  const breakdown: ScoreFactor[] = [
+    factorRow('Swell Height', fmtM(c.swellHeight), factors.swellHeight),
+    factorRow('Swell Period', fmtS(c.swellPeriod), factors.swellPeriod),
+    factorRow('Wind Speed',   fmtKmh(c.windSpeed), factors.windSpeed),
+    factorRow('Chop', c.windWaveHeight ? fmtM(c.windWaveHeight) : 'Minimal', factors.chop),
+    factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+  ];
+
+  return buildScore(overall, factors, warnings, breakdown);
+}
+
 export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
   const warnings: string[] = [];
   if (c.windGusts > 50) warnings.push('Extreme gusts — danger');
