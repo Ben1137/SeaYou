@@ -783,22 +783,22 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </h3>
           <div className="relative z-10 mt-2 flex gap-0">
             {/* Sea half */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex items-end mb-1">
+            <div className="flex-1 flex flex-col items-center">
+              <div className="flex items-end justify-center mb-1">
                 <span className="text-3xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
                 <span className="text-base ml-0.5 mb-0.5 font-medium">°</span>
               </div>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">{t('weather.sea', 'Sea')}</p>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider text-center">{t('weather.sea', 'Sea')}</p>
             </div>
             {/* Hairline divider */}
             <div className="w-px self-stretch bg-white/10 mx-3" />
             {/* Air half */}
-            <div className="flex-1 flex flex-col">
-              <div className="flex items-end mb-1">
+            <div className="flex-1 flex flex-col items-center">
+              <div className="flex items-end justify-center mb-1">
                 <span className="text-3xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0) ?? '--'}</span>
                 <span className="text-base ml-0.5 mb-0.5 font-medium">°</span>
               </div>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">{t('weather.air', 'Air')}</p>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider text-center">{t('weather.air', 'Air')}</p>
             </div>
           </div>
           <Droplets className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
