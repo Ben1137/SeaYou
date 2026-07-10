@@ -731,6 +731,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             <Ruler size={11} className="mr-1.5 shrink-0 text-teal-400" />
             {t('coastalDynamics.label', 'Coastal Break')}
           </h3>
+          {/* Value block is the second (and only other) flex child — matches sibling structure exactly. */}
           <div className="relative z-10 mt-2">
             {coastalReading ? (
               <>
@@ -759,28 +760,40 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               </>
             )}
           </div>
-          {/* Honest modelled-estimate caveat */}
-          <p className="text-[9px] text-white/25 mt-2 leading-tight relative z-10" title={t('coastalDynamics.caveat', 'Modelled estimate from swell + seafloor depth. Not a spot-calibrated forecast.')}>
+          {/* Caveat: absolutely positioned so it never adds a third flex child (keeps baseline grid). */}
+          <span
+            className="absolute bottom-1.5 left-4 text-[9px] text-white/20 leading-none z-10"
+            title={t('coastalDynamics.caveat', 'Modelled estimate from swell + seafloor depth. Not a spot-calibrated forecast.')}
+          >
             {t('coastalDynamics.caveatShort', 'Modelled · not a forecast')}
-          </p>
+          </span>
           <Ruler className="absolute bottom-2 right-3 text-white/[0.05]" size={48} />
         </div>
 
-        {/* Water & Air Temperature — sea temp is hero (drives activity decision) */}
+        {/* Water & Air Temperature — split peers: sea (left) | air (right) */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
             <Thermometer size={11} className="mr-1.5 shrink-0 text-orange-400" /> {t('weather.waterAir', 'Water & Air')}
           </h3>
-          <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1">
-              <span className="text-4xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
-              <span className="text-lg ml-1 mb-1 font-medium">°C</span>
+          <div className="relative z-10 mt-2 flex gap-0">
+            {/* Sea half */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-end mb-1">
+                <span className="text-3xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
+                <span className="text-base ml-0.5 mb-0.5 font-medium">°</span>
+              </div>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">{t('weather.sea', 'Sea')}</p>
             </div>
-            <p className="text-[11px] text-white/60 tabular-nums">
-              {t('weather.air')} {weatherData.general?.temperature.toFixed(0)}°
-              <span className="text-white/30 mx-1">·</span>
-              {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
-            </p>
+            {/* Hairline divider */}
+            <div className="w-px self-stretch bg-white/10 mx-3" />
+            {/* Air half */}
+            <div className="flex-1 flex flex-col">
+              <div className="flex items-end mb-1">
+                <span className="text-3xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0) ?? '--'}</span>
+                <span className="text-base ml-0.5 mb-0.5 font-medium">°</span>
+              </div>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">{t('weather.air', 'Air')}</p>
+            </div>
           </div>
           <Droplets className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
         </div>
@@ -993,11 +1006,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         )}
       </section>
 
-      {/* Phase 6 — Past Voyages / Logbook. Auto-saves completed navigation
-          sessions, shows cloud-synced trips when signed in. */}
-      <section>
-        <VoyageLogbookCard />
-      </section>
+      {/* Phase 6 — Logbook. Mariner-only: knots/distance/speed are not relevant to surfers
+          or beachgoers. Null persona → hidden (avoid confusing non-mariners with voyage data). */}
+      {persona === 'mariner' && (
+        <section>
+          <VoyageLogbookCard />
+        </section>
+      )}
 
     </div>
   );
