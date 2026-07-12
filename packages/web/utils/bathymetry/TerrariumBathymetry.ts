@@ -310,51 +310,90 @@ export interface NearshoreDepthWithGradient {
 }
 
 /**
- * Fetch nearshore depth AND a central-difference depth gradient for the offshore
- * bearing calculation (shore normal). The gradient is cos(lat)-corrected so that
- * atan2(gradEast, gradNorth) gives a true compass bearing.
+ * Fetch nearshore depth AND a least-squares depth-gradient for the offshore bearing.
  *
- * Gradient geometry:
- *   - Sample spacing: ~1 km (GEBCO/ETOPO1 native cell ≈ 450 m; 1 km straddles real cells).
- *   - cos(lat) correction: dE_m = dLon × cos(lat × π/180) × 111320 m/deg.
- *   - dN_m = dLat × 110570 m/deg.
- *   - Central difference: gradEast = (depthE - depthW) / (2 × dE_m).
- *   - Centred on the SPOT coords (lat, lon), NOT on any fallback shallowest cell.
+ * Algorithm:
+ *   1. Fetch centre depth via fetchNearshoreDepth (proven path; handles land fallback).
+ *   2. Fetch a 5×5 ~4km grid via fetchDepthGrid; keep only ocean cells (0 < d < 200 m).
+ *      A two-point central difference dies at the coast (inland neighbour = land/NaN).
+ *      A plane fit over ocean-only cells is robust: the land half is simply absent.
+ *   3. Least-squares plane fit: depth ≈ a·E_m + b·N_m + c (demeaned, 2×2 normal equations).
+ *      gradEast = a, gradNorth = b (m/m). atan2(E,N) → offshore compass bearing.
+ *   4. Grid fetch is in its own try/catch — failure → NaN gradients; reading still renders.
  *
- * The centreDepth is fetched independently via fetchNearshoreDepth (same cache,
- * same logic — land / deep / NaN triggers offshore-fallback search).
- *
- * @param lat   Spot latitude (degrees)
- * @param lon   Spot longitude (degrees)
- * @param zoom  Tile zoom (default 10; same as nearshore fetch)
+ * Row/col convention (from fetchDepthGrid): row 0 = north (maxLat), col 0 = west (minLon).
+ * cos(lat) correction applied so atan2(gradEast, gradNorth) gives a true compass bearing.
  */
 export async function fetchNearshoreDepthWithGradient(
   lat: number,
   lon: number,
   zoom = 10,
 ): Promise<NearshoreDepthWithGradient> {
-  // Step size ~1 km in degrees
-  const dLat = 1 / 110.57;   // ~1 km northward
-  const dLon = 1 / (111.32 * Math.cos(lat * Math.PI / 180)); // ~1 km eastward, cos-corrected
+  // Step 1 — centre depth (proven path; never fails the reading)
+  const centreDepth = await fetchNearshoreDepth(lat, lon, zoom);
 
-  // Fetch centre depth via the existing nearshore function (handles offshore fallback)
-  // and the 4 cardinal neighbour depths directly via fetchDepthAtPoint (no fallback needed —
-  // we only need shallow-water gradient; NaN neighbours are handled below).
-  const [centreDepth, depthE, depthW, depthN, depthS] = await Promise.all([
-    fetchNearshoreDepth(lat, lon, zoom),
-    fetchDepthAtPoint(lat,        lon + dLon, zoom),
-    fetchDepthAtPoint(lat,        lon - dLon, zoom),
-    fetchDepthAtPoint(lat + dLat, lon,        zoom),
-    fetchDepthAtPoint(lat - dLat, lon,        zoom),
-  ]);
+  // Step 2 — gradient grid in its own try/catch so a tile error never nulls the reading
+  try {
+    const ROWS = 5, COLS = 5;
+    // Half-span ~2 km in each direction
+    const dLatSpan = 2 / 110.57;
+    const dLonSpan = 2 / (111.32 * Math.cos(lat * Math.PI / 180));
 
-  // Central difference (m/m), cos(lat)-corrected
-  const dE_m = dLon * Math.cos(lat * Math.PI / 180) * 111320;
-  const dN_m = dLat * 110570;
+    const bounds: DepthGridBounds = {
+      minLon: lon - dLonSpan, maxLon: lon + dLonSpan,
+      minLat: lat - dLatSpan, maxLat: lat + dLatSpan,
+    };
+    const grid = await fetchDepthGrid(bounds, COLS, ROWS, zoom);
 
-  // If either pair has non-finite values, return NaN for that axis
-  const gradEast  = (isFinite(depthE) && isFinite(depthW))  ? (depthE - depthW) / (2 * dE_m) : NaN;
-  const gradNorth = (isFinite(depthN) && isFinite(depthS))  ? (depthN - depthS) / (2 * dN_m) : NaN;
+    // Metre step between adjacent cells (5 cells span 2×dSpan → 4 intervals)
+    // colStepM ≈ 1000 m; rowStepM ≈ 1000 m
+    const colStepM = (2 * dLonSpan * Math.cos(lat * Math.PI / 180) * 111320) / (COLS - 1);
+    const rowStepM = (2 * dLatSpan * 110570) / (ROWS - 1);
 
-  return { centreDepth, gradEast, gradNorth };
+    // Collect ocean-only cells with their metre offsets from centre
+    // row 0 = north (maxLat) → N_m positive; col 0 = west (minLon) → E_m negative
+    const cells: { E_m: number; N_m: number; depth: number }[] = [];
+    for (let row = 0; row < ROWS; row++) {
+      for (let col = 0; col < COLS; col++) {
+        const depth = grid[row][col];
+        if (!isFinite(depth) || depth <= 0 || depth >= 200) continue;
+        cells.push({
+          E_m: (col - 2) * colStepM,  // col 2 = centre lon
+          N_m: (2 - row) * rowStepM,  // row 2 = centre lat; row 0 = north = positive N
+          depth,
+        });
+      }
+    }
+
+    if (cells.length < 4) {
+      return { centreDepth, gradEast: NaN, gradNorth: NaN };
+    }
+
+    // Least-squares plane fit: depth ≈ a·E + b·N + c
+    // Demean to decouple intercept from slope (→ 2×2 normal equations)
+    const n = cells.length;
+    const meanE = cells.reduce((s, c) => s + c.E_m,  0) / n;
+    const meanN = cells.reduce((s, c) => s + c.N_m,  0) / n;
+    const meanD = cells.reduce((s, c) => s + c.depth, 0) / n;
+
+    let sEE = 0, sEN = 0, sNN = 0, sdE = 0, sdN = 0;
+    for (const { E_m, N_m, depth } of cells) {
+      const e = E_m - meanE, nv = N_m - meanN, d = depth - meanD;
+      sEE += e * e; sEN += e * nv; sNN += nv * nv;
+      sdE += d * e; sdN += d * nv;
+    }
+
+    // Cramer's rule for [sEE sEN; sEN sNN][a;b] = [sdE;sdN]
+    const det = sEE * sNN - sEN * sEN;
+    if (Math.abs(det) < 1e-12) {
+      return { centreDepth, gradEast: NaN, gradNorth: NaN };
+    }
+
+    const gradEast  = (sdE * sNN - sdN * sEN) / det;
+    const gradNorth = (sEE * sdN - sEN * sdE) / det;
+
+    return { centreDepth, gradEast, gradNorth };
+  } catch {
+    return { centreDepth, gradEast: NaN, gradNorth: NaN };
+  }
 }
