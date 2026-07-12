@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -298,6 +298,23 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       console.log('[CoastalReading]', locationName, 'null (land / deep / no data)');
     }
   }, [coastalReading, locationName, currentLat, currentLng]);
+
+  // P5.3 wind-quality debug log — flag-gated on ?windQualityDebug=1
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.search.includes('windQualityDebug=1')) return;
+    const snDeg = coastalReading?.shoreNormalDeg ?? null;
+    const windDir = currentConditions?.windDirection ?? null;
+    if (snDeg != null && windDir != null) {
+      const wq = windQuality(windDir, snDeg);
+      const windToward = ((windDir + 180) % 360 + 360) % 360;
+      console.log('[WindQuality]', locationName, {
+        shoreNormalDeg: snDeg, windFromDeg: windDir, windToward,
+        angle: wq.angle.toFixed(1), factor: wq.factor.toFixed(3), label: wq.label,
+      });
+    } else {
+      console.log('[WindQuality]', locationName, { shoreNormalDeg: snDeg, windDir, note: 'chip suppressed' });
+    }
+  }, [coastalReading, currentConditions, locationName]);
 
   const forecastTableBlocks = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return [];
@@ -765,6 +782,23 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 </p>
               </>
             )}
+            {/* Wind-quality chip — only when shore normal is available */}
+            {coastalReading?.shoreNormalDeg != null && currentConditions && (() => {
+              const wq = windQuality(currentConditions.windDirection, coastalReading.shoreNormalDeg!);
+              const chipColor =
+                wq.label === 'offshore' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
+                wq.label === 'onshore'  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                                          'bg-white/5 text-white/40 border-white/10';
+              const chipLabel =
+                wq.label === 'offshore' ? t('wind.offshore', 'Offshore') :
+                wq.label === 'onshore'  ? t('wind.onshore',  'Onshore')  :
+                                          t('wind.cross',     'Cross');
+              return (
+                <span className={`inline-flex items-center mt-2 px-2 py-0.5 rounded-full text-[10px] font-medium border ${chipColor}`}>
+                  {chipLabel}
+                </span>
+              );
+            })()}
           </div>
           {/* Caveat: absolutely positioned so it never adds a third flex child (keeps baseline grid). */}
           <span

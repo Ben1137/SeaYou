@@ -19,8 +19,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { nearshoreTransform } from '@seame/core';
-import { fetchNearshoreDepth } from '../utils/bathymetry/TerrariumBathymetry';
+import { nearshoreTransform, shoreNormalFromDepthGradient } from '@seame/core';
+import { fetchNearshoreDepthWithGradient } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
 const SWELL_FLOOR  = 0.1;   // m — same as map's SWELL_FLOOR
@@ -56,6 +56,8 @@ export interface CoastalReading {
   T: number;
   /** Depth (m, +down) at the spot. */
   d: number;
+  /** Offshore compass bearing derived from bathymetry depth gradient (degrees [0,360)), or null when gradient is ambiguous. */
+  shoreNormalDeg: number | null;
 }
 
 /**
@@ -95,23 +97,30 @@ export function useCoastalReading(
     setReading(null);
 
     let ignore = false;
+    // Capture coords at request time for stale-response guard
+    const reqLat = spotLat;
+    const reqLon = spotLon;
 
     const dbg = typeof window !== 'undefined' && window.location.search.includes('coastalReadingDebug=1');
 
-    fetchNearshoreDepth(spotLat, spotLon, DEPTH_ZOOM)
-      .then(d => {
-        if (ignore) return;
+    fetchNearshoreDepthWithGradient(spotLat, spotLon, DEPTH_ZOOM)
+      .then(({ centreDepth, gradEast, gradNorth }) => {
+        if (ignore || spotLat !== reqLat || spotLon !== reqLon) return;
+        const shoreNormalDeg = (isFinite(gradEast) && isFinite(gradNorth))
+          ? shoreNormalFromDepthGradient(gradEast, gradNorth)
+          : null;
         if (dbg) {
           console.log('[CoastalReading][depth]', {
-            inLat: spotLat, inLon: spotLon, rawDepth: d,
-            note: !isFinite(d) ? 'NaN/no-tile' : d <= 0 ? 'land' : d >= DEEP_CUTOFF ? 'deep' : 'surf-zone',
+            inLat: spotLat, inLon: spotLon, rawDepth: centreDepth,
+            gradEast, gradNorth, shoreNormalDeg,
+            note: !isFinite(centreDepth) ? 'NaN/no-tile' : centreDepth <= 0 ? 'land' : centreDepth >= DEEP_CUTOFF ? 'deep' : 'surf-zone',
           });
         }
-        if (!isFinite(d) || d <= 0 || d >= DEEP_CUTOFF) {
+        if (!isFinite(centreDepth) || centreDepth <= 0 || centreDepth >= DEEP_CUTOFF) {
           setReading(null);
           return;
         }
-        const result = nearshoreTransform(H0, T, d);
+        const result = nearshoreTransform(H0, T, centreDepth);
         setReading({
           HFinal:      result.H,
           Ks:          result.Ks,
@@ -120,7 +129,8 @@ export function useCoastalReading(
           breakingCap: result.breakingCap,
           H0,
           T,
-          d,
+          d:           centreDepth,
+          shoreNormalDeg,
         });
       })
       .catch(() => {

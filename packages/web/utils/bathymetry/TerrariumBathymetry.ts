@@ -288,3 +288,73 @@ export async function fetchDepthGrid(
 
   return grid;
 }
+
+/** Gradient result type for shore-normal calculation. */
+export interface NearshoreDepthWithGradient {
+  /** Centre depth at the spot (m, +down). NaN if no usable depth found. */
+  centreDepth: number;
+  /**
+   * Eastward component of the depth gradient (m/m), cos(lat)-corrected.
+   * Computed by central difference over ~1 km E/W pair, projected to metres.
+   * Positive = depth increases eastward (open sea is to the east).
+   * NaN when gradient is unavailable.
+   */
+  gradEast: number;
+  /**
+   * Northward component of the depth gradient (m/m).
+   * Computed by central difference over ~1 km N/S pair, projected to metres.
+   * Positive = depth increases northward (open sea is to the north).
+   * NaN when gradient is unavailable.
+   */
+  gradNorth: number;
+}
+
+/**
+ * Fetch nearshore depth AND a central-difference depth gradient for the offshore
+ * bearing calculation (shore normal). The gradient is cos(lat)-corrected so that
+ * atan2(gradEast, gradNorth) gives a true compass bearing.
+ *
+ * Gradient geometry:
+ *   - Sample spacing: ~1 km (GEBCO/ETOPO1 native cell ≈ 450 m; 1 km straddles real cells).
+ *   - cos(lat) correction: dE_m = dLon × cos(lat × π/180) × 111320 m/deg.
+ *   - dN_m = dLat × 110570 m/deg.
+ *   - Central difference: gradEast = (depthE - depthW) / (2 × dE_m).
+ *   - Centred on the SPOT coords (lat, lon), NOT on any fallback shallowest cell.
+ *
+ * The centreDepth is fetched independently via fetchNearshoreDepth (same cache,
+ * same logic — land / deep / NaN triggers offshore-fallback search).
+ *
+ * @param lat   Spot latitude (degrees)
+ * @param lon   Spot longitude (degrees)
+ * @param zoom  Tile zoom (default 10; same as nearshore fetch)
+ */
+export async function fetchNearshoreDepthWithGradient(
+  lat: number,
+  lon: number,
+  zoom = 10,
+): Promise<NearshoreDepthWithGradient> {
+  // Step size ~1 km in degrees
+  const dLat = 1 / 110.57;   // ~1 km northward
+  const dLon = 1 / (111.32 * Math.cos(lat * Math.PI / 180)); // ~1 km eastward, cos-corrected
+
+  // Fetch centre depth via the existing nearshore function (handles offshore fallback)
+  // and the 4 cardinal neighbour depths directly via fetchDepthAtPoint (no fallback needed —
+  // we only need shallow-water gradient; NaN neighbours are handled below).
+  const [centreDepth, depthE, depthW, depthN, depthS] = await Promise.all([
+    fetchNearshoreDepth(lat, lon, zoom),
+    fetchDepthAtPoint(lat,        lon + dLon, zoom),
+    fetchDepthAtPoint(lat,        lon - dLon, zoom),
+    fetchDepthAtPoint(lat + dLat, lon,        zoom),
+    fetchDepthAtPoint(lat - dLat, lon,        zoom),
+  ]);
+
+  // Central difference (m/m), cos(lat)-corrected
+  const dE_m = dLon * Math.cos(lat * Math.PI / 180) * 111320;
+  const dN_m = dLat * 110570;
+
+  // If either pair has non-finite values, return NaN for that axis
+  const gradEast  = (isFinite(depthE) && isFinite(depthW))  ? (depthE - depthW) / (2 * dE_m) : NaN;
+  const gradNorth = (isFinite(depthN) && isFinite(depthS))  ? (depthN - depthS) / (2 * dN_m) : NaN;
+
+  return { centreDepth, gradEast, gradNorth };
+}
