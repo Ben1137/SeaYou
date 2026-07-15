@@ -335,42 +335,54 @@ export async function fetchNearshoreDepthWithGradient(
   // Step 2 — gradient grid in its own try/catch so a tile error never nulls the reading
   try {
     const ROWS = 5, COLS = 5;
-    // Half-span ~2 km in each direction
-    const dLatSpan = 2 / 110.57;
-    const dLonSpan = 2 / (111.32 * Math.cos(lat * Math.PI / 180));
+    const HALF_KM   = 6;   // ±6 km — must clear the ~1.85 km ETOPO native cell + blocky coastline
+    const GRAD_ZOOM = 9;   // honest fidelity ceiling; z10 upsamples one coarse cell → false precision
+
+    const dLatSpan = HALF_KM / 110.57;
+    const dLonSpan = HALF_KM / (111.32 * Math.cos(lat * Math.PI / 180));
 
     const bounds: DepthGridBounds = {
       minLon: lon - dLonSpan, maxLon: lon + dLonSpan,
       minLat: lat - dLatSpan, maxLat: lat + dLatSpan,
     };
-    const grid = await fetchDepthGrid(bounds, COLS, ROWS, zoom);
+    const grid = await fetchDepthGrid(bounds, COLS, ROWS, GRAD_ZOOM);
 
-    // Metre step between adjacent cells (5 cells span 2×dSpan → 4 intervals)
-    // colStepM ≈ 1000 m; rowStepM ≈ 1000 m
+    // ~3 km between adjacent cells (5 cells over 12 km = 4 intervals)
     const colStepM = (2 * dLonSpan * Math.cos(lat * Math.PI / 180) * 111320) / (COLS - 1);
     const rowStepM = (2 * dLatSpan * 110570) / (ROWS - 1);
 
-    // Collect ocean-only cells with their metre offsets from centre
     // row 0 = north (maxLat) → N_m positive; col 0 = west (minLon) → E_m negative
     const cells: { E_m: number; N_m: number; depth: number }[] = [];
+    let oceanCells = 0, landCells = 0, noTileCells = 0;
+    let depthMin = Infinity, depthMax = -Infinity;
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         const depth = grid[row][col];
-        if (!isFinite(depth) || depth <= 0 || depth >= 200) continue;
-        cells.push({
-          E_m: (col - 2) * colStepM,  // col 2 = centre lon
-          N_m: (2 - row) * rowStepM,  // row 2 = centre lat; row 0 = north = positive N
-          depth,
-        });
+        if (!isFinite(depth))      { noTileCells++; continue; }
+        if (depth <= 0)            { landCells++;   continue; }
+        if (depth >= 200)          { continue; }  // deep — outside nearshore band
+        oceanCells++;
+        if (depth < depthMin) depthMin = depth;
+        if (depth > depthMax) depthMax = depth;
+        cells.push({ E_m: (col - 2) * colStepM, N_m: (2 - row) * rowStepM, depth });
       }
+    }
+
+    // Cell-count diagnostic — flag-gated on ?windQualityDebug=1
+    if (typeof window !== 'undefined' && window.location.search.includes('windQualityDebug=1')) {
+      console.log('[GradientDiag]', {
+        lat: lat.toFixed(4), lon: lon.toFixed(4), zoom: GRAD_ZOOM, halfKm: HALF_KM,
+        totalCells: ROWS * COLS, oceanCells, landCells, noTileCells,
+        depthMin: isFinite(depthMin) ? depthMin.toFixed(1) : '-',
+        depthMax: isFinite(depthMax) ? depthMax.toFixed(1) : '-',
+      });
     }
 
     if (cells.length < 4) {
       return { centreDepth, gradEast: NaN, gradNorth: NaN };
     }
 
-    // Least-squares plane fit: depth ≈ a·E + b·N + c
-    // Demean to decouple intercept from slope (→ 2×2 normal equations)
+    // Least-squares plane fit: depth ≈ a·E_m + b·N_m + c (demeaned → 2×2 normal equations)
     const n = cells.length;
     const meanE = cells.reduce((s, c) => s + c.E_m,  0) / n;
     const meanN = cells.reduce((s, c) => s + c.N_m,  0) / n;
@@ -383,7 +395,6 @@ export async function fetchNearshoreDepthWithGradient(
       sdE += d * e; sdN += d * nv;
     }
 
-    // Cramer's rule for [sEE sEN; sEN sNN][a;b] = [sdE;sdN]
     const det = sEE * sNN - sEN * sEN;
     if (Math.abs(det) < 1e-12) {
       return { centreDepth, gradEast: NaN, gradNorth: NaN };

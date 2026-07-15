@@ -117,18 +117,6 @@ export function useCoastalReading(
             note: !isFinite(centreDepth) ? 'NaN/no-tile' : centreDepth <= 0 ? 'land' : centreDepth >= DEEP_CUTOFF ? 'deep' : 'surf-zone',
           });
         }
-        if (dbgWQ) {
-          // classify helper for gradient diagnosis
-          const cls = (d: number) =>
-            !isFinite(d) ? 'no-tile' : d <= 0 ? 'land' : d >= 200 ? 'deep' : 'ocean';
-          console.log('[GradientDiag]', {
-            centreDepth: isFinite(centreDepth) ? centreDepth.toFixed(1) + 'm' : String(centreDepth),
-            gradEast:  isFinite(gradEast)  ? gradEast.toFixed(5)  : 'NaN',
-            gradNorth: isFinite(gradNorth) ? gradNorth.toFixed(5) : 'NaN',
-            shoreNormalDeg: shoreNormalDeg != null ? shoreNormalDeg.toFixed(1) + '°' : 'null',
-            centreClass: cls(centreDepth),
-          });
-        }
         if (!isFinite(centreDepth) || centreDepth <= 0 || centreDepth >= DEEP_CUTOFF) {
           setReading(null);
           return;

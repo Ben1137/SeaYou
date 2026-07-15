@@ -18,7 +18,10 @@ describe('shoreNormalFromDepthGradient', () => {
   });
   it('near-zero gradient → null (ambiguous seafloor)', () => {
     expect(shoreNormalFromDepthGradient(0, 0)).toBeNull();
-    expect(shoreNormalFromDepthGradient(0.001, 0)).toBeNull();
+    expect(shoreNormalFromDepthGradient(1e-5, 0)).toBeNull();
+  });
+  it('gentle real shelf slope (~3 m/km westward) is NOT discarded', () => {
+    expect(shoreNormalFromDepthGradient(-0.003, 0)).toBeCloseTo(270, 1);
   });
 });
 

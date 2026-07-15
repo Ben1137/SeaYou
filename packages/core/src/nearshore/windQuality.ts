@@ -4,7 +4,7 @@
 // windQuality works in "toward-space": convert met wind-from → wind-toward,
 // then compare toward vs shoreNormalDeg. angle=0 means pure offshore.
 
-const EPS = 0.01; // m/m — gradient below this is ambiguous
+const EPS = 1e-4; // m/m — below ~0.1 m/km treated as flat. Real shelves are gentler than 0.01.
 
 /**
  * Derive the offshore compass bearing (degrees [0,360)) from the depth gradient.
