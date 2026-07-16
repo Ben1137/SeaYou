@@ -1,5 +1,6 @@
-import { HourlyConditions, ActivityScore, ScoreFactor } from '../types/scoring';
+import { HourlyConditions, ActivityScore, ActivityPersona, ScoreFactor } from '../types/scoring';
 import { sweetSpotScore, scoreToLabel, weatherBonus, gustSafetyScore, chopIndex } from '../utils/scoring';
+import { windQuality, windQualityMultiplier, windHazard } from '../nearshore/windQuality';
 
 /**
  * Classify a 0-100 factor score into the Explainable-UI impact bucket.
@@ -57,10 +58,17 @@ export function scoreWaveSurfer(c: HourlyConditions): ActivityScore {
   if (c.swellHeight > 3.5) warnings.push('Large swell — experienced surfers only');
   if (c.windGusts > 40) warnings.push('Strong gusts');
 
+  const wqMult = (c.shoreNormalDeg != null)
+    ? windQualityMultiplier(ActivityPersona.WAVE_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle)
+    : 1.0;
+  const isHazard = (c.shoreNormalDeg != null)
+    ? windHazard(ActivityPersona.WAVE_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle, c.windSpeed)
+    : false;
+
   const factors: Record<string, number> = {
     swellHeight: sweetSpotScore(c.swellHeight, 0.3, 1.0, 2.5, 4.0),
     swellPeriod: sweetSpotScore(c.swellPeriod, 4, 8, 14, 20),
-    windSpeed: sweetSpotScore(c.windSpeed, 0, 5, 15, 35),
+    windSpeed: sweetSpotScore(c.windSpeed, 0, 5, 15, 35) * wqMult,
     chop: (1 - chopIndex(c.windWaveHeight || 0, c.swellHeight)) * 100,
     weather: weatherBonus(c.weatherCode),
   };
@@ -77,9 +85,19 @@ export function scoreWaveSurfer(c: HourlyConditions): ActivityScore {
     factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
     factorRow('Chop', c.windWaveHeight ? fmtM(c.windWaveHeight) : 'Minimal', factors.chop),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+    ...(c.shoreNormalDeg != null ? [
+      factorRow(
+        'Wind Quality',
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
+        factors.windSpeed,
+      )
+    ] : []),
   ];
 
-  return buildScore(overall, factors, warnings, breakdown);
+  const score = buildScore(overall, factors, warnings, breakdown);
+  if (isHazard) score.hazard = { kind: 'offshore_wind', label: 'Offshore wind — hazardous for kiting/windsurfing' };
+  return score;
 }
 
 // Bodyboarding: power/height dominant (0.42), period less critical than surfing
@@ -91,10 +109,17 @@ export function scoreBoogieBoarder(c: HourlyConditions): ActivityScore {
   if (c.swellHeight > 4.5) warnings.push('Heavy shore-break — experienced bodyboarders only');
   if (c.windGusts > 45) warnings.push('Strong gusts');
 
+  const wqMult = (c.shoreNormalDeg != null)
+    ? windQualityMultiplier(ActivityPersona.BOOGIE_BOARDER, windQuality(c.windDirection, c.shoreNormalDeg).angle)
+    : 1.0;
+  const isHazard = (c.shoreNormalDeg != null)
+    ? windHazard(ActivityPersona.BOOGIE_BOARDER, windQuality(c.windDirection, c.shoreNormalDeg).angle, c.windSpeed)
+    : false;
+
   const factors: Record<string, number> = {
     swellHeight: sweetSpotScore(c.swellHeight, 0.4, 1.0, 3.0, 5.0),
     swellPeriod: sweetSpotScore(c.swellPeriod, 3, 5, 12, 18),
-    windSpeed:   sweetSpotScore(c.windSpeed, 0, 5, 22, 42),
+    windSpeed:   sweetSpotScore(c.windSpeed, 0, 5, 22, 42) * wqMult,
     chop:        (1 - chopIndex(c.windWaveHeight || 0, c.swellHeight)) * 100,
     weather:     weatherBonus(c.weatherCode),
   };
@@ -111,9 +136,19 @@ export function scoreBoogieBoarder(c: HourlyConditions): ActivityScore {
     factorRow('Wind Speed',   fmtKmh(c.windSpeed), factors.windSpeed),
     factorRow('Chop', c.windWaveHeight ? fmtM(c.windWaveHeight) : 'Minimal', factors.chop),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+    ...(c.shoreNormalDeg != null ? [
+      factorRow(
+        'Wind Quality',
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
+        factors.windSpeed,
+      )
+    ] : []),
   ];
 
-  return buildScore(overall, factors, warnings, breakdown);
+  const score = buildScore(overall, factors, warnings, breakdown);
+  if (isHazard) score.hazard = { kind: 'offshore_wind', label: 'Offshore wind — hazardous for kiting/windsurfing' };
+  return score;
 }
 
 export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
@@ -121,8 +156,15 @@ export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
   if (c.windGusts > 50) warnings.push('Extreme gusts — danger');
   if (c.waveHeight > 3) warnings.push('Heavy seas');
 
+  const wqMult = (c.shoreNormalDeg != null)
+    ? windQualityMultiplier(ActivityPersona.WIND_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle)
+    : 1.0;
+  const isHazard = (c.shoreNormalDeg != null)
+    ? windHazard(ActivityPersona.WIND_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle, c.windSpeed)
+    : false;
+
   const factors: Record<string, number> = {
-    windSpeed: sweetSpotScore(c.windSpeed, 12, 20, 35, 55),
+    windSpeed: sweetSpotScore(c.windSpeed, 12, 20, 35, 55) * wqMult,
     gustSafety: gustSafetyScore(c.windSpeed, c.windGusts),
     waveHeight: sweetSpotScore(c.waveHeight, 0, 0.5, 2.0, 3.5),
     windConsistency: gustSafetyScore(c.windSpeed, c.windGusts),
@@ -141,9 +183,19 @@ export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
     factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
     factorRow('Wind Consistency', `Δ ${fmtKmh(c.windGusts - c.windSpeed)}`, factors.windConsistency),
     factorRow('Sea Temp', c.seaTemp !== undefined ? fmtC(c.seaTemp) : '—', factors.seaTemp),
+    ...(c.shoreNormalDeg != null ? [
+      factorRow(
+        'Wind Quality',
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
+        factors.windSpeed,
+      )
+    ] : []),
   ];
 
-  return buildScore(overall, factors, warnings, breakdown);
+  const score = buildScore(overall, factors, warnings, breakdown);
+  if (isHazard) score.hazard = { kind: 'offshore_wind', label: 'Offshore wind — hazardous for kiting/windsurfing' };
+  return score;
 }
 
 export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
@@ -151,12 +203,21 @@ export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
   if (c.windGusts > 45) warnings.push('Dangerous gusts for kiting');
   if (c.weatherCode !== undefined && c.weatherCode >= 95) warnings.push('Lightning — do not kite');
 
+  const wqMult = (c.shoreNormalDeg != null)
+    ? windQualityMultiplier(ActivityPersona.KITE_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle)
+    : 1.0;
+  const isHazard = (c.shoreNormalDeg != null)
+    ? windHazard(ActivityPersona.KITE_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle, c.windSpeed)
+    : false;
+
   const gustDelta = c.windGusts - c.windSpeed;
   const factors: Record<string, number> = {
-    windSpeed: sweetSpotScore(c.windSpeed, 10, 15, 30, 45),
+    windSpeed: sweetSpotScore(c.windSpeed, 10, 15, 30, 45) * wqMult,
     gustDelta: sweetSpotScore(gustDelta, 0, 0, 10, 20),
     waveHeight: sweetSpotScore(c.waveHeight, 0, 0.3, 1.5, 3.0),
-    windDirection: 70, // neutral — would need shore orientation for full accuracy
+    windDirection: c.shoreNormalDeg != null
+      ? windQualityMultiplier(ActivityPersona.KITE_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle) * 100
+      : 70, // keep the existing neutral fallback
     weather: weatherBonus(c.weatherCode),
   };
 
@@ -175,11 +236,27 @@ export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
     factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
     factorRow('Gust Delta', fmtKmh(gustDelta), factors.gustDelta),
     factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
-    factorRow('Wind Direction', `${Math.round(c.windDirection)}°`, factors.windDirection),
+    factorRow('Wind Direction',
+      c.shoreNormalDeg != null
+        ? windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? `${Math.round(c.windDirection)}° (Offshore ⚠️)` :
+          windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? `${Math.round(c.windDirection)}° (Onshore ✓)` :
+          `${Math.round(c.windDirection)}° (Cross)`
+        : `${Math.round(c.windDirection)}°`,
+      factors.windDirection),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
+    ...(c.shoreNormalDeg != null ? [
+      factorRow(
+        'Wind Quality',
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
+        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
+        factors.windSpeed,
+      )
+    ] : []),
   ];
 
-  return buildScore(overall, factors, warnings, breakdown);
+  const score = buildScore(overall, factors, warnings, breakdown);
+  if (isHazard) score.hazard = { kind: 'offshore_wind', label: 'Offshore wind — hazardous for kiting/windsurfing' };
+  return score;
 }
 
 export function scoreSailor(c: HourlyConditions): ActivityScore {

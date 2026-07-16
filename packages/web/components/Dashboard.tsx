@@ -230,11 +230,31 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return null;
   }, [weatherData, currentConditions, thresholds, t]);
 
+  // ── P5.1: Per-spot Coastal Dynamics reading ────────────────────────────────
+  // Reuses @seame/core nearshoreTransform with the same H0/T policy as the map.
+  // coastalReading is null when the spot is on land, deep water, or data unavailable.
+  // Must be declared before scoringConditions/bestWindows so shoreNormalDeg is available.
+  const coastalReadingConditions = currentConditions ? {
+    swellHeight:   currentConditions.swell    ?? 0,
+    swellPeriod:   currentConditions.swellPeriod ?? 0,
+    swellDirection:currentConditions.swellDirection ?? 0,
+    waveHeight:    currentConditions.wave      ?? 0,
+    wavePeriod:    currentConditions.wavePeriod ?? 0,
+    waveDirection: currentConditions.swellDirection ?? 0,
+  } : null;
+  const coastalReading = useCoastalReading(currentLat, currentLng, coastalReadingConditions);
+
   // ─── Activity Scoring (powered by @seame/core scoring engine) ───
   const scoringConditions = useMemo(() => {
     if (!weatherData) return null;
-    return extractCurrentConditions(weatherData);
-  }, [weatherData]);
+    const conds = extractCurrentConditions(weatherData);
+    // Thread shore normal into scoring so wind quality affects scores
+    // when the gradient is available (null → multiplier stays 1.0)
+    if (coastalReading?.shoreNormalDeg != null) {
+      conds.shoreNormalDeg = coastalReading.shoreNormalDeg;
+    }
+    return conds;
+  }, [weatherData, coastalReading]);
 
   const activityScores = useMemo(() => {
     if (!scoringConditions) return null;
@@ -251,35 +271,23 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   const bestWindows = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return null;
+    const snDeg = coastalReading?.shoreNormalDeg ?? null;
     return {
-      [ActivityPersona.SAILOR]:         findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.WAVE_SURFER]:    findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.WIND_SURFER]:    findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.KITE_SURFER]:    findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.BOOGIE_BOARDER]: findBestWindow(weatherData, ActivityPersona.BOOGIE_BOARDER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.DIVER]:          findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.BEACHGOER]:      findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.SAILOR]:         findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.WAVE_SURFER]:    findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.WIND_SURFER]:    findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.KITE_SURFER]:    findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.BOOGIE_BOARDER]: findBestWindow(weatherData, ActivityPersona.BOOGIE_BOARDER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.DIVER]:          findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.BEACHGOER]:      findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
     };
-  }, [weatherData, currentHourIndex]);
+  }, [weatherData, currentHourIndex, coastalReading]);
 
   // Tide is decision-relevant for mariners and divers; surfers/beachgoers don't need it in
   // the conditions grid (they use the tide chart instead). WAVE_SURFER may be added here
   // at reef/point breaks — deferred to D.3 which builds full persona card-filtering.
   const TIDE_PERSONAS = new Set<string>(['mariner', 'diver']);
   const showTide = !!(weatherData?.tides && (persona == null || TIDE_PERSONAS.has(persona)));
-
-  // ── P5.1: Per-spot Coastal Dynamics reading ────────────────────────────────
-  // Reuses @seame/core nearshoreTransform with the same H0/T policy as the map.
-  // coastalReading is null when the spot is on land, deep water, or data unavailable.
-  const coastalReadingConditions = currentConditions ? {
-    swellHeight:   currentConditions.swell    ?? 0,
-    swellPeriod:   currentConditions.swellPeriod ?? 0,
-    swellDirection:currentConditions.swellDirection ?? 0,
-    waveHeight:    currentConditions.wave      ?? 0,
-    wavePeriod:    currentConditions.wavePeriod ?? 0,
-    waveDirection: currentConditions.swellDirection ?? 0,
-  } : null;
-  const coastalReading = useCoastalReading(currentLat, currentLng, coastalReadingConditions);
 
   // P5.1 debug log — flag-gated on ?coastalReadingDebug=1
   // Cross-check HFinal against ?coastalDiag=1 map output at the same lat/lon.
@@ -604,6 +612,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                           {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
                         </p>
                       )}
+                      {score.hazard && (
+                        <div className="flex items-center gap-1.5 mt-1 px-2 py-1 rounded-lg bg-red-950/40 border border-red-800/40">
+                          <AlertTriangle size={11} className="shrink-0 text-red-400" />
+                          <span className="text-[10px] text-red-300 leading-tight">
+                            {score.hazard.label}
+                          </span>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <p className="text-xs text-white/40">--</p>
@@ -665,6 +681,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                           <p className="text-[11px] text-white/50 mt-1">
                             {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
                           </p>
+                        )}
+                        {score.hazard && (
+                          <div className="flex items-center gap-1.5 mt-1 px-2 py-1 rounded-lg bg-red-950/40 border border-red-800/40">
+                            <AlertTriangle size={11} className="shrink-0 text-red-400" />
+                            <span className="text-[10px] text-red-300 leading-tight">
+                              {score.hazard.label}
+                            </span>
+                          </div>
                         )}
                       </>
                     ) : (

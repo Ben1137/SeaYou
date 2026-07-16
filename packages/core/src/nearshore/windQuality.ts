@@ -1,3 +1,5 @@
+import { ActivityPersona } from '../types/scoring';
+
 // ─── Convention note ──────────────────────────────────────────────────────────
 // shoreNormalFromDepthGradient uses atan2(East, North) for compass bearing —
 // this is the CORRECT compass convention (not the math-standard atan2(y,x)).
@@ -47,4 +49,55 @@ export function windQuality(
   const label: 'offshore' | 'cross' | 'onshore' =
     angle < 60 ? 'offshore' : angle <= 120 ? 'cross' : 'onshore';
   return { factor, label, angle };
+}
+
+// ─── Persona-shaped wind-quality multiplier ────────────────────────────────────
+
+/**
+ * Map the wind-quality angle to a persona-specific multiplier in [0, 1].
+ * angle = 0° → pure offshore, angle = 180° → pure onshore.
+ *
+ * WAVE_SURFER / BOOGIE_BOARDER: monotonic ↓ — offshore always better.
+ * KITE_SURFER / WIND_SURFER: asymmetric V-curve — cross-shore is best, OFFSHORE IS WORST
+ *   (getting blown out to sea). offshore(0°)=0.2 < onshore(180°)=0.8 is safety-critical.
+ * All other personas: flat 1.0 (direction irrelevant to score).
+ */
+export function windQualityMultiplier(
+  persona: ActivityPersona,
+  angle: number,
+): number {
+  const t = angle / 180; // normalise to [0,1]: 0=offshore, 1=onshore
+  switch (persona) {
+    case ActivityPersona.WAVE_SURFER:
+      // offshore=1.0, onshore=0.55; linear
+      return 1.0 - 0.45 * t;
+    case ActivityPersona.BOOGIE_BOARDER:
+      // offshore=1.0, onshore=0.75; linear
+      return 1.0 - 0.25 * t;
+    case ActivityPersona.KITE_SURFER:
+    case ActivityPersona.WIND_SURFER: {
+      // V-curve: 0.2 → 1.0 over 0–90°, 1.0 → 0.8 over 90–180°
+      const t2 = angle / 90;
+      if (angle <= 90) return 0.2 + 0.8 * t2;           // 0.2 → 1.0
+      return 1.0 - 0.2 * ((angle - 90) / 90);           // 1.0 → 0.8
+    }
+    default:
+      return 1.0;
+  }
+}
+
+/**
+ * Returns true when conditions are hazardous for a kite/wind surfer due to offshore wind.
+ * Offshore wind blows riders away from shore — dangerous even at moderate speeds.
+ * Only fires for KITE_SURFER and WIND_SURFER; irrelevant for other personas.
+ */
+export function windHazard(
+  persona: ActivityPersona,
+  angle: number,
+  windSpeedKmh: number,
+): boolean {
+  if (persona !== ActivityPersona.KITE_SURFER && persona !== ActivityPersona.WIND_SURFER) {
+    return false;
+  }
+  return angle < 60 && windSpeedKmh >= 15;
 }

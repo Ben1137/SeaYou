@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { shoreNormalFromDepthGradient, windQuality } from '../windQuality';
+import { shoreNormalFromDepthGradient, windQuality, windQualityMultiplier, windHazard } from '../windQuality';
+import { ActivityPersona } from '../../types/scoring';
 
 describe('shoreNormalFromDepthGradient', () => {
   it('gradient pointing west → bearing 270', () => {
@@ -68,5 +69,44 @@ describe('windQuality — factor shape', () => {
   });
   it('factor is 0 at angle 180', () => {
     expect(windQuality(270, 270).factor).toBeCloseTo(0, 3);
+  });
+});
+
+describe('windQualityMultiplier', () => {
+  it('WAVE_SURFER: offshore=1.0, onshore=0.55', () => {
+    expect(windQualityMultiplier(ActivityPersona.WAVE_SURFER, 0)).toBeCloseTo(1.0, 3);
+    expect(windQualityMultiplier(ActivityPersona.WAVE_SURFER, 180)).toBeCloseTo(0.55, 3);
+    expect(windQualityMultiplier(ActivityPersona.WAVE_SURFER, 90)).toBeGreaterThan(0.55);
+    expect(windQualityMultiplier(ActivityPersona.WAVE_SURFER, 90)).toBeLessThan(1.0);
+  });
+  it('BOOGIE_BOARDER: offshore=1.0, onshore=0.75', () => {
+    expect(windQualityMultiplier(ActivityPersona.BOOGIE_BOARDER, 0)).toBeCloseTo(1.0, 3);
+    expect(windQualityMultiplier(ActivityPersona.BOOGIE_BOARDER, 180)).toBeCloseTo(0.75, 3);
+  });
+  it('KITE_SURFER V-curve: offshore=0.2, cross=1.0, onshore=0.8; offshore < onshore (safety-critical)', () => {
+    expect(windQualityMultiplier(ActivityPersona.KITE_SURFER, 0)).toBeCloseTo(0.2, 3);
+    expect(windQualityMultiplier(ActivityPersona.KITE_SURFER, 90)).toBeCloseTo(1.0, 3);
+    expect(windQualityMultiplier(ActivityPersona.KITE_SURFER, 180)).toBeCloseTo(0.8, 3);
+    expect(windQualityMultiplier(ActivityPersona.KITE_SURFER, 0)).toBeLessThan(windQualityMultiplier(ActivityPersona.KITE_SURFER, 180));
+  });
+  it('DIVER: flat 1.0 for any angle', () => {
+    expect(windQualityMultiplier(ActivityPersona.DIVER, 0)).toBeCloseTo(1.0, 3);
+    expect(windQualityMultiplier(ActivityPersona.DIVER, 90)).toBeCloseTo(1.0, 3);
+    expect(windQualityMultiplier(ActivityPersona.DIVER, 180)).toBeCloseTo(1.0, 3);
+  });
+});
+
+describe('windHazard', () => {
+  it('kite + offshore + sufficient wind → hazard', () => {
+    expect(windHazard(ActivityPersona.KITE_SURFER, 30, 25)).toBe(true);
+  });
+  it('kite + offshore + calm wind → no hazard', () => {
+    expect(windHazard(ActivityPersona.KITE_SURFER, 30, 8)).toBe(false);
+  });
+  it('wave surfer + offshore → no hazard (wrong persona)', () => {
+    expect(windHazard(ActivityPersona.WAVE_SURFER, 30, 25)).toBe(false);
+  });
+  it('kite + onshore → no hazard (not offshore)', () => {
+    expect(windHazard(ActivityPersona.KITE_SURFER, 120, 25)).toBe(false);
   });
 });
