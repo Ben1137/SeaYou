@@ -19,6 +19,28 @@ function factorRow(label: string, value: string, score: number): ScoreFactor {
   return { label, value, impact: impactFrom(score) };
 }
 
+/**
+ * Build the Wind Quality breakdown row with persona-aware color.
+ * The color reflects "good for THIS persona", not a generic good/bad scale.
+ *   paddle (wave/boogie): offshore → green, cross → neutral, onshore → rose
+ *   power (kite/wind):    cross   → green, onshore → neutral, offshore → rose
+ *                         (offshore = blown out to sea → dangerous end of the V-curve)
+ */
+function windQualityRow(
+  label: 'offshore' | 'cross' | 'onshore',
+  paddlePersona: boolean,
+): ScoreFactor {
+  const displayValue = label === 'offshore' ? 'Offshore ✓' : label === 'onshore' ? 'Onshore ✗' : 'Cross-shore';
+  let impact: ScoreFactor['impact'];
+  if (paddlePersona) {
+    impact = label === 'offshore' ? 'positive' : label === 'cross' ? 'neutral' : 'negative';
+  } else {
+    // kite/wind: cross is ideal, offshore is dangerous
+    impact = label === 'cross' ? 'positive' : label === 'onshore' ? 'neutral' : 'negative';
+  }
+  return { label: 'Wind Quality', value: displayValue, impact };
+}
+
 function buildScore(
   overall: number,
   factors: Record<string, number>,
@@ -86,12 +108,7 @@ export function scoreWaveSurfer(c: HourlyConditions): ActivityScore {
     factorRow('Chop', c.windWaveHeight ? fmtM(c.windWaveHeight) : 'Minimal', factors.chop),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
     ...(c.shoreNormalDeg != null ? [
-      factorRow(
-        'Wind Quality',
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
-        factors.windSpeed,
-      )
+      windQualityRow(windQuality(c.windDirection, c.shoreNormalDeg).label, true)
     ] : []),
   ];
 
@@ -137,12 +154,7 @@ export function scoreBoogieBoarder(c: HourlyConditions): ActivityScore {
     factorRow('Chop', c.windWaveHeight ? fmtM(c.windWaveHeight) : 'Minimal', factors.chop),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
     ...(c.shoreNormalDeg != null ? [
-      factorRow(
-        'Wind Quality',
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
-        factors.windSpeed,
-      )
+      windQualityRow(windQuality(c.windDirection, c.shoreNormalDeg).label, true)
     ] : []),
   ];
 
@@ -184,12 +196,7 @@ export function scoreWindSurfer(c: HourlyConditions): ActivityScore {
     factorRow('Wind Consistency', `Δ ${fmtKmh(c.windGusts - c.windSpeed)}`, factors.windConsistency),
     factorRow('Sea Temp', c.seaTemp !== undefined ? fmtC(c.seaTemp) : '—', factors.seaTemp),
     ...(c.shoreNormalDeg != null ? [
-      factorRow(
-        'Wind Quality',
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
-        factors.windSpeed,
-      )
+      windQualityRow(windQuality(c.windDirection, c.shoreNormalDeg).label, false)
     ] : []),
   ];
 
@@ -236,12 +243,7 @@ export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
     factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
     ...(c.shoreNormalDeg != null ? [
-      factorRow(
-        'Wind Quality',
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? 'Offshore ✓' :
-        windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? 'Onshore ✗' : 'Cross-shore',
-        factors.windSpeed,
-      )
+      windQualityRow(windQuality(c.windDirection, c.shoreNormalDeg).label, false)
     ] : []),
   ];
 
