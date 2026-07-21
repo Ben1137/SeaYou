@@ -215,9 +215,6 @@ export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
     windSpeed: sweetSpotScore(c.windSpeed, 10, 15, 30, 45) * wqMult,
     gustDelta: sweetSpotScore(gustDelta, 0, 0, 10, 20),
     waveHeight: sweetSpotScore(c.waveHeight, 0, 0.3, 1.5, 3.0),
-    windDirection: c.shoreNormalDeg != null
-      ? windQualityMultiplier(ActivityPersona.KITE_SURFER, windQuality(c.windDirection, c.shoreNormalDeg).angle) * 100
-      : 70, // keep the existing neutral fallback
     weather: weatherBonus(c.weatherCode),
   };
 
@@ -226,23 +223,17 @@ export function scoreKiteSurfer(c: HourlyConditions): ActivityScore {
     factors.weather = 0;
   }
 
-  const overall = factors.windSpeed * 0.45
+  // Weights: windSpeed 0.60 · gustDelta 0.15 · waveHeight 0.15 · weather 0.10 = 1.00
+  // (0.15 that was the legacy windDirection placeholder folded into windSpeed)
+  const overall = factors.windSpeed * 0.60
     + factors.gustDelta * 0.15
     + factors.waveHeight * 0.15
-    + factors.windDirection * 0.15
     + factors.weather * 0.10;
 
   const breakdown: ScoreFactor[] = [
     factorRow('Wind Speed', fmtKmh(c.windSpeed), factors.windSpeed),
     factorRow('Gust Delta', fmtKmh(gustDelta), factors.gustDelta),
     factorRow('Wave Height', fmtM(c.waveHeight), factors.waveHeight),
-    factorRow('Wind Direction',
-      c.shoreNormalDeg != null
-        ? windQuality(c.windDirection, c.shoreNormalDeg).label === 'offshore' ? `${Math.round(c.windDirection)}° (Offshore ⚠️)` :
-          windQuality(c.windDirection, c.shoreNormalDeg).label === 'onshore'  ? `${Math.round(c.windDirection)}° (Onshore ✓)` :
-          `${Math.round(c.windDirection)}° (Cross)`
-        : `${Math.round(c.windDirection)}°`,
-      factors.windDirection),
     factorRow('Weather', weatherLabel(c.weatherCode), factors.weather),
     ...(c.shoreNormalDeg != null ? [
       factorRow(
