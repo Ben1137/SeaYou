@@ -175,6 +175,10 @@
       "label": "Кайтсёрфинг",
       "desc": "Условия для кайтсёрфинга"
     },
+    "boogieBoarder": {
+      "label": "Boogie Board",
+      "desc": "Bodyboarding conditions"
+    },
     "sailor": {
       "label": "Парусный спорт",
       "desc": "Условия для парусного спорта"
@@ -253,7 +257,8 @@
     "diverForecast": "Прогноз для дайверов",
     "noTideData": "Данные о приливах для этого местоположения недоступны",
     "rising": "Прилив",
-    "falling": "Отлив"
+    "falling": "Отлив",
+    "boogieBoarderForecast": "Boogie Boarder's Forecast"
   },
   "table": {
     "period": "Период",

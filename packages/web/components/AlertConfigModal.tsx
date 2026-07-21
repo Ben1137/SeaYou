@@ -29,12 +29,13 @@ interface AlertConfigModalProps {
 // ─── Persona selector config ───
 
 const PERSONA_OPTIONS: { persona: ActivityPersona; label: string; emoji: string; color: string }[] = [
-  { persona: ActivityPersona.WAVE_SURFER, label: 'Wave Surf', emoji: '\uD83C\uDFC4', color: 'bg-purple-500/60' },
-  { persona: ActivityPersona.WIND_SURFER, label: 'Wind Surf', emoji: '\uD83D\uDCA8', color: 'bg-cyan-500/60' },
-  { persona: ActivityPersona.KITE_SURFER, label: 'Kite', emoji: '\uD83E\uDE81', color: 'bg-amber-500/60' },
-  { persona: ActivityPersona.SAILOR, label: 'Sailing', emoji: '\u26F5', color: 'bg-teal-500/60' },
-  { persona: ActivityPersona.DIVER, label: 'Dive', emoji: '\uD83E\uDD3F', color: 'bg-blue-500/60' },
-  { persona: ActivityPersona.BEACHGOER, label: 'Beach', emoji: '\uD83C\uDFD6\uFE0F', color: 'bg-amber-400/60' },
+  { persona: ActivityPersona.WAVE_SURFER,    label: 'Wave Surf',     emoji: '\uD83C\uDFC4',     color: 'bg-purple-500/60' },
+  { persona: ActivityPersona.WIND_SURFER,    label: 'Wind Surf',     emoji: '\uD83D\uDCA8',     color: 'bg-cyan-500/60' },
+  { persona: ActivityPersona.KITE_SURFER,    label: 'Kite',          emoji: '\uD83E\uDE81',     color: 'bg-amber-500/60' },
+  { persona: ActivityPersona.BOOGIE_BOARDER, label: 'Boogie Board',  emoji: '\uD83C\uDF0A',     color: 'bg-rose-500/60' },
+  { persona: ActivityPersona.SAILOR,         label: 'Sailing',       emoji: '\u26F5',           color: 'bg-teal-500/60' },
+  { persona: ActivityPersona.DIVER,          label: 'Dive',          emoji: '\uD83E\uDD3F',     color: 'bg-blue-500/60' },
+  { persona: ActivityPersona.BEACHGOER,      label: 'Beach',         emoji: '\uD83C\uDFD6\uFE0F', color: 'bg-amber-400/60' },
 ];
 
 export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onClose, currentLat, currentLng }) => {
@@ -145,6 +146,7 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
    * of a corrupted local subscription store.
    */
   const [resetStatus, setResetStatus] = useState<'idle' | 'working' | 'done' | 'failed'>('idle');
+  const [showResetPanel, setShowResetPanel] = useState(false);
   const handleResetPushState = useCallback(async () => {
     if (resetStatus === 'working') return;
     setResetStatus('working');
@@ -211,199 +213,243 @@ export const AlertConfigModal: React.FC<AlertConfigModalProps> = ({ isOpen, onCl
         <div className="mx-6 h-px" style={{ backgroundColor: 'var(--app-border)' }} />
 
         {/* Alert controls */}
-        <div className="px-6 pt-5 pb-2 flex flex-col gap-4">
+        <div className="px-6 pt-5 pb-2 flex flex-col gap-6">
 
-          {/* ═══ Activity Selector — pick up to 2 ═══ */}
-          <div className="glass-inner rounded-xl p-4 border border-blue-500/20">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Anchor size={16} className="text-blue-400" />
-                <span className="text-sm font-bold text-white">{t('profile.primaryActivity', 'My Activities')}</span>
+          {/* ══════════════════════════════════════
+              SECTION 1 — MY ACTIVITIES
+          ══════════════════════════════════════ */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[10px] font-medium tracking-widest text-white/40 uppercase">My Activities</p>
+
+            {/* Activity tile grid */}
+            <div className="glass-inner rounded-xl p-4 border border-blue-500/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Anchor size={16} className="text-blue-400" />
+                  <span className="text-sm font-bold text-white">{t('profile.primaryActivity', 'My Activities')}</span>
+                </div>
+                <span className="text-[10px] text-white/40">{selectedActivities.length}/2</span>
               </div>
-              <span className="text-[10px] text-white/40">{selectedActivities.length}/2</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {PERSONA_OPTIONS.map((opt) => {
-                const isActive = selectedActivities.includes(opt.persona);
-                const isDisabled = !isActive && selectedActivities.length >= 2;
-                return (
-                  <button
-                    key={opt.persona}
-                    disabled={isDisabled}
-                    onClick={() => {
-                      if (isActive) {
-                        setSelectedActivities(selectedActivities.filter((p) => p !== opt.persona));
-                        // If removing primary, set to first remaining or first option
-                        if (primaryPersona === opt.persona) {
-                          const remaining = selectedActivities.filter((p) => p !== opt.persona);
-                          if (remaining.length > 0) setPrimaryPersona(remaining[0]);
+              <div className="grid grid-cols-3 gap-2">
+                {PERSONA_OPTIONS.map((opt) => {
+                  const isActive = selectedActivities.includes(opt.persona);
+                  const isDisabled = !isActive && selectedActivities.length >= 2;
+                  return (
+                    <button
+                      key={opt.persona}
+                      disabled={isDisabled}
+                      onClick={() => {
+                        if (isActive) {
+                          setSelectedActivities(selectedActivities.filter((p) => p !== opt.persona));
+                          // If removing primary, set to first remaining or first option
+                          if (primaryPersona === opt.persona) {
+                            const remaining = selectedActivities.filter((p) => p !== opt.persona);
+                            if (remaining.length > 0) setPrimaryPersona(remaining[0]);
+                          }
+                        } else {
+                          const next = [...selectedActivities, opt.persona].slice(0, 2);
+                          setSelectedActivities(next);
+                          // Auto-set primary if none selected yet
+                          if (selectedActivities.length === 0) setPrimaryPersona(opt.persona);
                         }
-                      } else {
-                        const next = [...selectedActivities, opt.persona].slice(0, 2);
-                        setSelectedActivities(next);
-                        // Auto-set primary if none selected yet
-                        if (selectedActivities.length === 0) setPrimaryPersona(opt.persona);
-                      }
-                    }}
-                    className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all ${
-                      isActive
-                        ? `${opt.color} border-white/30`
-                        : isDisabled
-                        ? 'bg-white/5 border-white/5 opacity-25 cursor-not-allowed'
-                        : 'bg-white/5 border-white/5 opacity-50 hover:opacity-80'
+                      }}
+                      className={`flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all ${
+                        isActive
+                          ? `${opt.color} border-white/30`
+                          : isDisabled
+                          ? 'bg-white/5 border-white/5 opacity-25 cursor-not-allowed'
+                          : 'bg-white/5 border-white/5 opacity-50 hover:opacity-80'
+                      }`}
+                    >
+                      <span className="text-lg">{opt.emoji}</span>
+                      <span className="text-[9px] font-bold text-white leading-tight text-center">{opt.label}</span>
+                      {isActive && primaryPersona === opt.persona && (
+                        <span className="text-[8px] text-white/60 leading-tight">primary</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedActivities.length > 1 && (
+                <p className="text-[10px] text-white/40 mt-2 text-center">
+                  {t('alertConfig.tapToPrimary', 'Tap an active card to set it as primary')}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════
+              SECTION 2 — ALERT THRESHOLDS
+          ══════════════════════════════════════ */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[10px] font-medium tracking-widest text-white/40 uppercase">Alert Thresholds</p>
+
+            <div className="glass-inner rounded-xl p-4 border border-white/10">
+              {/* Wave range */}
+              <div className={`transition-opacity ${thresholds.highWavesEnabled ? '' : 'opacity-50'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Waves size={15} className="text-orange-400" />
+                    <span className="text-sm font-bold text-white">{t('alerts.highWaves', 'Wave Height')}</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={thresholds.highWavesEnabled} onChange={toggleHighWaves} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-orange-500/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+                  </label>
+                </div>
+                <RangeThresholdControl
+                  label={t('dashboard.waveThreshold', 'Wave height')}
+                  unit=" m"
+                  range={alertPrefs.waveHeightRange ?? DEFAULT_WAVE_RANGE}
+                  onChange={(r) => { setWaveRange(r); setWaveThreshold(r.high); }}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                />
+              </div>
+
+              {/* Hairline divider */}
+              <div className="h-px bg-white/10 my-4" />
+
+              {/* Wind range */}
+              <div className={`transition-opacity ${thresholds.strongWindsEnabled ? '' : 'opacity-50'}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Wind size={15} className="text-blue-400" />
+                    <span className="text-sm font-bold text-white">{t('alerts.strongWinds', 'Wind Speed')}</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" checked={thresholds.strongWindsEnabled} onChange={toggleStrongWinds} className="sr-only peer" />
+                    <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-blue-500/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+                  </label>
+                </div>
+                <RangeThresholdControl
+                  label={t('dashboard.windThreshold', 'Wind speed')}
+                  unit=" km/h"
+                  range={alertPrefs.windSpeedRange ?? DEFAULT_WIND_RANGE}
+                  onChange={(r) => { setWindRange(r); setWindThreshold(r.high); }}
+                  min={0}
+                  max={120}
+                  step={1}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ══════════════════════════════════════
+              SECTION 3 — NOTIFICATIONS
+          ══════════════════════════════════════ */}
+          <div className="flex flex-col gap-3">
+            <p className="text-[10px] font-medium tracking-widest text-white/40 uppercase">Notifications</p>
+
+            <div className="glass-inner rounded-xl border border-white/10 overflow-hidden">
+
+              {/* Daily Surf Report row */}
+              <div className="px-4 py-3.5">
+                <DailySurfReportToggle />
+              </div>
+
+              {/* Hairline */}
+              <div className="h-px bg-white/10" />
+
+              {/* Tsunami Alerts row */}
+              <div className={`px-4 py-3.5 flex items-center justify-between transition-colors ${thresholds.tsunamiAlertsEnabled ? 'bg-red-950/30' : 'bg-red-950/10 opacity-60'}`}>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-900/40 flex items-center justify-center">
+                    <Waves size={16} className="text-red-400" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-red-200 block">
+                      {t('alerts.tsunamiAlerts', 'Tsunami Alerts')}
+                    </span>
+                    <span className="text-[10px] text-red-400/60">
+                      {t('alerts.tsunamiAlertsDesc', 'Receive critical push notifications for tsunami warnings in your area')}
+                    </span>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={thresholds.tsunamiAlertsEnabled}
+                    onChange={toggleTsunamiAlerts}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-red-600/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+                </label>
+              </div>
+
+              {/* Hairline */}
+              <div className="h-px bg-white/10" />
+
+              {/* Push Notifications row */}
+              <div className="px-4 py-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-purple-900/40 flex items-center justify-center">
+                      <BellRing size={16} className="text-purple-400" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-purple-200 block">
+                        {t('alerts.pushNotifications', 'Push Notifications')}
+                      </span>
+                      <span className="text-[10px] text-purple-400/60">
+                        {pushStatus === 'granted' ? t('alerts.pushEnabled', 'Enabled') :
+                         pushStatus === 'denied' ? t('alerts.pushDenied', 'Blocked by browser') :
+                         t('alerts.pushDesc', 'Get alerts when conditions are perfect')}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleEnablePush}
+                    disabled={pushStatus === 'requesting' || pushStatus === 'granted'}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
+                      pushStatus === 'granted'
+                        ? 'bg-emerald-600/40 text-emerald-300 cursor-default'
+                        : pushStatus === 'requesting'
+                          ? 'bg-purple-600/30 text-purple-300 animate-pulse cursor-wait'
+                          : 'bg-purple-600/50 text-white hover:bg-purple-500/60 active:bg-purple-500/80'
                     }`}
                   >
-                    <span className="text-lg">{opt.emoji}</span>
-                    <span className="text-[9px] font-bold text-white leading-tight text-center">{opt.label}</span>
-                    {isActive && primaryPersona === opt.persona && (
-                      <span className="text-[8px] text-white/60 leading-tight">primary</span>
-                    )}
+                    {pushStatus === 'granted' ? t('alerts.pushGranted', 'Enabled') :
+                     pushStatus === 'requesting' ? '...' :
+                     t('alerts.pushEnable', 'Enable')}
                   </button>
-                );
-              })}
-            </div>
-            {selectedActivities.length > 1 && (
-              <p className="text-[10px] text-white/40 mt-2 text-center">
-                {t('alertConfig.tapToPrimary', 'Tap an active card to set it as primary')}
-              </p>
-            )}
-          </div>
-
-          {/* ═══ Wave range ═══ */}
-          <div className={`transition-opacity ${thresholds.highWavesEnabled ? '' : 'opacity-50'}`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Waves size={15} className="text-orange-400" />
-                <span className="text-sm font-bold text-white">{t('alerts.highWaves', 'Wave Height')}</span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={thresholds.highWavesEnabled} onChange={toggleHighWaves} className="sr-only peer" />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-orange-500/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
-              </label>
-            </div>
-            <RangeThresholdControl
-              label={t('dashboard.waveThreshold', 'Wave height')}
-              unit=" m"
-              range={alertPrefs.waveHeightRange ?? DEFAULT_WAVE_RANGE}
-              onChange={(r) => { setWaveRange(r); setWaveThreshold(r.high); }}
-              min={0}
-              max={10}
-              step={0.1}
-            />
-          </div>
-
-          {/* ═══ Wind range ═══ */}
-          <div className={`transition-opacity ${thresholds.strongWindsEnabled ? '' : 'opacity-50'}`}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Wind size={15} className="text-blue-400" />
-                <span className="text-sm font-bold text-white">{t('alerts.strongWinds', 'Wind Speed')}</span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={thresholds.strongWindsEnabled} onChange={toggleStrongWinds} className="sr-only peer" />
-                <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-blue-500/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
-              </label>
-            </div>
-            <RangeThresholdControl
-              label={t('dashboard.windThreshold', 'Wind speed')}
-              unit=" km/h"
-              range={alertPrefs.windSpeedRange ?? DEFAULT_WIND_RANGE}
-              onChange={(r) => { setWindRange(r); setWindThreshold(r.high); }}
-              min={0}
-              max={120}
-              step={1}
-            />
-          </div>
-
-          {/* ═══ Daily Surf Report (push notifications) ═══
-              Wires to preferences.push_opt_in (default true). The
-              `daily-surf-report` Edge Function filters its query on
-              push_opt_in !== false so existing users continue to receive
-              pushes while new users can opt out here. */}
-          <DailySurfReportToggle />
-
-          {/* ═══ Tsunami Alerts (real push notifications) ═══ */}
-          <div className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${thresholds.tsunamiAlertsEnabled ? 'bg-red-950/30 border-red-900/40' : 'bg-red-950/10 border-white/5 opacity-60'}`}>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-red-900/40 flex items-center justify-center">
-                <Waves size={16} className="text-red-400" />
-              </div>
-              <div>
-                <span className="text-sm font-bold text-red-200 block">
-                  {t('alerts.tsunamiAlerts', 'Tsunami Alerts')}
-                </span>
-                <span className="text-[10px] text-red-400/60">
-                  {t('alerts.tsunamiAlertsDesc', 'Receive critical push notifications for tsunami warnings in your area')}
-                </span>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={thresholds.tsunamiAlertsEnabled}
-                onChange={toggleTsunamiAlerts}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-red-600/60 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
-            </label>
-          </div>
-
-          {/* ═══ Push Notifications ═══ */}
-          <div className="glass-inner rounded-xl p-4 border border-purple-500/20">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-900/40 flex items-center justify-center">
-                  <BellRing size={16} className="text-purple-400" />
                 </div>
-                <div>
-                  <span className="text-sm font-bold text-purple-200 block">
-                    {t('alerts.pushNotifications', 'Push Notifications')}
-                  </span>
-                  <span className="text-[10px] text-purple-400/60">
-                    {pushStatus === 'granted' ? t('alerts.pushEnabled', 'Enabled') :
-                     pushStatus === 'denied' ? t('alerts.pushDenied', 'Blocked by browser') :
-                     t('alerts.pushDesc', 'Get alerts when conditions are perfect')}
-                  </span>
+
+                {/* Troubleshoot disclosure */}
+                <div className="px-4 pb-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPanel(prev => !prev)}
+                    className="text-[10px] text-white/25 hover:text-white/40 transition-colors"
+                  >
+                    Trouble receiving alerts?
+                  </button>
+                  {showResetPanel && (
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-[10px] text-white/30">
+                        {resetStatus === 'done'
+                          ? 'Cleared. Reload the page, then click Enable.'
+                          : resetStatus === 'failed'
+                          ? 'Reset failed — see DevTools.'
+                          : 'Clear the local push cache to fix stuck states.'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleResetPushState}
+                        disabled={resetStatus === 'working'}
+                        className="text-[10px] text-purple-300/70 hover:text-purple-200 underline decoration-dotted underline-offset-2 disabled:opacity-40 ml-3 shrink-0"
+                      >
+                        {resetStatus === 'working' ? 'Resetting…' : 'Reset push state'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-              <button
-                onClick={handleEnablePush}
-                disabled={pushStatus === 'requesting' || pushStatus === 'granted'}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors ${
-                  pushStatus === 'granted'
-                    ? 'bg-emerald-600/40 text-emerald-300 cursor-default'
-                    : pushStatus === 'requesting'
-                      ? 'bg-purple-600/30 text-purple-300 animate-pulse cursor-wait'
-                      : 'bg-purple-600/50 text-white hover:bg-purple-500/60 active:bg-purple-500/80'
-                }`}
-              >
-                {pushStatus === 'granted' ? t('alerts.pushGranted', 'Enabled') :
-                 pushStatus === 'requesting' ? '...' :
-                 t('alerts.pushEnable', 'Enable')}
-              </button>
-            </div>
 
-            {/* Debug: Reset push state — wipes OneSignal IndexedDB, unblocks
-                the "local-<uuid>" corrupted state. Safe to run at any time;
-                the user will just need to click Enable again afterwards. */}
-            <div className="mt-3 flex items-center justify-between">
-              <span className="text-[10px] text-white/30">
-                {resetStatus === 'done'
-                  ? 'Cleared. Reload the page, then click Enable.'
-                  : resetStatus === 'failed'
-                    ? 'Reset failed — see DevTools.'
-                    : 'Stuck? Clear the local push cache.'}
-              </span>
-              <button
-                type="button"
-                onClick={handleResetPushState}
-                disabled={resetStatus === 'working'}
-                className="text-[10px] text-purple-300/70 hover:text-purple-200 underline decoration-dotted underline-offset-2 disabled:opacity-40"
-              >
-                {resetStatus === 'working' ? 'Resetting…' : 'Reset push state'}
-              </button>
             </div>
           </div>
+
         </div>
 
         {/* Footer hint */}
@@ -449,7 +495,7 @@ const DailySurfReportToggle: React.FC = () => {
       className={`flex items-center justify-between p-4 border rounded-xl transition-colors ${
         pushOptIn
           ? 'bg-amber-500/10 border-amber-400/30'
-          : 'bg-white/[0.02] border-white/5 opacity-70'
+          : 'bg-white/2 border-white/5 opacity-70'
       }`}
     >
       <div className="flex items-center gap-2">
@@ -476,7 +522,7 @@ const DailySurfReportToggle: React.FC = () => {
           className="sr-only peer"
           aria-label={t('alerts.dailySurfReport', 'Daily Surf Report')}
         />
-        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-amber-500/70 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+        <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:bg-amber-500/70 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
       </label>
     </div>
   );

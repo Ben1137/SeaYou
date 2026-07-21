@@ -95,6 +95,11 @@ export const HYPE_MESSAGES: Record<ActivityPersona, { title: string; body: strin
     { title: '\uD83D\uDC20 Dive Window!', body: 'Calm surface, great viz, perfect temps in 1 hour. The reef is waiting.' },
     { title: '\uD83E\uDD3F Time to Dive!', body: 'Ultra-low currents and clear water in 1 hour. Don\u2019t forget your camera!' },
   ],
+  [ActivityPersona.BOOGIE_BOARDER]: [
+    { title: '\uD83C\uDF0A Shore-Break Time!', body: 'Punchy shore-break window in 1 hour. Grab the board and hit the sand!' },
+    { title: '\uD83C\uDF0A Boogie Alert!', body: 'Heavy sets rolling in soon. Perfect bodyboarding conditions ahead!' },
+    { title: '\uD83C\uDF0A Ride the Mush!', body: 'Shore-break firing in 1 hour. Your bodyboard is already jealous.' },
+  ],
   [ActivityPersona.BEACHGOER]: [
     { title: '\uD83C\uDFD6\uFE0F Perfect Beach Day!', body: 'Sunny skies, calm sea, warm breeze in 1 hour. Grab your towel and sunscreen!' },
     { title: '\u2600\uFE0F Beach Weather Alert!', body: 'Golden hour vibes incoming! Flat water, blue skies. Time to hit the sand.' },

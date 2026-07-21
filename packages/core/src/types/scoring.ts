@@ -1,10 +1,11 @@
 export enum ActivityPersona {
-  WAVE_SURFER = 'wave_surfer',
-  WIND_SURFER = 'wind_surfer',
-  KITE_SURFER = 'kite_surfer',
-  SAILOR = 'sailor',
-  DIVER = 'diver',
-  BEACHGOER = 'beachgoer',
+  WAVE_SURFER    = 'wave_surfer',
+  WIND_SURFER    = 'wind_surfer',
+  KITE_SURFER    = 'kite_surfer',
+  BOOGIE_BOARDER = 'boogie_boarder',
+  SAILOR         = 'sailor',
+  DIVER          = 'diver',
+  BEACHGOER      = 'beachgoer',
 }
 
 export interface HourlyConditions {
@@ -26,6 +27,8 @@ export interface HourlyConditions {
   weatherCode?: number;
   pressure?: number;
   isDay?: boolean; // true = daylight hour, false = night
+  /** Offshore compass bearing from bathymetry gradient (degrees [0,360)), or null/absent when unknown. */
+  shoreNormalDeg?: number | null;
 }
 
 /**
@@ -55,6 +58,11 @@ export interface ActivityScore {
   warnings: string[];
   /** Human-readable breakdown powering the Explainable UI modal. */
   breakdown: ScoreFactor[];
+  /**
+   * Safety hazard derived from wind direction + persona. Non-null only for kite/wind surfers
+   * with offshore wind above minimum speed. Null = no hazard for this condition.
+   */
+  hazard?: { kind: 'offshore_wind'; label: string } | null;
 }
 
 export interface BestWindow {

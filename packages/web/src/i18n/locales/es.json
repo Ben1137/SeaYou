@@ -175,6 +175,10 @@
       "label": "Kitesurf",
       "desc": "Condiciones de kitesurf"
     },
+    "boogieBoarder": {
+      "label": "Boogie Board",
+      "desc": "Bodyboarding conditions"
+    },
     "sailor": {
       "label": "Vela",
       "desc": "Condiciones de navegación"
@@ -253,7 +257,8 @@
     "diverForecast": "Pronóstico de buceo",
     "noTideData": "No hay datos de mareas disponibles para esta ubicación",
     "rising": "Subiendo",
-    "falling": "Bajando"
+    "falling": "Bajando",
+    "boogieBoarderForecast": "Boogie Boarder's Forecast"
   },
   "table": {
     "period": "Período",

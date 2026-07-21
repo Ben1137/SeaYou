@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -19,6 +19,7 @@ import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
+import { useCoastalReading } from '../hooks/useCoastalReading';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
 
 interface DashboardProps {
@@ -76,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const { thresholds, isDismissed, dismiss, resetDismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
   const [showSettings, setShowSettings] = useState(false);
-  type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'diver' | 'beach';
+  type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'boogie_boarder' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
   // Selected activity persona for the Explainable-UI breakdown modal
@@ -229,35 +230,99 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return null;
   }, [weatherData, currentConditions, thresholds, t]);
 
+  // ── P5.1: Per-spot Coastal Dynamics reading ────────────────────────────────
+  // Reuses @seame/core nearshoreTransform with the same H0/T policy as the map.
+  // coastalReading is null when the spot is on land, deep water, or data unavailable.
+  // Must be declared before scoringConditions/bestWindows so shoreNormalDeg is available.
+  const coastalReadingConditions = currentConditions ? {
+    swellHeight:   currentConditions.swell    ?? 0,
+    swellPeriod:   currentConditions.swellPeriod ?? 0,
+    swellDirection:currentConditions.swellDirection ?? 0,
+    waveHeight:    currentConditions.wave      ?? 0,
+    wavePeriod:    currentConditions.wavePeriod ?? 0,
+    waveDirection: currentConditions.swellDirection ?? 0,
+  } : null;
+  const coastalReading = useCoastalReading(currentLat, currentLng, coastalReadingConditions);
+
   // ─── Activity Scoring (powered by @seame/core scoring engine) ───
   const scoringConditions = useMemo(() => {
     if (!weatherData) return null;
-    return extractCurrentConditions(weatherData);
-  }, [weatherData]);
+    const conds = extractCurrentConditions(weatherData);
+    // Thread shore normal into scoring so wind quality affects scores
+    // when the gradient is available (null → multiplier stays 1.0)
+    if (coastalReading?.shoreNormalDeg != null) {
+      conds.shoreNormalDeg = coastalReading.shoreNormalDeg;
+    }
+    return conds;
+  }, [weatherData, coastalReading]);
 
   const activityScores = useMemo(() => {
     if (!scoringConditions) return null;
     return {
-      [ActivityPersona.SAILOR]: scoreActivity(ActivityPersona.SAILOR, scoringConditions),
-      [ActivityPersona.WAVE_SURFER]: scoreActivity(ActivityPersona.WAVE_SURFER, scoringConditions),
-      [ActivityPersona.WIND_SURFER]: scoreActivity(ActivityPersona.WIND_SURFER, scoringConditions),
-      [ActivityPersona.KITE_SURFER]: scoreActivity(ActivityPersona.KITE_SURFER, scoringConditions),
-      [ActivityPersona.DIVER]: scoreActivity(ActivityPersona.DIVER, scoringConditions),
-      [ActivityPersona.BEACHGOER]: scoreActivity(ActivityPersona.BEACHGOER, scoringConditions),
+      [ActivityPersona.SAILOR]:         scoreActivity(ActivityPersona.SAILOR, scoringConditions),
+      [ActivityPersona.WAVE_SURFER]:    scoreActivity(ActivityPersona.WAVE_SURFER, scoringConditions),
+      [ActivityPersona.WIND_SURFER]:    scoreActivity(ActivityPersona.WIND_SURFER, scoringConditions),
+      [ActivityPersona.KITE_SURFER]:    scoreActivity(ActivityPersona.KITE_SURFER, scoringConditions),
+      [ActivityPersona.BOOGIE_BOARDER]: scoreActivity(ActivityPersona.BOOGIE_BOARDER, scoringConditions),
+      [ActivityPersona.DIVER]:          scoreActivity(ActivityPersona.DIVER, scoringConditions),
+      [ActivityPersona.BEACHGOER]:      scoreActivity(ActivityPersona.BEACHGOER, scoringConditions),
     };
   }, [scoringConditions]);
 
   const bestWindows = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return null;
+    const snDeg = coastalReading?.shoreNormalDeg ?? null;
     return {
-      [ActivityPersona.SAILOR]: findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.WAVE_SURFER]: findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.WIND_SURFER]: findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.KITE_SURFER]: findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.DIVER]: findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex }),
-      [ActivityPersona.BEACHGOER]: findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex }),
+      [ActivityPersona.SAILOR]:         findBestWindow(weatherData, ActivityPersona.SAILOR, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.WAVE_SURFER]:    findBestWindow(weatherData, ActivityPersona.WAVE_SURFER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.WIND_SURFER]:    findBestWindow(weatherData, ActivityPersona.WIND_SURFER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.KITE_SURFER]:    findBestWindow(weatherData, ActivityPersona.KITE_SURFER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.BOOGIE_BOARDER]: findBestWindow(weatherData, ActivityPersona.BOOGIE_BOARDER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.DIVER]:          findBestWindow(weatherData, ActivityPersona.DIVER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
+      [ActivityPersona.BEACHGOER]:      findBestWindow(weatherData, ActivityPersona.BEACHGOER, { startHourIndex: currentHourIndex, shoreNormalDeg: snDeg }),
     };
-  }, [weatherData, currentHourIndex]);
+  }, [weatherData, currentHourIndex, coastalReading]);
+
+  // Tide is decision-relevant for mariners and divers; surfers/beachgoers don't need it in
+  // the conditions grid (they use the tide chart instead). WAVE_SURFER may be added here
+  // at reef/point breaks — deferred to D.3 which builds full persona card-filtering.
+  const TIDE_PERSONAS = new Set<string>(['mariner', 'diver']);
+  const showTide = !!(weatherData?.tides && (persona == null || TIDE_PERSONAS.has(persona)));
+
+  // P5.1 debug log — flag-gated on ?coastalReadingDebug=1
+  // Cross-check HFinal against ?coastalDiag=1 map output at the same lat/lon.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.search.includes('coastalReadingDebug=1')) return;
+    if (coastalReading) {
+      console.log('[CoastalReading]', locationName, {
+        lat: currentLat, lon: currentLng,
+        H0: coastalReading.H0.toFixed(2), T: coastalReading.T.toFixed(1),
+        d: coastalReading.d.toFixed(1),
+        HFinal: coastalReading.HFinal.toFixed(2),
+        Ks: coastalReading.Ks.toFixed(3), Kr: coastalReading.Kr.toFixed(3),
+        breaking: coastalReading.breaking, breakingCap: coastalReading.breakingCap.toFixed(2),
+      });
+    } else {
+      console.log('[CoastalReading]', locationName, 'null (land / deep / no data)');
+    }
+  }, [coastalReading, locationName, currentLat, currentLng]);
+
+  // P5.3 wind-quality debug log — flag-gated on ?windQualityDebug=1
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.location.search.includes('windQualityDebug=1')) return;
+    const snDeg = coastalReading?.shoreNormalDeg ?? null;
+    const windDir = currentConditions?.windDirection ?? null;
+    if (snDeg != null && windDir != null) {
+      const wq = windQuality(windDir, snDeg);
+      const windToward = ((windDir + 180) % 360 + 360) % 360;
+      console.log('[WindQuality]', locationName, {
+        shoreNormalDeg: snDeg, windFromDeg: windDir, windToward,
+        angle: wq.angle.toFixed(1), factor: wq.factor.toFixed(3), label: wq.label,
+      });
+    } else {
+      console.log('[WindQuality]', locationName, { shoreNormalDeg: snDeg, windDir, note: 'chip suppressed' });
+    }
+  }, [coastalReading, currentConditions, locationName]);
 
   const forecastTableBlocks = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return [];
@@ -311,11 +376,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     return blocks;
   }, [weatherData, currentHourIndex]);
 
-  const ALL_FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'diver', 'beach'];
+  const ALL_FORECAST_TABS: ForecastTab[] = ['mariner', 'wave_surfer', 'wind_surfer', 'kite_surfer', 'boogie_boarder', 'diver', 'beach'];
   // Filter forecast tabs to only those relevant to the user's onboarding persona
   const PERSONA_TAB_MAP: Record<OnboardingPersona, ForecastTab[]> = {
     mariner: ['mariner'],
-    surfer: ['wave_surfer', 'wind_surfer', 'kite_surfer', 'beach'],
+    surfer: ['wave_surfer', 'wind_surfer', 'kite_surfer', 'boogie_boarder', 'beach'],
     diver: ['diver'],
     beachgoer: ['beach'],
   };
@@ -349,23 +414,25 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   const forecastTabLabel = (tab: ForecastTab): string => {
     const map: Record<ForecastTab, string> = {
-      mariner: t('forecast.marinerForecast'),
-      wave_surfer: t('forecast.waveSurferForecast'),
-      wind_surfer: t('forecast.windSurferForecast'),
-      kite_surfer: t('forecast.kiteForecast'),
-      diver: t('forecast.diverForecast'),
-      beach: t('forecast.beachForecast'),
+      mariner:        t('forecast.marinerForecast'),
+      wave_surfer:    t('forecast.waveSurferForecast'),
+      wind_surfer:    t('forecast.windSurferForecast'),
+      kite_surfer:    t('forecast.kiteForecast'),
+      boogie_boarder: t('forecast.boogieBoarderForecast', "Boogie Boarder's Forecast"),
+      diver:          t('forecast.diverForecast'),
+      beach:          t('forecast.beachForecast'),
     };
     return map[tab];
   };
 
   const forecastTabPersona = (tab: ForecastTab): ActivityPersona | null => {
     const map: Partial<Record<ForecastTab, ActivityPersona>> = {
-      wave_surfer: ActivityPersona.WAVE_SURFER,
-      wind_surfer: ActivityPersona.WIND_SURFER,
-      kite_surfer: ActivityPersona.KITE_SURFER,
-      diver: ActivityPersona.DIVER,
-      beach: ActivityPersona.BEACHGOER,
+      wave_surfer:    ActivityPersona.WAVE_SURFER,
+      wind_surfer:    ActivityPersona.WIND_SURFER,
+      kite_surfer:    ActivityPersona.KITE_SURFER,
+      boogie_boarder: ActivityPersona.BOOGIE_BOARDER,
+      diver:          ActivityPersona.DIVER,
+      beach:          ActivityPersona.BEACHGOER,
     };
     return map[tab] ?? null;
   };
@@ -482,12 +549,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         <h3 className="text-sm font-semibold text-white/90 mb-3 uppercase tracking-wider flex items-center"><Flag size={13} className="mr-2" /> {t('activity.report')}</h3>
         {(() => {
           const ALL_CARDS: { persona: ActivityPersona; icon: typeof Sailboat; iconColor: string; labelKey: string }[] = [
-            { persona: ActivityPersona.SAILOR, icon: Sailboat, iconColor: 'text-white', labelKey: 'activity.sailor.label' },
-            { persona: ActivityPersona.WAVE_SURFER, icon: Waves, iconColor: 'text-teal-400', labelKey: 'activity.waveSurfer.label' },
-            { persona: ActivityPersona.WIND_SURFER, icon: Wind, iconColor: 'text-cyan-400', labelKey: 'activity.windSurfer.label' },
-            { persona: ActivityPersona.KITE_SURFER, icon: Wind, iconColor: 'text-sky-400', labelKey: 'activity.kiteSurfer.label' },
-            { persona: ActivityPersona.DIVER, icon: Anchor, iconColor: 'text-blue-400', labelKey: 'activity.diver.label' },
-            { persona: ActivityPersona.BEACHGOER, icon: Palmtree, iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
+            { persona: ActivityPersona.SAILOR,         icon: Sailboat,  iconColor: 'text-white',     labelKey: 'activity.sailor.label' },
+            { persona: ActivityPersona.WAVE_SURFER,    icon: Waves,     iconColor: 'text-teal-400',  labelKey: 'activity.waveSurfer.label' },
+            { persona: ActivityPersona.WIND_SURFER,    icon: Wind,      iconColor: 'text-cyan-400',  labelKey: 'activity.windSurfer.label' },
+            { persona: ActivityPersona.KITE_SURFER,    icon: Wind,      iconColor: 'text-sky-400',   labelKey: 'activity.kiteSurfer.label' },
+            { persona: ActivityPersona.BOOGIE_BOARDER, icon: Activity,  iconColor: 'text-rose-400',  labelKey: 'activity.boogieBoarder.label' },
+            { persona: ActivityPersona.DIVER,          icon: Anchor,    iconColor: 'text-blue-400',  labelKey: 'activity.diver.label' },
+            { persona: ActivityPersona.BEACHGOER,      icon: Palmtree,  iconColor: 'text-amber-400', labelKey: 'activity.beachgoer.label' },
           ];
 
           // selectedActivities (from AlertConfigModal) takes priority.
@@ -498,7 +566,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           } else if (persona) {
             const PERSONA_CARD_MAP: Record<OnboardingPersona, ActivityPersona[]> = {
               mariner: [ActivityPersona.SAILOR],
-              surfer: [ActivityPersona.WAVE_SURFER, ActivityPersona.WIND_SURFER, ActivityPersona.KITE_SURFER, ActivityPersona.BEACHGOER],
+              surfer: [ActivityPersona.WAVE_SURFER, ActivityPersona.WIND_SURFER, ActivityPersona.KITE_SURFER, ActivityPersona.BOOGIE_BOARDER, ActivityPersona.BEACHGOER],
               diver: [ActivityPersona.DIVER],
               beachgoer: [ActivityPersona.BEACHGOER],
             };
@@ -543,6 +611,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                         <p className="text-[11px] text-white/50 mt-1">
                           {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
                         </p>
+                      )}
+                      {score.hazard && (
+                        <div className="flex items-center gap-1.5 mt-1 px-2 py-1 rounded-lg bg-red-950/40 border border-red-800/40">
+                          <AlertTriangle size={11} className="shrink-0 text-red-400" />
+                          <span className="text-[10px] text-red-300 leading-tight">
+                            {score.hazard.label}
+                          </span>
+                        </div>
                       )}
                     </>
                   ) : (
@@ -606,6 +682,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                             {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
                           </p>
                         )}
+                        {score.hazard && (
+                          <div className="flex items-center gap-1.5 mt-1 px-2 py-1 rounded-lg bg-red-950/40 border border-red-800/40">
+                            <AlertTriangle size={11} className="shrink-0 text-red-400" />
+                            <span className="text-[10px] text-red-300 leading-tight">
+                              {score.hazard.label}
+                            </span>
+                          </div>
+                        )}
                       </>
                     ) : (
                       <p className="text-xs text-white/40">--</p>
@@ -628,12 +712,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       {/* ─── Explainable UI: Score Breakdown Modal ─── */}
       {(() => {
         const LABEL_MAP: Record<ActivityPersona, string> = {
-          [ActivityPersona.SAILOR]:      t('activity.sailor.label'),
-          [ActivityPersona.WAVE_SURFER]: t('activity.waveSurfer.label'),
-          [ActivityPersona.WIND_SURFER]: t('activity.windSurfer.label'),
-          [ActivityPersona.KITE_SURFER]: t('activity.kiteSurfer.label'),
-          [ActivityPersona.DIVER]:       t('activity.diver.label'),
-          [ActivityPersona.BEACHGOER]:   t('activity.beachgoer.label'),
+          [ActivityPersona.SAILOR]:         t('activity.sailor.label'),
+          [ActivityPersona.WAVE_SURFER]:    t('activity.waveSurfer.label'),
+          [ActivityPersona.WIND_SURFER]:    t('activity.windSurfer.label'),
+          [ActivityPersona.KITE_SURFER]:    t('activity.kiteSurfer.label'),
+          [ActivityPersona.BOOGIE_BOARDER]: t('activity.boogieBoarder.label', 'Boogie Board'),
+          [ActivityPersona.DIVER]:          t('activity.diver.label'),
+          [ActivityPersona.BEACHGOER]:      t('activity.beachgoer.label'),
         };
         return (
           <ScoreBreakdownModal
@@ -646,7 +731,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       })()}
 
       {/* ─── Conditions Grid ─── */}
-      <section className={`grid grid-cols-2 gap-4 ${weatherData.tides ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
+      <section className={`grid grid-cols-2 gap-4 ${showTide ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
         {/* Wave Height */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
@@ -687,42 +772,98 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           <Waves className="absolute bottom-2 right-4 text-white/[0.07]" size={56} />
         </div>
 
-        {/* Air Temperature */}
+        {/* Coastal Dynamics — engine's breaking-wave height at the spot */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
-            <Thermometer size={11} className="mr-1.5 shrink-0" /> {t('weather.air')}
+            <Ruler size={11} className="mr-1.5 shrink-0 text-teal-400" />
+            {t('coastalDynamics.label', 'Coastal Break')}
           </h3>
+          {/* Value block is the second (and only other) flex child — matches sibling structure exactly. */}
           <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1">
-              <span className="text-4xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0)}</span>
-              <span className="text-lg ml-1 mb-1 font-medium">°C</span>
-            </div>
-            <p className="text-[11px] text-white/60 tabular-nums">
-              {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
-            </p>
+            {coastalReading ? (
+              <>
+                <div className="flex items-end mb-1">
+                  <span className={`text-4xl font-bold leading-none tabular-nums ${coastalReading.breaking ? 'text-amber-400' : 'text-teal-300'}`}>
+                    {coastalReading.HFinal.toFixed(1)}
+                  </span>
+                  <span className="text-lg ml-1 mb-1 font-medium">m</span>
+                </div>
+                <p className={`text-[11px] tabular-nums flex items-center gap-1 ${coastalReading.breaking ? 'text-amber-400/80' : 'text-teal-400/80'}`}>
+                  {coastalReading.breaking
+                    ? t('coastalDynamics.breaking', 'Breaking')
+                    : t('coastalDynamics.shoaling', 'Shoaling')}
+                  <span className="text-white/30 mx-0.5">·</span>
+                  <span className="text-white/60">{coastalReading.T.toFixed(1)}s</span>
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="flex items-end mb-1">
+                  <span className="text-4xl font-bold leading-none text-white/20">—</span>
+                </div>
+                <p className="text-[11px] text-white/30">
+                  {t('coastalDynamics.noData', 'No nearshore data')}
+                </p>
+              </>
+            )}
+            {/* Wind-quality chip — only when shore normal is available */}
+            {coastalReading?.shoreNormalDeg != null && currentConditions && (() => {
+              const wq = windQuality(currentConditions.windDirection, coastalReading.shoreNormalDeg!);
+              const chipColor =
+                wq.label === 'offshore' ? 'bg-teal-500/20 text-teal-300 border-teal-500/30' :
+                wq.label === 'onshore'  ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' :
+                                          'bg-white/5 text-white/40 border-white/10';
+              const chipLabel =
+                wq.label === 'offshore' ? t('wind.offshore', 'Offshore') :
+                wq.label === 'onshore'  ? t('wind.onshore',  'Onshore')  :
+                                          t('wind.cross',     'Cross');
+              return (
+                <span className={`inline-flex items-center mt-2 px-2 py-0.5 rounded-full text-[10px] font-medium border ${chipColor}`}>
+                  {chipLabel}
+                </span>
+              );
+            })()}
           </div>
-          <Thermometer className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
+          {/* Caveat: absolutely positioned so it never adds a third flex child (keeps baseline grid). */}
+          <span
+            className="absolute bottom-1.5 left-4 text-[9px] text-white/20 leading-none z-10"
+            title={t('coastalDynamics.caveat', 'Modelled estimate from swell + seafloor depth. Not a spot-calibrated forecast.')}
+          >
+            {t('coastalDynamics.caveatShort', 'Modelled · not a forecast')}
+          </span>
+          <Ruler className="absolute bottom-2 right-3 text-white/[0.05]" size={48} />
         </div>
 
-        {/* Sea Temperature */}
+        {/* Water & Air Temperature — split peers: sea (left) | air (right) */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
-            <Thermometer size={11} className="mr-1.5 shrink-0 text-orange-400" /> {t('weather.sea')}
+            <Thermometer size={11} className="mr-1.5 shrink-0 text-orange-400" /> {t('weather.waterAir', 'Water & Air')}
           </h3>
-          <div className="relative z-10 mt-2">
-            <div className="flex items-end mb-1">
-              <span className="text-4xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
-              <span className="text-lg ml-1 mb-1 font-medium">°C</span>
+          <div className="relative z-10 mt-2 flex gap-0">
+            {/* Sea half */}
+            <div className="flex-1 flex flex-col items-center">
+              <div className="flex items-end justify-center mb-1">
+                <span className="text-3xl font-bold leading-none tabular-nums">{currentConditions.seaTemp?.toFixed(0) ?? '--'}</span>
+                <span className="text-base ml-0.5 mb-0.5 font-medium">°</span>
+              </div>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider text-center">{t('weather.sea', 'Sea')}</p>
             </div>
-            <p className="text-[11px] text-white/60 tabular-nums">
-              {t('weather.feelsLike')} {weatherData.general?.feelsLike.toFixed(0)}°
-            </p>
+            {/* Hairline divider */}
+            <div className="w-px self-stretch bg-white/10 mx-3" />
+            {/* Air half */}
+            <div className="flex-1 flex flex-col items-center">
+              <div className="flex items-end justify-center mb-1">
+                <span className="text-3xl font-bold leading-none tabular-nums">{weatherData.general?.temperature.toFixed(0) ?? '--'}</span>
+                <span className="text-base ml-0.5 mb-0.5 font-medium">°</span>
+              </div>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider text-center">{t('weather.air', 'Air')}</p>
+            </div>
           </div>
           <Droplets className="absolute bottom-2 right-3 text-white/[0.07]" size={48} />
         </div>
 
-        {/* Sea Level / Tidal Trend — only rendered when real tide data is available */}
-        {weatherData.tides && (
+        {/* Tidal Trend — shown for mariners + divers; surfers/beachgoers defer to tide chart (D.3) */}
+        {showTide && weatherData.tides && (
           <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
             <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
               <Waves size={11} className="mr-1.5" /> {t('forecast.tideHeight')}
@@ -929,11 +1070,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         )}
       </section>
 
-      {/* Phase 6 — Past Voyages / Logbook. Auto-saves completed navigation
-          sessions, shows cloud-synced trips when signed in. */}
-      <section>
-        <VoyageLogbookCard />
-      </section>
+      {/* Phase 6 — Logbook. Mariner-only: knots/distance/speed are not relevant to surfers
+          or beachgoers. Null persona → hidden (avoid confusing non-mariners with voyage data). */}
+      {persona === 'mariner' && (
+        <section>
+          <VoyageLogbookCard />
+        </section>
+      )}
 
     </div>
   );

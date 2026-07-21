@@ -5,7 +5,7 @@ import { extractHourlyConditions } from './extractConditions';
 export function findBestWindow(
   data: MarineWeatherData,
   persona: ActivityPersona,
-  options?: { minHours?: number; maxHours?: number; startHourIndex?: number }
+  options?: { minHours?: number; maxHours?: number; startHourIndex?: number; shoreNormalDeg?: number | null }
 ): BestWindow | null {
   if (!data?.hourly?.time?.length) return null;
   const minH = options?.minHours ?? 2;
@@ -18,6 +18,11 @@ export function findBestWindow(
   const scores: number[] = [];
   for (let i = startIdx; i < limit; i++) {
     const conds = extractHourlyConditions(data, i);
+    // Thread shore normal into hourly conditions so best-window uses the same
+    // wind-quality math as the headline scorer (coast aspect doesn't change hour-to-hour)
+    if (options?.shoreNormalDeg != null) {
+      conds.shoreNormalDeg = options.shoreNormalDeg;
+    }
     scores.push(scoreActivity(persona, conds).overall);
   }
 
