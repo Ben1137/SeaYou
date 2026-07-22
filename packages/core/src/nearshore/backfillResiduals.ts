@@ -381,7 +381,7 @@ async function fetchMarineHistorical(
 
 // ---------------------------------------------------------------------------
 // Supabase insert (best-effort; falls back to JSONL)
-// Uses anon key from env; RLS policy in migration allows anon inserts.
+// Requires SUPABASE_SERVICE_ROLE_KEY (RLS restricts INSERT to service_role to prevent data poisoning).
 // ---------------------------------------------------------------------------
 
 async function supabaseUpsertBatch(records: ResidualRecord[]): Promise<boolean> {

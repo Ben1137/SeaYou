@@ -30,15 +30,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS calibration_residuals_unique
 CREATE INDEX IF NOT EXISTS calibration_residuals_query
   ON calibration_residuals (spot, buoy_kind, input_source, ts);
 
--- Row-level security: allow service role and anon to insert (backfill script uses anon key)
+-- Row-level security: service_role only for writes (prevents ML training data poisoning).
+-- SELECT is also restricted to service_role; expose via a Supabase Edge Function or
+-- authenticated role if a UI ever needs to read this data.
 ALTER TABLE calibration_residuals ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "allow_insert_calibration_residuals"
   ON calibration_residuals FOR INSERT
-  TO anon, authenticated, service_role
+  TO service_role
   WITH CHECK (true);
 
 CREATE POLICY "allow_select_calibration_residuals"
   ON calibration_residuals FOR SELECT
-  TO anon, authenticated, service_role
+  TO service_role
   USING (true);
