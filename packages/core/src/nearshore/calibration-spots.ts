@@ -128,12 +128,12 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
     depthM: 6.0,
     buoy: {
       network: 'CDIP',
-      id: '073',
+      id: '201',
       lat: 32.868,
       lon: -117.267,
       depthM: 10,
       kind: 'nearshore',
     },
-    notes: 'Scripps Institution Oceanography nearshore. CDIP 073 nearshore (10 m) → validates OUTPUT.',
+    notes: 'Scripps Institution Oceanography nearshore. CDIP 073 retired; replaced with CDIP 201 (Scripps Nearshore, active, same location) → validates OUTPUT.',
   },
 ];

@@ -61,3 +61,8 @@ IMPLEMENTATION_SUMMARY.md
 # P6.1 calibration harness — ML data grows unboundedly; commit sample only
 calibration-data.jsonl
 calibration-report.md
+
+# P6.0 historical residual backfill — large JSONL + checkpoint
+calibration-backfill.jsonl
+calibration-backfill-report.md
+.calibration-backfill-checkpoint.json
