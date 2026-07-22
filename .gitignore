@@ -70,3 +70,6 @@ calibration-backfill-report.md
 # P6.2 forward data-assimilation output files
 calibration-forward.jsonl
 calibration-residual-report.md
+
+# P6.2.1 residual decomposition analysis report
+calibration-analysis-report.md
