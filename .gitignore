@@ -57,3 +57,7 @@ skills/
 VERIFY_*.md
 IMPLEMENTATION_SUMMARY.md
 .gstack/
+
+# P6.1 calibration harness — ML data grows unboundedly; commit sample only
+calibration-data.jsonl
+calibration-report.md
