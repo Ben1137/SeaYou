@@ -66,3 +66,7 @@ calibration-report.md
 calibration-backfill.jsonl
 calibration-backfill-report.md
 .calibration-backfill-checkpoint.json
+
+# P6.2 forward data-assimilation output files
+calibration-forward.jsonl
+calibration-residual-report.md

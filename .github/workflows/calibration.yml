@@ -1,0 +1,40 @@
+# P6.2 — Autonomous calibration data-assimilation pipeline
+# Runs every 6h to collect engine-vs-buoy residuals into calibration_residuals.
+# Secrets required in GitHub repo Settings → Secrets and variables → Actions:
+#   SUPABASE_URL            — https://mxuvijlowneokmzeompn.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY — service_role JWT (NOT the anon key)
+# The workflow writes to Supabase but commits nothing.
+name: Calibration Data Assimilation
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
+  workflow_dispatch:          # manual trigger via GitHub Actions UI
+
+jobs:
+  assimilate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run data assimilation
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx packages/core/src/nearshore/dataAssimilation.ts

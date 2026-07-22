@@ -66,6 +66,7 @@ interface ResidualRecord {
   residual:       number;
   source_buoy_id: string;
   engine_version: string;
+  compare_basis:  'total_vs_total' | 'swell_vs_swell' | 'swell_only_legacy';
 }
 
 // ---------------------------------------------------------------------------
@@ -313,6 +314,7 @@ interface MarineHour {
   swellDir:      number;
   windFromDeg:   number;
   windSpeedMs:   number;
+  waveHeight:    number;  // total significant wave height (swell + wind sea)
 }
 
 async function fetchMarineHistorical(
@@ -323,7 +325,7 @@ async function fetchMarineHistorical(
   const end   = endDate.toISOString().slice(0, 10);
   const url =
     `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction` +
+    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height` +
     `&start_date=${start}&end_date=${end}&timezone=GMT`;
   const windUrl =
     `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
@@ -344,6 +346,7 @@ async function fetchMarineHistorical(
         swell_wave_height: (number | null)[];
         swell_wave_period: (number | null)[];
         swell_wave_direction: (number | null)[];
+        wave_height: (number | null)[];
       };
     };
     const wind = await windRes.json() as {
@@ -360,6 +363,7 @@ async function fetchMarineHistorical(
       const p = marine.hourly.swell_wave_period[i];
       const d = marine.hourly.swell_wave_direction[i];
       if (h == null || p == null) continue;
+      const wh = marine.hourly.wave_height?.[i] ?? h; // total Hs; fallback to swell if null
       const wSpd = wind.hourly.wind_speed_10m[i] ?? 0;
       const wDir = wind.hourly.wind_direction_10m[i] ?? 0;
       const key = marine.hourly.time[i].replace('T', ' ').slice(0, 13); // "2023-01-01 06"
@@ -370,6 +374,7 @@ async function fetchMarineHistorical(
         swellDir:     d ?? 0,
         windFromDeg:  wDir,
         windSpeedMs:  wSpd,
+        waveHeight:   wh,
       });
     }
     return result;
@@ -385,9 +390,11 @@ async function fetchMarineHistorical(
 // ---------------------------------------------------------------------------
 
 async function supabaseUpsertBatch(records: ResidualRecord[]): Promise<boolean> {
-  // Read env from packages/web/.env
-  const envPath = path.join(PROJECT_ROOT, 'packages/web/.env');
-  let supabaseUrl = process.env.VITE_SUPABASE_URL;
+  // Service key lives in repo-root .env (not packages/web/.env — Vite territory)
+  const envPath = fs.existsSync(path.join(PROJECT_ROOT, '.env'))
+    ? path.join(PROJECT_ROOT, '.env')
+    : path.join(PROJECT_ROOT, 'packages/web/.env'); // legacy fallback
+  let supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
   let supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
@@ -396,7 +403,8 @@ async function supabaseUpsertBatch(records: ResidualRecord[]): Promise<boolean> 
       for (const line of envContent.split('\n')) {
         const [k, ...vs] = line.split('=');
         const v = vs.join('=').trim();
-        if (k?.trim() === 'VITE_SUPABASE_URL') supabaseUrl = v;
+        if (k?.trim() === 'SUPABASE_URL') supabaseUrl = supabaseUrl ?? v;
+        if (k?.trim() === 'VITE_SUPABASE_URL') supabaseUrl = supabaseUrl ?? v;
         if (k?.trim() === 'SUPABASE_SERVICE_ROLE_KEY') supabaseKey = v;
         if (k?.trim() === 'VITE_SUPABASE_ANON_KEY' && !supabaseKey) supabaseKey = v;
       }
@@ -495,9 +503,9 @@ async function processSpotYear(
     if (!m) { skipped++; continue; }
     if (m.swellHeight <= 0 || m.swellPeriod <= 0) { skipped++; continue; }
 
-    // Engine INPUT (H0/T = what Open-Meteo provided for this timestamp)
-    const H0 = m.swellHeight;
-    const T  = m.swellPeriod;
+    // Use total wave height for like-for-like comparison (NDBC WVHT = total Hs)
+    const H0 = m.waveHeight;   // total combined sea state from Open-Meteo
+    const T  = m.swellPeriod;  // dominant swell period (best available)
 
     // Engine OUTPUT (nearshoreTransform at spot depth)
     const tr = nearshoreTransform(H0, T, spot.depthM);
@@ -522,6 +530,7 @@ async function processSpotYear(
       residual,
       source_buoy_id: `${spot.buoy!.network}-${spot.buoy!.id}`,
       engine_version: engineVersion,
+      compare_basis:  'total_vs_total',
     });
   }
 
