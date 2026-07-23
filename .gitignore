@@ -67,6 +67,9 @@ calibration-backfill.jsonl
 calibration-backfill-report.md
 .calibration-backfill-checkpoint.json
 
+# P6.2.5 input validation report
+calibration-input-validation-v2-report.md
+
 # P6.2 forward data-assimilation output files
 calibration-forward.jsonl
 calibration-residual-report.md

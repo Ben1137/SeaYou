@@ -111,7 +111,7 @@ async function fetchAllResiduals(
     const url =
       `${supabaseUrl}/rest/v1/calibration_residuals` +
       `?select=spot,buoy_kind,input_source,compare_basis,swell_dir,swell_period,residual,source_buoy_id,ts` +
-      `&compare_basis=neq.swell_only_legacy` +
+      `&compare_basis=neq.swell_only_legacy&data_quality=eq.ok` +
       `&order=ts.asc` +
       `&offset=${offset}&limit=${PAGE}`;
 

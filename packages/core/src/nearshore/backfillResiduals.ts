@@ -67,6 +67,7 @@ interface ResidualRecord {
   source_buoy_id: string;
   engine_version: string;
   compare_basis:  'total_vs_total' | 'swell_vs_swell' | 'swell_only_legacy';
+  data_quality:   'ok' | 'invalid_wrong_station' | 'invalid_wrong_depth' | 'invalid_wrong_buoy_coords';
 }
 
 // ---------------------------------------------------------------------------
@@ -531,6 +532,7 @@ async function processSpotYear(
       source_buoy_id: `${spot.buoy!.network}-${spot.buoy!.id}`,
       engine_version: engineVersion,
       compare_basis:  'total_vs_total',
+      data_quality:   'ok' as const,
     });
   }
 
