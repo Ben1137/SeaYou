@@ -508,8 +508,11 @@ async function processSpotYear(
     const H0 = m.waveHeight;   // total combined sea state from Open-Meteo
     const T  = m.swellPeriod;  // dominant swell period (best available)
 
-    // Engine OUTPUT (nearshoreTransform at spot depth)
-    const tr = nearshoreTransform(H0, T, spot.depthM);
+    // Engine OUTPUT (nearshoreTransform at buoy depth for validation harness).
+    // Validation harness uses buoy.depthM (the depth where the measurement is taken),
+    // not spot.depthM (the surf-break depth). Both are correct in their own context.
+    const transformDepth = spot.buoy ? (spot.buoy.depthM ?? spot.depthM) : spot.depthM;
+    const tr = nearshoreTransform(H0, T, transformDepth);
 
     const engineValue = spot.buoy!.kind === 'deep' ? H0 : tr.H;
     const residual    = b.Hs - engineValue; // positive = engine under-predicts

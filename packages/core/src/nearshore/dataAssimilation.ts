@@ -316,7 +316,9 @@ async function processSpot(
   // Engine: use total wave height (total_vs_total basis)
   const H0 = marine.waveHeight;
   const T  = marine.swellPeriod;
-  const tr = nearshoreTransform(H0, T, spot.depthM);
+  // Use buoy.depthM for validation comparison (buoy measurement depth), not surf-break depth.
+  const transformDepth = spot.buoy ? (spot.buoy.depthM ?? spot.depthM) : spot.depthM;
+  const tr = nearshoreTransform(H0, T, transformDepth);
 
   const engineValue = spot.buoy.kind === 'deep' ? H0 : tr.H;
   const residual    = buoy.Hs - engineValue;

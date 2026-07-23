@@ -187,7 +187,7 @@ async function partA(reportLines: string[]): Promise<void> {
         if (!buoy || mh.waveHeight == null) continue;
         const H0 = mh.waveHeight;
         const T  = mh.wavePeriod ?? buoy.Tp;
-        const tr = nearshoreTransform(H0, T, spot.depthM);
+        const tr = nearshoreTransform(H0, T, spot.buoy?.depthM ?? spot.depthM);
         const residual = tr.H - buoy.Hs; // engine − buoy (positive = over-predict)
         const pb = periodBucket(T);
         if (pb) buckets[pb].push(residual);
@@ -237,7 +237,7 @@ async function partA(reportLines: string[]): Promise<void> {
         const buoy = buoyMap.get(key);
         if (!buoy || mh.waveHeight == null) continue;
         const T = mh.wavePeriod ?? buoy.Tp;
-        const tr = nearshoreTransform(mh.waveHeight, T, spot.depthM);
+        const tr = nearshoreTransform(mh.waveHeight, T, spot.buoy?.depthM ?? spot.depthM);
         const residual = tr.H - buoy.Hs;
         const pb = periodBucket(T);
         if (pb) buckets[pb].push(residual);
@@ -295,7 +295,7 @@ async function partB(reportLines: string[]): Promise<void> {
       if (!buoy || mh.waveHeight == null) continue;
       const H0 = mh.waveHeight;
       const T  = mh.wavePeriod ?? buoy.Tp;
-      const tr = nearshoreTransform(H0, T, nearSpot.depthM);
+      const tr = nearshoreTransform(H0, T, nearSpot.buoy?.depthM ?? nearSpot.depthM);
       const pb = periodBucket(T);
       if (!pb) continue;
       // Input residual: H0 (Open-Meteo raw) vs buoy Hs (nearshore truth — not deep, so this is the full chain)
