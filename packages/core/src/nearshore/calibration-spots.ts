@@ -73,12 +73,12 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
     buoy: {
       network: 'NDBC',
       id: '51001',
-      lat: 23.445,
-      lon: -162.279,
+      lat: 24.475,
+      lon: -162.030,
       depthM: 3430,
       kind: 'deep',
     },
-    notes: 'Ehukai Beach, N Shore Oahu. NDBC 51001 deep NW Hawaiian Islands buoy → validates INPUT.',
+    notes: 'Ehukai Beach, N Shore Oahu. NDBC 51001 deep NW Hawaiian Islands buoy → validates INPUT. Corrected buoy lat/lon from NDBC realtime header (was 23.445/-162.279, correct is 24.475/-162.030).',
   },
   {
     name: 'Hossegor FR',
@@ -112,13 +112,13 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
     depthM: 8.0,
     buoy: {
       network: 'CDIP',
-      id: '028',
-      lat: 36.940,
-      lon: -122.035,
-      depthM: 11,
+      id: '281',
+      lat: 36.93,
+      lon: -121.9343,
+      depthM: 24,
       kind: 'nearshore',
     },
-    notes: 'Steamer Lane. CDIP 028 nearshore (11 m depth) → validates OUTPUT breaking model.',
+    notes: 'Steamer Lane. Replaced incorrect CDIP 028 (was 33.85N/118.63W, Catalina/San Pedro, ~340 km away). CDIP 281 (SOQUEL COVE SOUTH, CA) at 36.93N/121.93W, depth 23.5 m — closest nearshore station to Santa Cruz with confirmed wave_agg data; source: CDIP ERDDAP spatial search + THREDDS archive/281p1/281p1_historic.nc. Station active from Dec 2024.',
   },
   {
     name: 'Scripps CA',
@@ -131,10 +131,10 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
       id: '201',
       lat: 32.868,
       lon: -117.267,
-      depthM: 10,
+      depthM: 41,
       kind: 'nearshore',
     },
-    notes: 'Scripps Institution Oceanography nearshore. CDIP 073 retired; replaced with CDIP 201 (Scripps Nearshore, active, same location) → validates OUTPUT.',
+    notes: 'Scripps Institution Oceanography nearshore. CDIP 073 retired; replaced with CDIP 201 (Scripps Nearshore, active, same location) → validates OUTPUT. Corrected depthM from 10 to 41 (actual 41.0 m per THREDDS archive/201p1/201p1_historic.nc latest deployment; earlier deployments range 38.71–46 m).',
   },
 
   // -------------------------------------------------------------------------
