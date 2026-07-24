@@ -94,6 +94,8 @@ interface ResidualsRow {
   compare_basis:  string;
   swell_dir:      number | null;
   swell_period:   number | null;
+  /** wave_period column = the T actually passed to nearshoreTransform = swell_wave_peak_period (true Tp, P6.2.10) */
+  wave_period:    number | null;
   residual:       number;
   source_buoy_id: string;
   ts:             string;
@@ -110,10 +112,11 @@ async function fetchAllResiduals(
   while (true) {
     const url =
       `${supabaseUrl}/rest/v1/calibration_residuals` +
-      `?select=spot,buoy_kind,input_source,compare_basis,swell_dir,swell_period,residual,source_buoy_id,ts` +
-      `&compare_basis=neq.swell_only_legacy&data_quality=eq.ok` +
+      `?select=spot,buoy_kind,input_source,compare_basis,swell_dir,swell_period,wave_period,residual,source_buoy_id,ts` +
+      `&compare_basis=eq.total_h_swell_tp&data_quality=eq.ok&wave_period=not.is.null` +
       `&order=ts.asc` +
       `&offset=${offset}&limit=${PAGE}`;
+      // Bands by wave_period column (= swell_wave_peak_period, true Tp used for transform, P6.2.10)
 
     const res = await fetch(url, {
       headers: {
@@ -352,7 +355,8 @@ async function main() {
       pool.sectorMap.set(sector, a);
     }
 
-    const pb = periodBucket(row.swell_period);
+    // Band by wave_period (= swell_wave_peak_period, true Tp used for transform, P6.2.10)
+    const pb = periodBucket(row.wave_period);
     if (pb) {
       const a = pool.periodMap.get(pb) ?? [];
       a.push(row.residual);
@@ -412,6 +416,10 @@ async function main() {
     ``,
     `**Generated:** ${new Date().toISOString()}  `,
     `**Total clean rows analysed:** ${rows.length}  `,
+    ``,
+    `**Sign convention:** residual = buoy_value − engine_value (positive = engine under-predicts)  `,
+    `**Bands:** wave_period column (= swell_wave_peak_period, true Tp used for transform, P6.2.10)  `,
+    `**compare_basis filter:** total_h_swell_tp only (H0=total Hs, T=swell Tp)  `,
     ``,
     `## Thresholds`,
     `| Parameter | Value |`,

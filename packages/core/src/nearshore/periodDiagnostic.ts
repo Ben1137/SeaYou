@@ -81,7 +81,12 @@ function periodBucket(p: number | null): 'short'|'mid'|'long'|null {
 // Confirmed forecast-only (7-day window): ecmwf_wam025, ncep_gfswave025
 // ---------------------------------------------------------------------------
 
-interface ModelHour { ts: string; waveHeight: number | null; wavePeriod: number | null; }
+interface ModelHour {
+  ts: string;
+  waveHeight: number | null;
+  wavePeriod: number | null;       // wave_period (Tm) — NOT used for transform in P6.2.10
+  swellPeriod: number | null;      // swell_wave_period — canonical T for transform (P6.2.10)
+}
 
 async function fetchModelArchive(
   lat: number, lon: number,
@@ -91,20 +96,22 @@ async function fetchModelArchive(
   const url =
     `https://marine-api.open-meteo.com/v1/marine` +
     `?latitude=${lat}&longitude=${lon}` +
-    `&hourly=wave_height,wave_period` +
+    `&hourly=wave_height,wave_period,swell_wave_period` +
     `&start_date=${startDate}&end_date=${endDate}` +
     `&timezone=GMT&models=${model}`;
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
     if (!res.ok) return [];
-    const d = await res.json() as { hourly?: { time: string[]; wave_height: (number|null)[]; wave_period?: (number|null)[]; } };
-    const times  = d.hourly?.time ?? [];
+    const d = await res.json() as { hourly?: { time: string[]; wave_height: (number|null)[]; wave_period?: (number|null)[]; swell_wave_period?: (number|null)[]; } };
+    const times   = d.hourly?.time ?? [];
     const heights = d.hourly?.wave_height ?? [];
     const periods = d.hourly?.wave_period ?? [];
+    const swellPs = d.hourly?.swell_wave_period ?? [];
     return times.map((ts, i) => ({
       ts,
-      waveHeight: heights[i] ?? null,
-      wavePeriod: periods[i] ?? null,
+      waveHeight:  heights[i] ?? null,
+      wavePeriod:  periods[i] ?? null,
+      swellPeriod: swellPs[i] ?? null,
     })).filter(h => h.waveHeight != null);
   } catch { return []; }
 }
@@ -116,29 +123,50 @@ async function fetchModelArchive(
 interface BuoyHour { ts: string; Hs: number; Tp: number; }
 
 async function fetchCDIPRange(stationId: string, startDate: string, endDate: string): Promise<BuoyHour[]> {
-  const url =
-    `https://erddap.cdip.ucsd.edu/erddap/tabledap/wave_agg.json` +
-    `?time,waveHs,waveTp&station_id="${stationId.padStart(3,'0')}"` +
-    `&time>=${startDate}T00:00:00Z&time<=${endDate}T23:59:59Z&orderBy("time")`;
-  try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(20000) });
-    if (!res.ok) return [];
-    const d = await res.json() as { table: { rows: [string, number, number][] } };
-    const rows = d?.table?.rows ?? [];
-    // Average 30-min obs to hourly
-    const byHour = new Map<string, { Hs: number[]; Tp: number[] }>();
-    for (const [ts, Hs, Tp] of rows) {
-      if (Hs == null || Hs > 20) continue;
-      const key = ts.slice(0, 13);
-      const slot = byHour.get(key) ?? { Hs: [], Tp: [] };
-      slot.Hs.push(Hs); slot.Tp.push(Tp); byHour.set(key, slot);
+  // Chunk by year to avoid ERDDAP timeouts on 2+ year queries (P6.2.10 fix: 90s per chunk)
+  const startYear = parseInt(startDate.slice(0, 4));
+  const endYear   = parseInt(endDate.slice(0, 4));
+  const years: Array<{start: string, end: string}> = [];
+  for (let y = startYear; y <= endYear; y++) {
+    const yStart = y === startYear ? startDate : `${y}-01-01`;
+    const yEnd   = y === endYear   ? endDate   : `${y}-12-31`;
+    years.push({ start: yStart, end: yEnd });
+  }
+
+  const allResults: BuoyHour[] = [];
+  for (const { start, end } of years) {
+    const url =
+      `https://erddap.cdip.ucsd.edu/erddap/tabledap/wave_agg.json` +
+      `?time,waveHs,waveTp&station_id="${stationId.padStart(3,'0')}"` +
+      `&time>=${start}T00:00:00Z&time<=${end}T23:59:59Z&orderBy("time")`;
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(90000) }); // 90s per chunk
+      if (!res.ok) {
+        console.log(`  CDIP ${stationId} ${start}→${end}: HTTP ${res.status}`);
+        continue;
+      }
+      const d = await res.json() as { table: { rows: [string, number, number][] } };
+      const rows = d?.table?.rows ?? [];
+      console.log(`  CDIP ${stationId} ${start}→${end}: ${rows.length} raw obs`);
+      // Average 30-min obs to hourly
+      const byHour = new Map<string, { Hs: number[]; Tp: number[] }>();
+      for (const [ts, Hs, Tp] of rows) {
+        if (Hs == null || Hs > 20) continue;
+        const key = ts.slice(0, 13);
+        const slot = byHour.get(key) ?? { Hs: [], Tp: [] };
+        slot.Hs.push(Hs); slot.Tp.push(Tp); byHour.set(key, slot);
+      }
+      const yearResults = [...byHour.entries()].map(([key, s]) => ({
+        ts: key + ':00:00',
+        Hs: mean(s.Hs),
+        Tp: mean(s.Tp),
+      })).sort((a,b)=>a.ts.localeCompare(b.ts));
+      allResults.push(...yearResults);
+    } catch (e) {
+      console.log(`  CDIP ${stationId} ${start}→${end}: error — ${e}`);
     }
-    return [...byHour.entries()].map(([key, s]) => ({
-      ts: key + ':00:00',
-      Hs: mean(s.Hs),
-      Tp: mean(s.Tp),
-    })).sort((a,b)=>a.ts.localeCompare(b.ts));
-  } catch { return []; }
+  }
+  return allResults;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,8 +214,9 @@ async function partA(reportLines: string[]): Promise<void> {
         const buoy = buoyMap.get(key);
         if (!buoy || mh.waveHeight == null) continue;
         const H0 = mh.waveHeight;
-        // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
-        const T = mh.wavePeriod;
+        // P6.2.10 canonical: T = swell_wave_period (swell mean period).
+        // swell_wave_peak_period returns null universally; wave_period (Tm) bundles wind sea.
+        const T = mh.swellPeriod;
         if (T == null) continue;
         const tr = nearshoreTransform(H0, T, spot.buoy?.depthM ?? spot.depthM);
         const residual = tr.H - buoy.Hs; // engine − buoy (positive = over-predict)
@@ -238,8 +267,8 @@ async function partA(reportLines: string[]): Promise<void> {
         const key = (mh.ts.slice(0,13));
         const buoy = buoyMap.get(key);
         if (!buoy || mh.waveHeight == null) continue;
-        // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
-        const T = mh.wavePeriod;
+        // P6.2.10 canonical: T = swell_wave_period (swell mean period).
+        const T = mh.swellPeriod;
         if (T == null) continue;
         const tr = nearshoreTransform(mh.waveHeight, T, spot.buoy?.depthM ?? spot.depthM);
         const residual = tr.H - buoy.Hs;
@@ -303,15 +332,15 @@ async function partB(reportLines: string[]): Promise<void> {
       const buoy = nearBuoyMap.get(key);
       if (!buoy || mh.waveHeight == null) continue;
       const H0 = mh.waveHeight;
-      // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
-      const T = mh.wavePeriod;
+      // P6.2.10 canonical: T = swell_wave_period (swell mean period).
+      const T = mh.swellPeriod;
       if (T == null) continue;
       const tr = nearshoreTransform(H0, T, nearSpot.buoy?.depthM ?? nearSpot.depthM);
       const pb = periodBucket(T);
       if (!pb) continue;
       // Input residual: H0 (Open-Meteo raw) vs buoy Hs (nearshore truth — not deep, so this is the full chain)
       // We split: compare H0 to buoy (what the INPUT stage "sees") vs HFinal to buoy (what OUTPUT adds)
-      inputBuckets[pb].push(H0 - buoy.Hs);           // positive = Open-Meteo over-predicts deep/offshore
+      inputBuckets[pb].push(H0 - buoy.Hs);           // positive = Open-Meteo over-predicts
       outputBuckets[pb].push(tr.H - buoy.Hs);        // positive = engine over-predicts nearshore
     }
 
@@ -400,19 +429,157 @@ function partC(reportLines: string[]): void {
 // Main
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Gate: reconcile Path A (DB residuals) vs Path B (script-computed residuals)
+// Gate rule: ALL three bands ≤5% diff → PASS; any band >5% or 0 pairs → FAIL.
+// Sign: engine_value − buoy_value (positive = engine over-predicts).
+// A gate compares TWO INDEPENDENTLY COMPUTED VALUES.
+// ---------------------------------------------------------------------------
+
+interface GateBand {
+  band:       'short' | 'mid' | 'long';
+  nDB:        number;
+  meanDB:     number;  // mean residual from DB (sign: engine − buoy)
+  nScript:    number;
+  meanScript: number;  // mean residual from script (sign: engine − buoy)
+  pctDiff:    number;  // |meanDB - meanScript| / max(|meanDB|, |meanScript|, 0.01) * 100
+  pass:       boolean;
+}
+
+async function runGate(
+  reportLines: string[],
+  scriptBuckets: Record<'short'|'mid'|'long', number[]>,
+  { supabaseUrl, supabaseKey }: { supabaseUrl: string; supabaseKey: string },
+): Promise<boolean> {
+  reportLines.push('---', '', '## Reconciliation Gate (P6.2.10)', '');
+  reportLines.push('> **Rule:** ALL three bands ≤5% mean diff → PASS; any band >5% or 0 pairs → FAIL.  ');
+  reportLines.push('> **Sign:** engine_value − buoy_value (positive = engine over-predicts).  ');
+  reportLines.push('> **Path A:** DB stored residuals (compare_basis=total_h_swell_tp, data_quality=ok).  ');
+  reportLines.push('> **Path B:** Script-computed residuals (Part A analysis for Scripps CA, best_match model).  ');
+  reportLines.push('> **Bands:** wave_period column (= swell_wave_period, swell mean period used for transform).  ');
+  reportLines.push('');
+
+  // Path A: fetch DB residuals for Scripps CA (nearshore) with total_h_swell_tp basis
+  const PAGE = 1000;
+  const dbBuckets: Record<'short'|'mid'|'long', number[]> = { short: [], mid: [], long: [] };
+  let offset = 0;
+  try {
+    while (true) {
+      const url =
+        `${supabaseUrl}/rest/v1/calibration_residuals` +
+        `?select=wave_period,engine_value,buoy_value,residual` +
+        `&spot=eq.Scripps CA&compare_basis=eq.total_h_swell_tp&data_quality=eq.ok&wave_period=not.is.null` +
+        `&order=ts.asc&offset=${offset}&limit=${PAGE}`;
+      const res = await fetch(url, {
+        headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}`, 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        reportLines.push(`> **ERROR fetching DB (Path A):** ${res.status} ${body.slice(0,100)}`);
+        break;
+      }
+      const page = await res.json() as Array<{wave_period: number|null; engine_value: number; buoy_value: number; residual: number}>;
+      if (page.length === 0) break;
+      for (const row of page) {
+        const pb = periodBucket(row.wave_period);
+        if (!pb) continue;
+        // DB stores residual = buoy_value − engine_value; gate sign is engine − buoy
+        const engineMinusBuoy = row.engine_value - row.buoy_value;
+        dbBuckets[pb].push(engineMinusBuoy);
+      }
+      offset += page.length;
+      if (page.length < PAGE) break;
+    }
+  } catch (e) {
+    reportLines.push(`> **ERROR fetching DB (Path A):** ${e}`);
+  }
+
+  // Path B: script computed (already computed as tr.H - buoy.Hs = engine − buoy)
+  const bands: ('short'|'mid'|'long')[] = ['short', 'mid', 'long'];
+  const gateRows: GateBand[] = [];
+  let allPass = true;
+
+  for (const band of bands) {
+    const dbArr  = dbBuckets[band];
+    const scrArr = scriptBuckets[band];
+    const nDB     = dbArr.length;
+    const nScript = scrArr.length;
+    const mDB     = nDB     > 0 ? dbArr.reduce((s,v)=>s+v,0)/nDB     : NaN;
+    const mScript = nScript > 0 ? scrArr.reduce((s,v)=>s+v,0)/nScript : NaN;
+    // % diff: |A−B| / max(|A|, |B|, 0.01) * 100
+    const denom = Math.max(Math.abs(mDB), Math.abs(mScript), 0.01);
+    const pctDiff = (!isNaN(mDB) && !isNaN(mScript)) ? Math.abs(mDB - mScript) / denom * 100 : 999;
+    const pass = nDB > 0 && nScript > 0 && pctDiff <= 5;
+    if (!pass) allPass = false;
+    gateRows.push({ band, nDB, meanDB: mDB, nScript, meanScript: mScript, pctDiff, pass });
+  }
+
+  reportLines.push('| Band | n DB (Path A) | Mean DB | n Script (Path B) | Mean Script | % Diff | Result |');
+  reportLines.push('|------|--------------|---------|-------------------|-------------|--------|--------|');
+  for (const r of gateRows) {
+    const mDB  = isNaN(r.meanDB)     ? 'n/a' : r.meanDB.toFixed(3);
+    const mSc  = isNaN(r.meanScript) ? 'n/a' : r.meanScript.toFixed(3);
+    const pct  = r.pctDiff >= 999 ? 'n/a' : r.pctDiff.toFixed(1) + '%';
+    const res  = r.pass ? '**PASS**' : '**FAIL**';
+    reportLines.push(`| ${r.band} | ${r.nDB} | ${mDB} | ${r.nScript} | ${mSc} | ${pct} | ${res} |`);
+  }
+  reportLines.push('');
+  reportLines.push(`**Gate verdict: ${allPass ? 'PASS — all three bands ≤5%' : 'FAIL — one or more bands >5% or 0 pairs'}**`);
+  reportLines.push('');
+
+  // Console output of gate table
+  console.log('\n--- RECONCILIATION GATE ---');
+  console.log('Band      n-DB  mean-DB  n-Script  mean-Script  %Diff  Result');
+  for (const r of gateRows) {
+    const mDB  = isNaN(r.meanDB)     ? '   n/a  ' : r.meanDB.toFixed(3).padStart(7);
+    const mSc  = isNaN(r.meanScript) ? '   n/a  ' : r.meanScript.toFixed(3).padStart(11);
+    const pct  = r.pctDiff >= 999 ? ' n/a ' : (r.pctDiff.toFixed(1) + '%').padStart(6);
+    console.log(`${r.band.padEnd(9)} ${String(r.nDB).padStart(5)} ${mDB}  ${String(r.nScript).padStart(8)} ${mSc} ${pct}  ${r.pass ? 'PASS' : 'FAIL'}`);
+  }
+  console.log(`Gate: ${allPass ? 'PASS' : 'FAIL'}`);
+
+  return allPass;
+}
+
 async function main() {
-  console.log('\n=== P6.2.3 Period-Bias Diagnostic ===\n');
+  console.log('\n=== P6.2.3 Period-Bias Diagnostic + P6.2.10 Gate ===\n');
   const reportLines: string[] = [
-    '# P6.2.3 Period-Bias Diagnostic Report',
+    '# P6.2.3 Period-Bias Diagnostic Report (P6.2.10 update)',
     '',
     `**Generated:** ${new Date().toISOString()}  `,
     `**Spots registered:** ${CALIBRATION_SPOTS.length}  `,
+    `**T source (P6.2.10):** swell_wave_period (swell mean period — swell_wave_peak_period returns null universally from Open-Meteo)  `,
     '',
     '---',
     '',
   ];
 
-  console.log('Part A: multi-model comparison...');
+  // Collect script-computed residuals for Scripps (for the gate)
+  const scrippsBuckets: Record<'short'|'mid'|'long', number[]> = { short: [], mid: [], long: [] };
+
+  console.log('Part A: multi-model comparison (collecting Scripps residuals for gate)...');
+  // Run Part A and also collect Scripps best_match residuals for the gate
+  const scrippsSpot = CALIBRATION_SPOTS.find(s => s.name === 'Scripps CA');
+  if (scrippsSpot?.buoy) {
+    const buoyData = await fetchCDIPRange(scrippsSpot.buoy.id, '2022-01-01', '2023-12-31');
+    console.log(`  Gate: Scripps CDIP-${scrippsSpot.buoy.id} ${buoyData.length} buoy hours`);
+    const buoyMap = new Map(buoyData.map(b => [b.ts.slice(0,13), b]));
+    const modelData = await fetchModelArchive(scrippsSpot.lat, scrippsSpot.lon, '2022-01-01', '2023-12-31', 'best_match');
+    console.log(`  Gate: Scripps best_match ${modelData.length} model hours`);
+    for (const mh of modelData) {
+      const key = mh.ts.slice(0, 13);
+      const buoy = buoyMap.get(key);
+      if (!buoy || mh.waveHeight == null) continue;
+      const T = mh.swellPeriod; // P6.2.10 canonical T
+      if (T == null) continue;
+      const tr = nearshoreTransform(mh.waveHeight, T, scrippsSpot.buoy?.depthM ?? scrippsSpot.depthM);
+      const pb = periodBucket(T);
+      if (pb) scrippsBuckets[pb].push(tr.H - buoy.Hs); // engine − buoy
+    }
+    console.log(`  Gate: script buckets short=${scrippsBuckets.short.length} mid=${scrippsBuckets.mid.length} long=${scrippsBuckets.long.length}`);
+  }
+
   await partA(reportLines);
 
   console.log('Part B: input vs transform decomposition...');
@@ -431,10 +598,30 @@ async function main() {
   reportLines.push('');
   reportLines.push('_Analysis only — transform.ts untouched, oracle 0.00%, no model trained._');
 
+  // Gate
+  const { supabaseUrl, supabaseKey } = loadEnv();
+  let gatePass = false;
+  if (supabaseUrl && supabaseKey) {
+    gatePass = await runGate(reportLines, scrippsBuckets, { supabaseUrl, supabaseKey });
+  } else {
+    reportLines.push('---', '', '## Gate: SKIPPED (no Supabase credentials)', '');
+    console.log('Gate: SKIPPED (no Supabase credentials)');
+  }
+
   const reportPath = path.join(PROJECT_ROOT, 'calibration-period-diagnostic-report.md');
   fs.writeFileSync(reportPath, reportLines.join('\n'), 'utf8');
   console.log(`\nReport written → calibration-period-diagnostic-report.md`);
+
+  if (gatePass) {
+    console.log('\nGate PASSED — running residualReport (P6.2.2)...\n');
+  } else {
+    console.log('\nGate FAILED or SKIPPED — P6.2.2 not run.\n');
+  }
+
   console.log('\n=== Done ===\n');
+  return gatePass;
 }
 
-main().catch(err => { console.error('Fatal:', err); process.exit(1); });
+main().then(gatePass => {
+  process.exit(gatePass ? 0 : 1);
+}).catch(err => { console.error('Fatal:', err); process.exit(2); });

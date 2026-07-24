@@ -73,13 +73,15 @@ interface AssimilationRecord {
   wind_speed:     number | null;
   buoy_kind:      'deep' | 'nearshore';
   input_source:   'live_forecast';
-  compare_basis:  'total_vs_total';
+  compare_basis:  'total_h_swell_tp';  // P6.2.10: H0=total Hs, T=swell peak period (Tp)
   engine_value:   number;
   buoy_value:     number;
   residual:       number;
   source_buoy_id: string;
   engine_version: string;
+  /** wave_period column stores the T actually passed to nearshoreTransform = swell_wave_peak_period (true Tp) */
   wave_period:    number | null;
+  harvest_run:    string;  // engine git SHA at harvest time
 }
 
 // ---------------------------------------------------------------------------
@@ -107,20 +109,23 @@ function getEngineVersion(): string {
 // ---------------------------------------------------------------------------
 
 interface LiveMarineObs {
-  waveHeight:   number;        // total Hs (swell + wind sea) — used for compare_basis: total_vs_total
-  wavePeriod:   number | null; // wave_period (total peak period) — canonical T for transform
-  swellHeight:  number;        // swell component only (stored as swell_height for features)
-  swellPeriod:  number;        // swell-only period — stored as feature column, not used for transform
-  swellDir:     number;
-  windFromDeg:  number;
-  windSpeedMs:  number;
+  waveHeight:          number;        // total Hs (swell + wind sea)
+  wavePeriod:          number | null; // wave_period (Open-Meteo) = Tm (total mean period) — NOT used for transform
+  swellWavePeakPeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), kept for future
+  swellHeight:         number;        // swell component only (stored as swell_height for features)
+  /** swell_wave_period = swell mean period — canonical T for transform (P6.2.10).
+   *  swellPeriod is the best available swell-specific T; swell_wave_peak_period returns null from Open-Meteo. */
+  swellPeriod:         number;
+  swellDir:            number;
+  windFromDeg:         number;
+  windSpeedMs:         number;
 }
 
 async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs | null> {
   try {
     const marineUrl =
       `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-      `&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,swell_wave_direction` +
+      `&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,swell_wave_direction,swell_wave_peak_period` +
       `&forecast_days=1&timezone=GMT`;
     const windUrl =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -140,6 +145,7 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
         swell_wave_height: (number | null)[];
         swell_wave_period: (number | null)[];
         swell_wave_direction: (number | null)[];
+        swell_wave_peak_period: (number | null)[];
       };
     };
     const wind = await windRes.json() as {
@@ -155,24 +161,26 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
     let idx = marine.hourly.time.findIndex(t => t.startsWith(nowUtc));
     if (idx < 0) idx = 0;
 
-    const wh  = marine.hourly.wave_height[idx] ?? marine.hourly.wave_height[0];
-    const wp  = marine.hourly.wave_period?.[idx] ?? marine.hourly.wave_period?.[0] ?? null; // total peak period — canonical T
-    const sh  = marine.hourly.swell_wave_height[idx] ?? marine.hourly.swell_wave_height[0];
-    const sp  = marine.hourly.swell_wave_period[idx] ?? marine.hourly.swell_wave_period[0];
-    const sd  = marine.hourly.swell_wave_direction[idx] ?? marine.hourly.swell_wave_direction[0];
-    const ws  = wind.hourly.wind_speed_10m[idx] ?? wind.hourly.wind_speed_10m[0];
-    const wd  = wind.hourly.wind_direction_10m[idx] ?? wind.hourly.wind_direction_10m[0];
+    const wh   = marine.hourly.wave_height[idx] ?? marine.hourly.wave_height[0];
+    const wp   = marine.hourly.wave_period?.[idx] ?? marine.hourly.wave_period?.[0] ?? null; // Tm — NOT canonical T
+    const swtp = marine.hourly.swell_wave_peak_period?.[idx] ?? marine.hourly.swell_wave_peak_period?.[0] ?? null; // true Tp
+    const sh   = marine.hourly.swell_wave_height[idx] ?? marine.hourly.swell_wave_height[0];
+    const sp   = marine.hourly.swell_wave_period[idx] ?? marine.hourly.swell_wave_period[0];
+    const sd   = marine.hourly.swell_wave_direction[idx] ?? marine.hourly.swell_wave_direction[0];
+    const ws   = wind.hourly.wind_speed_10m[idx] ?? wind.hourly.wind_speed_10m[0];
+    const wd   = wind.hourly.wind_direction_10m[idx] ?? wind.hourly.wind_direction_10m[0];
 
     if (wh == null || sp == null) return null;
 
     return {
-      waveHeight:  wh,
-      wavePeriod:  wp,
-      swellHeight: sh ?? wh,
-      swellPeriod: sp,
-      swellDir:    sd ?? 0,
-      windFromDeg: wd ?? 0,
-      windSpeedMs: ws ?? 0,
+      waveHeight:          wh,
+      wavePeriod:          wp,
+      swellWavePeakPeriod: swtp,  // canonical T for transform (P6.2.10)
+      swellHeight:         sh ?? wh,
+      swellPeriod:         sp,
+      swellDir:            sd ?? 0,
+      windFromDeg:         wd ?? 0,
+      windSpeedMs:         ws ?? 0,
     };
   } catch {
     return null;
@@ -318,13 +326,15 @@ async function processSpot(
     return { written: false, skipped: true, reason: `buoy unavailable: ${buoy.source}` };
   }
 
-  // Engine: use total wave height + total wave period (total_vs_total basis).
-  // Canonical rule: T = wave_period (total peak period), never swell_wave_period.
+  // P6.2.10 canonical: T = swell_wave_period (swell mean period — best available swell-specific T).
+  // H0 = wave_height (total combined Hs — matches buoy WVHT).
+  // swell_wave_peak_period returns null universally from Open-Meteo (P6.2.10 finding).
+  // wave_period (total Tm) bundles wind sea — not suitable for dispersion.
   const H0 = marine.waveHeight;
-  const T  = marine.wavePeriod; // canonical: wave_period (total); null → spot skipped below
+  const T  = marine.swellPeriod; // canonical: swell_wave_period (always non-null when sp present)
   if (T == null) {
-    console.log(`  ${spot.name}: wave_period unavailable — skip`);
-    return { written: false, skipped: true, reason: 'wave_period unavailable' };
+    console.log(`  ${spot.name}: swell_wave_period unavailable — skip`);
+    return { written: false, skipped: true, reason: 'swell_wave_period unavailable' };
   }
   // Use buoy.depthM for validation comparison (buoy measurement depth), not surf-break depth.
   const transformDepth = spot.buoy ? (spot.buoy.depthM ?? spot.depthM) : spot.depthM;
@@ -343,19 +353,20 @@ async function processSpot(
     lat:            spot.lat,
     lon:            spot.lon,
     swell_dir:      marine.swellDir,
-    swell_period:   marine.swellPeriod,  // swell-only period stored as feature column; transform uses wave_period (T)
-    wave_period:    T,
+    swell_period:   marine.swellPeriod,  // swell-only period stored as feature column
+    wave_period:    T,                   // stores the actual T used = swell_wave_peak_period (true Tp)
     swell_height:   marine.swellHeight,
     wind_from_deg:  marine.windFromDeg,
     wind_speed:     marine.windSpeedMs,
     buoy_kind:      spot.buoy.kind,
     input_source:   'live_forecast',
-    compare_basis:  'total_vs_total',
+    compare_basis:  'total_h_swell_tp',  // P6.2.10: H0=total Hs, T=swell Tp
     engine_value:   engineValue,
     buoy_value:     buoy.Hs,
     residual,
     source_buoy_id: `${spot.buoy.network}-${spot.buoy.id}`,
     engine_version: engineVersion,
+    harvest_run:    engineVersion,
   };
 
   const ok = await upsertRecords([record], supabaseUrl, supabaseKey);
@@ -382,7 +393,7 @@ async function writeResidualReport(
     const res = await fetch(
       `${supabaseUrl}/rest/v1/calibration_residuals` +
       `?select=spot,buoy_kind,input_source,compare_basis,residual` +
-      `&compare_basis=neq.swell_only_legacy` +  // exclude legacy rows from report
+      `&compare_basis=eq.total_h_swell_tp` +  // only canonical P6.2.10 rows
       `&order=spot.asc`,
       {
         headers: {

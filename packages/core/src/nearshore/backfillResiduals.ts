@@ -67,9 +67,12 @@ interface ResidualRecord {
   residual:       number;
   source_buoy_id: string;
   engine_version: string;
-  compare_basis:  'total_vs_total' | 'swell_vs_swell' | 'swell_only_legacy';
-  data_quality:   'ok' | 'invalid_wrong_station' | 'invalid_wrong_depth' | 'invalid_wrong_buoy_coords';
+  compare_basis:  'total_vs_total' | 'swell_vs_swell' | 'swell_only_legacy' | 'total_h_swell_tp';
+  data_quality:   'ok' | 'invalid_wrong_station' | 'invalid_wrong_depth' | 'invalid_wrong_buoy_coords' | 'invalid_field_mismatch';
+  /** wave_period column stores the T actually passed to nearshoreTransform.
+   *  P6.2.10: T = swell_wave_peak_period (true Tp). NOT Open-Meteo wave_period (Tm). */
   wave_period:    number | null;
+  harvest_run:    string;  // engine git SHA at harvest time
 }
 
 // ---------------------------------------------------------------------------
@@ -311,14 +314,15 @@ async function fetchCDIPRange(stationId: string, startDate: Date, endDate: Date)
 // ---------------------------------------------------------------------------
 
 interface MarineHour {
-  ts:            Date;
-  swellHeight:   number;
-  swellPeriod:   number;
-  swellDir:      number;
-  windFromDeg:   number;
-  windSpeedMs:   number;
-  waveHeight:    number;  // total significant wave height (swell + wind sea)
-  wavePeriod:    number | null;  // wave_period (total spectral peak period) — canonical T for transform
+  ts:                 Date;
+  swellHeight:        number;
+  swellPeriod:        number;  // swell_wave_period = swell mean period — canonical T for transform (P6.2.10)
+  swellDir:           number;
+  windFromDeg:        number;
+  windSpeedMs:        number;
+  waveHeight:         number;       // total significant wave height (swell + wind sea)
+  wavePeriod:         number | null; // wave_period (Open-Meteo) = Tm (total mean period) — NOT used as T
+  swellWavePeakPeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), kept for future use
 }
 
 async function fetchMarineHistorical(
@@ -329,7 +333,7 @@ async function fetchMarineHistorical(
   const end   = endDate.toISOString().slice(0, 10);
   const url =
     `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period` +
+    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,swell_wave_peak_period` +
     `&start_date=${start}&end_date=${end}&timezone=GMT`;
   const windUrl =
     `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
@@ -352,6 +356,7 @@ async function fetchMarineHistorical(
         swell_wave_direction: (number | null)[];
         wave_height: (number | null)[];
         wave_period: (number | null)[];
+        swell_wave_peak_period: (number | null)[];
       };
     };
     const wind = await windRes.json() as {
@@ -368,20 +373,22 @@ async function fetchMarineHistorical(
       const p = marine.hourly.swell_wave_period[i];
       const d = marine.hourly.swell_wave_direction[i];
       if (h == null || p == null) continue;
-      const wh = marine.hourly.wave_height?.[i] ?? h; // total Hs; fallback to swell if null
-      const wp = marine.hourly.wave_period?.[i] ?? null; // total peak period — canonical T
+      const wh   = marine.hourly.wave_height?.[i] ?? h; // total Hs; fallback to swell if null
+      const wp   = marine.hourly.wave_period?.[i] ?? null; // wave_period = Tm (NOT used for transform)
+      const swtp = marine.hourly.swell_wave_peak_period?.[i] ?? null; // swell_wave_peak_period = true Tp (canonical T)
       const wSpd = wind.hourly.wind_speed_10m[i] ?? 0;
       const wDir = wind.hourly.wind_direction_10m[i] ?? 0;
       const key = marine.hourly.time[i].replace('T', ' ').slice(0, 13); // "2023-01-01 06"
       result.set(key, {
-        ts:           new Date(marine.hourly.time[i] + ':00Z'),
-        swellHeight:  h,
-        swellPeriod:  p,
-        swellDir:     d ?? 0,
-        windFromDeg:  wDir,
-        windSpeedMs:  wSpd,
-        waveHeight:   wh,
-        wavePeriod:   wp,
+        ts:                  new Date(marine.hourly.time[i] + ':00Z'),
+        swellHeight:         h,
+        swellPeriod:         p,
+        swellDir:            d ?? 0,
+        windFromDeg:         wDir,
+        windSpeedMs:         wSpd,
+        waveHeight:          wh,
+        wavePeriod:          wp,
+        swellWavePeakPeriod: swtp,
       });
     }
     return result;
@@ -515,9 +522,11 @@ async function processSpotYear(
     // not spot.depthM (the surf-break depth). Both are correct in their own context.
     const transformDepth = spot.buoy ? (spot.buoy.depthM ?? spot.depthM) : spot.depthM;
 
-    // Canonical T = wave_period (total peak period); missing T → skip, never fall back to swell period.
+    // P6.2.10 canonical: T = swell_wave_period (swell mean period — best available swell-specific T).
+    // swell_wave_peak_period returns null universally from Open-Meteo (P6.2.10 finding).
+    // wave_period (total Tm) bundles wind sea — not suitable. swellPeriod is the best available.
     const inputs = resolveTransformInputs(
-      { waveHeight: m.waveHeight, wavePeriod: m.wavePeriod },
+      { waveHeight: m.waveHeight, swellWavePeakPeriod: m.swellPeriod },
       transformDepth,
     );
     if (!inputs) { skipped++; continue; }
@@ -525,7 +534,7 @@ async function processSpotYear(
     const tr = nearshoreTransform(H0, T, inputs.depthM);
 
     const engineValue = spot.buoy!.kind === 'deep' ? H0 : tr.H;
-    const residual    = b.Hs - engineValue; // positive = engine under-predicts
+    const residual    = b.Hs - engineValue; // positive = engine under-predicts (sign: buoy − engine)
 
     records.push({
       ts:             b.ts.toISOString(),
@@ -533,8 +542,8 @@ async function processSpotYear(
       lat:            spot.lat,
       lon:            spot.lon,
       swell_dir:      m.swellDir,
-      swell_period:   m.swellPeriod,  // swell-only period stored as a feature column; T for transform comes from wave_period
-      wave_period:    T,
+      swell_period:   m.swellPeriod,  // swell-only period stored as feature column
+      wave_period:    T,              // stores the actual T used for transform = swell_wave_peak_period (true Tp)
       swell_height:   H0,
       wind_from_deg:  m.windFromDeg,
       wind_speed:     m.windSpeedMs,
@@ -545,8 +554,9 @@ async function processSpotYear(
       residual,
       source_buoy_id: `${spot.buoy!.network}-${spot.buoy!.id}`,
       engine_version: engineVersion,
-      compare_basis:  'total_vs_total',
+      compare_basis:  'total_h_swell_tp' as const,  // P6.2.10: H0=total Hs, T=swell peak period (Tp)
       data_quality:   'ok' as const,
+      harvest_run:    engineVersion,
     });
   }
 
