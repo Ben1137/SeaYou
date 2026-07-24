@@ -111,7 +111,7 @@ function getEngineVersion(): string {
 interface LiveMarineObs {
   waveHeight:          number;        // total Hs (swell + wind sea)
   wavePeriod:          number | null; // wave_period (Open-Meteo) = Tm (total mean period) — NOT used for transform
-  swellWavePeakPeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), kept for future
+  swellWavePeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding); not the canonical T (see swellPeriod)
   swellHeight:         number;        // swell component only (stored as swell_height for features)
   /** swell_wave_period = swell mean period — canonical T for transform (P6.2.10).
    *  swellPeriod is the best available swell-specific T; swell_wave_peak_period returns null from Open-Meteo. */
@@ -175,7 +175,7 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
     return {
       waveHeight:          wh,
       wavePeriod:          wp,
-      swellWavePeakPeriod: swtp,  // canonical T for transform (P6.2.10)
+      swellWavePeriod: swtp,  // swell_wave_peak_period (null universally — retained, not the canonical T)
       swellHeight:         sh ?? wh,
       swellPeriod:         sp,
       swellDir:            sd ?? 0,
@@ -354,7 +354,7 @@ async function processSpot(
     lon:            spot.lon,
     swell_dir:      marine.swellDir,
     swell_period:   marine.swellPeriod,  // swell-only period stored as feature column
-    wave_period:    T,                   // stores the actual T used = swell_wave_peak_period (true Tp)
+    wave_period:    T,                   // stores the actual T used = swell_wave_period (swell mean Tm)
     swell_height:   marine.swellHeight,
     wind_from_deg:  marine.windFromDeg,
     wind_speed:     marine.windSpeedMs,

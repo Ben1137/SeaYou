@@ -70,7 +70,7 @@ interface ResidualRecord {
   compare_basis:  'total_vs_total' | 'swell_vs_swell' | 'swell_only_legacy' | 'total_h_swell_tp';
   data_quality:   'ok' | 'invalid_wrong_station' | 'invalid_wrong_depth' | 'invalid_wrong_buoy_coords' | 'invalid_field_mismatch';
   /** wave_period column stores the T actually passed to nearshoreTransform.
-   *  P6.2.10: T = swell_wave_peak_period (true Tp). NOT Open-Meteo wave_period (Tm). */
+   *  P6.2.10: T = swell_wave_period (swell mean Tm). NOT wave_period (total Tm). NOT swell_wave_peak_period (null universally). */
   wave_period:    number | null;
   harvest_run:    string;  // engine git SHA at harvest time
 }
@@ -322,7 +322,7 @@ interface MarineHour {
   windSpeedMs:        number;
   waveHeight:         number;       // total significant wave height (swell + wind sea)
   wavePeriod:         number | null; // wave_period (Open-Meteo) = Tm (total mean period) — NOT used as T
-  swellWavePeakPeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), kept for future use
+  swellWavePeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), retained for future use (not the canonical T field)
 }
 
 async function fetchMarineHistorical(
@@ -388,7 +388,7 @@ async function fetchMarineHistorical(
         windSpeedMs:         wSpd,
         waveHeight:          wh,
         wavePeriod:          wp,
-        swellWavePeakPeriod: swtp,
+        swellWavePeriod: swtp,
       });
     }
     return result;
@@ -526,7 +526,7 @@ async function processSpotYear(
     // swell_wave_peak_period returns null universally from Open-Meteo (P6.2.10 finding).
     // wave_period (total Tm) bundles wind sea — not suitable. swellPeriod is the best available.
     const inputs = resolveTransformInputs(
-      { waveHeight: m.waveHeight, swellWavePeakPeriod: m.swellPeriod },
+      { waveHeight: m.waveHeight, swellWavePeriod: m.swellPeriod },
       transformDepth,
     );
     if (!inputs) { skipped++; continue; }
@@ -543,7 +543,7 @@ async function processSpotYear(
       lon:            spot.lon,
       swell_dir:      m.swellDir,
       swell_period:   m.swellPeriod,  // swell-only period stored as feature column
-      wave_period:    T,              // stores the actual T used for transform = swell_wave_peak_period (true Tp)
+      wave_period:    T,              // stores the actual T used for transform = swell_wave_period (swell mean Tm)
       swell_height:   H0,
       wind_from_deg:  m.windFromDeg,
       wind_speed:     m.windSpeedMs,

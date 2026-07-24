@@ -22,6 +22,27 @@
  * Band assignment uses the SAME T passed to nearshoreTransform.
  */
 
+// ---------------------------------------------------------------------------
+// STANDING CAVEAT: No peak period available from Open-Meteo
+//
+// nearshoreTransform's dispersion solve nominally expects a peak/characteristic
+// period (Tp). Open-Meteo exposes no usable peak period on any current endpoint:
+//   wave_peak_period:       0/72 non-null tested (field does not exist in practise)
+//   swell_wave_peak_period: 0/72 non-null tested (returns null universally)
+//   wind_wave_peak_period:  0/72 non-null tested (same)
+//
+// The canonical T used by this harness is `swell_wave_period`, which is:
+//   NOAA GRIB2 Table 4-2-10-0, Entry 9: SWPER = "Mean Period of Swell Waves"
+// i.e. Tm of the swell partition, not Tp.
+//
+// Consequence: all residuals carry a standing Tm-vs-Tp caveat.
+// Since Tm < Tp for most sea states, the dispersion solve underestimates
+// wavelength, which affects Ks and therefore engine_value.
+//
+// This is a provider limitation, not a per-round bug to re-litigate.
+// Record it here once; do not restart analysis because of it.
+// ---------------------------------------------------------------------------
+
 export type PeriodBand = 'short' | 'mid' | 'long';
 
 /** Returns null if T is not available — callers must skip null results. */
@@ -34,18 +55,18 @@ export function resolveBand(T: number | null | undefined): PeriodBand | null {
 
 export interface TransformInputs {
   H0:     number;       // wave_height (total Hs)
-  T:      number;       // swell_wave_peak_period (true Tp — best available peak period)
+  T:      number;       // swell_wave_period (swell mean Tm — best available swell-specific period; see STANDING CAVEAT)
   depthM: number;       // buoy.depthM (validation) or spot.depthM (product)
   band:   PeriodBand;   // period band — same T as passed to transform
 }
 
 export interface ModelHourFields {
   waveHeight:   number | null;  // wave_height (total Hs)
-  /** swellWavePeakPeriod — maps to swell_wave_period from Open-Meteo (swell mean period).
-   *  Named swellWavePeakPeriod for interface continuity but is the swell mean period,
-   *  as swell_wave_peak_period returns null universally from Open-Meteo (P6.2.10 finding).
-   *  NOT wave_period (Open-Meteo total Tm which bundles wind sea). */
-  swellWavePeakPeriod: number | null;
+  /** swellWavePeriod — maps to swell_wave_period from Open-Meteo (swell mean period).
+   *  NOT wave_period (Open-Meteo total Tm which bundles wind sea).
+   *  NOT swell_wave_peak_period (returns null universally — P6.2.10 finding).
+   *  See STANDING CAVEAT comment at top of file for Tm-vs-Tp implications. */
+  swellWavePeriod: number | null;
 }
 
 /**
@@ -53,7 +74,7 @@ export interface ModelHourFields {
  * Returns null if H0 or T is missing (row must be SKIPPED and counted).
  * Never substitutes buoy period for missing model period.
  *
- * @param modelHour - must contain waveHeight (wave_height) and swellWavePeakPeriod (swell_wave_period)
+ * @param modelHour - must contain waveHeight (wave_height) and swellWavePeriod (swell_wave_period)
  * @param buoyDepthM - the buoy's actual deployment depth (buoy.depthM)
  */
 export function resolveTransformInputs(
@@ -61,12 +82,12 @@ export function resolveTransformInputs(
   buoyDepthM: number,
 ): TransformInputs | null {
   if (modelHour.waveHeight == null || isNaN(modelHour.waveHeight)) return null;
-  if (modelHour.swellWavePeakPeriod == null || isNaN(modelHour.swellWavePeakPeriod)) return null;
-  const b = resolveBand(modelHour.swellWavePeakPeriod);
+  if (modelHour.swellWavePeriod == null || isNaN(modelHour.swellWavePeriod)) return null;
+  const b = resolveBand(modelHour.swellWavePeriod);
   if (b == null) return null;
   return {
     H0:     modelHour.waveHeight,
-    T:      modelHour.swellWavePeakPeriod,
+    T:      modelHour.swellWavePeriod,
     depthM: buoyDepthM,
     band:   b,
   };

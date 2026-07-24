@@ -118,7 +118,7 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
       depthM: 24,
       kind: 'nearshore',
     },
-    notes: 'Steamer Lane. Replaced incorrect CDIP 028 (was 33.85N/118.63W, Catalina/San Pedro, ~340 km away). CDIP 281 (SOQUEL COVE SOUTH, CA) at 36.93N/121.93W, depth 23.5 m — closest nearshore station to Santa Cruz with confirmed wave_agg data; source: CDIP ERDDAP spatial search + THREDDS archive/281p1/281p1_historic.nc. Station active from Dec 2024.',
+    notes: 'CDIP 281 (Soquel Cove South) returns HTTP 404 across all windows (2021, 2022, 2023 archive and recent 7-day forecast) — station serves nothing via wave_agg. Not merely archive-limited; genuinely unavailable. Nearshore OUTPUT validation gap for this location.',
   },
   {
     name: 'Scripps CA',
