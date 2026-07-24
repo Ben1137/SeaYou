@@ -659,6 +659,7 @@ async function main() {
 
   // Console summary
   console.log('\n--- Per-Spot Verdict (P6.2.2 corrected) ---');
+  console.log('    sign convention: residual = buoy_value − engine_value (positive = engine under-predicts)');
   for (const s of summaries) {
     const valShort = s.buoy_kind === 'nearshore' ? 'OUTPUT' : 'INPUT ';
     const dom = `dom=${(s.dominantSectorShare * 100).toFixed(0)}%`;
