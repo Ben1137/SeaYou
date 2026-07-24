@@ -69,6 +69,7 @@ interface ResidualRecord {
   engine_version: string;
   compare_basis:  'total_vs_total' | 'swell_vs_swell' | 'swell_only_legacy';
   data_quality:   'ok' | 'invalid_wrong_station' | 'invalid_wrong_depth' | 'invalid_wrong_buoy_coords';
+  wave_period:    number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -533,6 +534,7 @@ async function processSpotYear(
       lon:            spot.lon,
       swell_dir:      m.swellDir,
       swell_period:   m.swellPeriod,  // swell-only period stored as a feature column; T for transform comes from wave_period
+      wave_period:    T,
       swell_height:   H0,
       wind_from_deg:  m.windFromDeg,
       wind_speed:     m.windSpeedMs,

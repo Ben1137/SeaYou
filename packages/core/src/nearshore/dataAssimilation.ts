@@ -79,6 +79,7 @@ interface AssimilationRecord {
   residual:       number;
   source_buoy_id: string;
   engine_version: string;
+  wave_period:    number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -343,6 +344,7 @@ async function processSpot(
     lon:            spot.lon,
     swell_dir:      marine.swellDir,
     swell_period:   marine.swellPeriod,  // swell-only period stored as feature column; transform uses wave_period (T)
+    wave_period:    T,
     swell_height:   marine.swellHeight,
     wind_from_deg:  marine.windFromDeg,
     wind_speed:     marine.windSpeedMs,
