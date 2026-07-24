@@ -274,6 +274,7 @@ async function part2(lines: string[]): Promise<void> {
 
   type Chain = { AB: number; CD: number; contrib: number; modelPeriod: number | null };
   const chains: Record<Band, Chain[]> = { short: [], mid: [], long: [] };
+  let skipped = 0;
 
   for (const mhNear of modelAtNear) {
     const key = mhNear.ts.slice(0, 13).replace(' ', 'T');
@@ -281,7 +282,9 @@ async function part2(lines: string[]): Promise<void> {
     if (!nearBuoy || mhNear.waveHeight == null) continue;
     // C: engine output at Scripps buoy depth (41m — where CDIP-201 actually sits)
     const H0 = mhNear.waveHeight;
-    const T = mhNear.wavePeriod ?? nearBuoy.Tp;
+    // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
+    const T = mhNear.wavePeriod;
+    if (T == null) { skipped++; continue; }
     const tr = nearshoreTransform(H0, T, scrippsBuoyDepth);
     const CD = tr.H - nearBuoy.Hs;
     // A−B: match key in deep model
@@ -295,6 +298,7 @@ async function part2(lines: string[]): Promise<void> {
     if (!b) continue;
     chains[b].push({ AB, CD, contrib, modelPeriod: T });
   }
+  console.log(`  Part2: skipped(no wave_period)=${skipped}`);
 
   lines.push('| Period band | n | A−B (input @ matched depth) | C−D (engine output error) | Transform contrib | Verdict |');
   lines.push('|-------------|---|-----------------------------|--------------------------|-------------------|---------|');

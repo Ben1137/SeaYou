@@ -186,7 +186,9 @@ async function partA(reportLines: string[]): Promise<void> {
         const buoy = buoyMap.get(key);
         if (!buoy || mh.waveHeight == null) continue;
         const H0 = mh.waveHeight;
-        const T  = mh.wavePeriod ?? buoy.Tp;
+        // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
+        const T = mh.wavePeriod;
+        if (T == null) continue;
         const tr = nearshoreTransform(H0, T, spot.buoy?.depthM ?? spot.depthM);
         const residual = tr.H - buoy.Hs; // engine − buoy (positive = over-predict)
         const pb = periodBucket(T);
@@ -236,7 +238,9 @@ async function partA(reportLines: string[]): Promise<void> {
         const key = (mh.ts.slice(0,13));
         const buoy = buoyMap.get(key);
         if (!buoy || mh.waveHeight == null) continue;
-        const T = mh.wavePeriod ?? buoy.Tp;
+        // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
+        const T = mh.wavePeriod;
+        if (T == null) continue;
         const tr = nearshoreTransform(mh.waveHeight, T, spot.buoy?.depthM ?? spot.depthM);
         const residual = tr.H - buoy.Hs;
         const pb = periodBucket(T);
@@ -258,11 +262,16 @@ async function partA(reportLines: string[]): Promise<void> {
 // Use the SAME period from the nearshore model fetch, check if bias exists at input stage
 // ---------------------------------------------------------------------------
 
+// Part B: RETIRED — invalid cross-depth design (Open-Meteo at spot vs nearshore buoy
+// with no deep-water intermediate). This comparison bundles genuine input error with
+// shoaling loss and cannot be used to isolate input vs transform contribution.
+// See P6.2.4 and P6.2.8. Do not cite results from this section.
 async function partB(reportLines: string[]): Promise<void> {
-  reportLines.push('---', '', '## Part B — Input vs Transform Decomposition', '');
-  reportLines.push('For nearshore spots, check whether the period-monotonic bias is already present in the');
-  reportLines.push('INPUT (Open-Meteo wave_height H0 vs nearest deep-water buoy Hs) or first appears in the');
-  reportLines.push('OUTPUT after nearshoreTransform. Per-period-band verdict.', '');
+  reportLines.push('---', '', '## Part B — Input vs Transform Decomposition [RETIRED]', '');
+  reportLines.push('> **RETIRED (P6.2.8):** invalid cross-depth design — Open-Meteo at nearshore spot vs nearshore buoy');
+  reportLines.push('> with no deep-water intermediate. This comparison bundles genuine input error with shoaling loss');
+  reportLines.push('> and cannot isolate input vs transform contribution. Do not cite results from this section.');
+  reportLines.push('> See P6.2.4 (matched-depth input validation) for the valid replacement analysis.', '');
 
   // Near-deep buoy pairs: deep-water reference for the offshore signal
   const nearDeepPairs = [
@@ -294,7 +303,9 @@ async function partB(reportLines: string[]): Promise<void> {
       const buoy = nearBuoyMap.get(key);
       if (!buoy || mh.waveHeight == null) continue;
       const H0 = mh.waveHeight;
-      const T  = mh.wavePeriod ?? buoy.Tp;
+      // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
+      const T = mh.wavePeriod;
+      if (T == null) continue;
       const tr = nearshoreTransform(H0, T, nearSpot.buoy?.depthM ?? nearSpot.depthM);
       const pb = periodBucket(T);
       if (!pb) continue;
@@ -320,14 +331,10 @@ async function partB(reportLines: string[]): Promise<void> {
       const outMean = mean(outArr);
       // Verdict: if both are similar, bias is input-born (shoaling doesn't add much)
       // If output significantly more negative than input, transform amplifies the error
-      let bornIn = 'mixed';
-      const transformContrib = outMean - inMean;
-      if (Math.abs(inMean) > 0.15 && Math.abs(transformContrib) < 0.05) bornIn = 'INPUT (Open-Meteo)';
-      else if (Math.abs(inMean) < 0.1 && Math.abs(outMean) > 0.15)     bornIn = 'TRANSFORM (shoaling)';
-      else if (Math.abs(transformContrib) > 0.15)                        bornIn = `BOTH (transform adds ${fmt(transformContrib,2)}m)`;
-      else                                                                bornIn = 'INPUT-dominant';
+      // Part B is RETIRED — all verdicts labelled as such. Do not cite.
+      const bornIn = '[RETIRED — cross-depth design, do not cite]';
 
-      reportLines.push(`| ${pb} | ${inArr.length} | ${fmt(inMean)} | ${fmt(outMean)} | **${bornIn}** |`);
+      reportLines.push(`| ${pb} | ${inArr.length} | ${fmt(inMean)} | ${fmt(outMean)} | ${bornIn} |`);
     }
     reportLines.push('');
   }

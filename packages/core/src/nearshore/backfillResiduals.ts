@@ -17,6 +17,7 @@
  */
 
 import { nearshoreTransform } from './transform.js';
+import { resolveTransformInputs } from './transformInputs.js';
 import { CALIBRATION_SPOTS, type CalibrationSpot } from './calibration-spots.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -316,6 +317,7 @@ interface MarineHour {
   windFromDeg:   number;
   windSpeedMs:   number;
   waveHeight:    number;  // total significant wave height (swell + wind sea)
+  wavePeriod:    number | null;  // wave_period (total spectral peak period) — canonical T for transform
 }
 
 async function fetchMarineHistorical(
@@ -326,7 +328,7 @@ async function fetchMarineHistorical(
   const end   = endDate.toISOString().slice(0, 10);
   const url =
     `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height` +
+    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period` +
     `&start_date=${start}&end_date=${end}&timezone=GMT`;
   const windUrl =
     `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
@@ -348,6 +350,7 @@ async function fetchMarineHistorical(
         swell_wave_period: (number | null)[];
         swell_wave_direction: (number | null)[];
         wave_height: (number | null)[];
+        wave_period: (number | null)[];
       };
     };
     const wind = await windRes.json() as {
@@ -365,6 +368,7 @@ async function fetchMarineHistorical(
       const d = marine.hourly.swell_wave_direction[i];
       if (h == null || p == null) continue;
       const wh = marine.hourly.wave_height?.[i] ?? h; // total Hs; fallback to swell if null
+      const wp = marine.hourly.wave_period?.[i] ?? null; // total peak period — canonical T
       const wSpd = wind.hourly.wind_speed_10m[i] ?? 0;
       const wDir = wind.hourly.wind_direction_10m[i] ?? 0;
       const key = marine.hourly.time[i].replace('T', ' ').slice(0, 13); // "2023-01-01 06"
@@ -376,6 +380,7 @@ async function fetchMarineHistorical(
         windFromDeg:  wDir,
         windSpeedMs:  wSpd,
         waveHeight:   wh,
+        wavePeriod:   wp,
       });
     }
     return result;
@@ -504,15 +509,19 @@ async function processSpotYear(
     if (!m) { skipped++; continue; }
     if (m.swellHeight <= 0 || m.swellPeriod <= 0) { skipped++; continue; }
 
-    // Use total wave height for like-for-like comparison (NDBC WVHT = total Hs)
-    const H0 = m.waveHeight;   // total combined sea state from Open-Meteo
-    const T  = m.swellPeriod;  // dominant swell period (best available)
-
     // Engine OUTPUT (nearshoreTransform at buoy depth for validation harness).
     // Validation harness uses buoy.depthM (the depth where the measurement is taken),
     // not spot.depthM (the surf-break depth). Both are correct in their own context.
     const transformDepth = spot.buoy ? (spot.buoy.depthM ?? spot.depthM) : spot.depthM;
-    const tr = nearshoreTransform(H0, T, transformDepth);
+
+    // Canonical T = wave_period (total peak period); missing T → skip, never fall back to swell period.
+    const inputs = resolveTransformInputs(
+      { waveHeight: m.waveHeight, wavePeriod: m.wavePeriod },
+      transformDepth,
+    );
+    if (!inputs) { skipped++; continue; }
+    const { H0, T } = inputs;
+    const tr = nearshoreTransform(H0, T, inputs.depthM);
 
     const engineValue = spot.buoy!.kind === 'deep' ? H0 : tr.H;
     const residual    = b.Hs - engineValue; // positive = engine under-predicts
@@ -523,7 +532,7 @@ async function processSpotYear(
       lat:            spot.lat,
       lon:            spot.lon,
       swell_dir:      m.swellDir,
-      swell_period:   T,
+      swell_period:   m.swellPeriod,  // swell-only period stored as a feature column; T for transform comes from wave_period
       swell_height:   H0,
       wind_from_deg:  m.windFromDeg,
       wind_speed:     m.windSpeedMs,

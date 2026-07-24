@@ -121,12 +121,15 @@ async function runComparison(
   };
 
   let pairsAB=0;
+  let skipped=0;
   for(const mA of modA){
     const key=mA.ts.slice(0,13).replace(' ','T');
     const buoyH=buoyMap.get(key);
     const mB=modBMap.get(key);
     if(!buoyH||mA.waveHeight==null)continue;
-    const T=mA.wavePeriod??buoyH.Tp;
+    // Canonical: T = wave_period (total peak period). No buoy-Tp fallback — missing T skips row.
+    const T=mA.wavePeriod;
+    if(T==null){skipped++;continue;}
     const trA=nearshoreTransform(mA.waveHeight,T,depthM);
     const b=band(T); if(!b)continue;
     res.nearshoreH0[b].push(mA.waveHeight);
@@ -139,9 +142,10 @@ async function runComparison(
     }
   }
 
+  console.log(`  ${spotName}: pairsAB=${pairsAB} skipped(no wave_period)=${skipped}`);
   lines.push(`### ${spotName}`);
   lines.push(`Nearshore cell: (${nearLat}, ${nearLon}) | Offshore cell: (${offLat}, ${offLon})`);
-  lines.push(`Buoy: ${buoyId} at depth ${depthM}m | Pairs with both A+B: ${pairsAB}`);
+  lines.push(`Buoy: ${buoyId} at depth ${depthM}m | Pairs with both A+B: ${pairsAB} | Skipped (no wave_period): ${skipped}`);
   lines.push('');
   lines.push('| Band | n | H0_A (near) | H0_B (off) | H0_A−H0_B | Resid_A | Resid_B | Verdict |');
   lines.push('|------|---|------------|-----------|-----------|---------|---------|---------|');

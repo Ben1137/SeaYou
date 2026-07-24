@@ -106,9 +106,10 @@ function getEngineVersion(): string {
 // ---------------------------------------------------------------------------
 
 interface LiveMarineObs {
-  waveHeight:   number;  // total Hs (swell + wind sea) — used for compare_basis: total_vs_total
-  swellHeight:  number;  // swell component only (stored as swell_height for features)
-  swellPeriod:  number;
+  waveHeight:   number;        // total Hs (swell + wind sea) — used for compare_basis: total_vs_total
+  wavePeriod:   number | null; // wave_period (total peak period) — canonical T for transform
+  swellHeight:  number;        // swell component only (stored as swell_height for features)
+  swellPeriod:  number;        // swell-only period — stored as feature column, not used for transform
   swellDir:     number;
   windFromDeg:  number;
   windSpeedMs:  number;
@@ -118,7 +119,7 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
   try {
     const marineUrl =
       `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-      `&hourly=wave_height,swell_wave_height,swell_wave_period,swell_wave_direction` +
+      `&hourly=wave_height,wave_period,swell_wave_height,swell_wave_period,swell_wave_direction` +
       `&forecast_days=1&timezone=GMT`;
     const windUrl =
       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
@@ -134,6 +135,7 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
       hourly: {
         time: string[];
         wave_height: (number | null)[];
+        wave_period: (number | null)[];
         swell_wave_height: (number | null)[];
         swell_wave_period: (number | null)[];
         swell_wave_direction: (number | null)[];
@@ -153,6 +155,7 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
     if (idx < 0) idx = 0;
 
     const wh  = marine.hourly.wave_height[idx] ?? marine.hourly.wave_height[0];
+    const wp  = marine.hourly.wave_period?.[idx] ?? marine.hourly.wave_period?.[0] ?? null; // total peak period — canonical T
     const sh  = marine.hourly.swell_wave_height[idx] ?? marine.hourly.swell_wave_height[0];
     const sp  = marine.hourly.swell_wave_period[idx] ?? marine.hourly.swell_wave_period[0];
     const sd  = marine.hourly.swell_wave_direction[idx] ?? marine.hourly.swell_wave_direction[0];
@@ -163,6 +166,7 @@ async function fetchLiveMarine(lat: number, lon: number): Promise<LiveMarineObs 
 
     return {
       waveHeight:  wh,
+      wavePeriod:  wp,
       swellHeight: sh ?? wh,
       swellPeriod: sp,
       swellDir:    sd ?? 0,
@@ -313,9 +317,14 @@ async function processSpot(
     return { written: false, skipped: true, reason: `buoy unavailable: ${buoy.source}` };
   }
 
-  // Engine: use total wave height (total_vs_total basis)
+  // Engine: use total wave height + total wave period (total_vs_total basis).
+  // Canonical rule: T = wave_period (total peak period), never swell_wave_period.
   const H0 = marine.waveHeight;
-  const T  = marine.swellPeriod;
+  const T  = marine.wavePeriod; // canonical: wave_period (total); null → spot skipped below
+  if (T == null) {
+    console.log(`  ${spot.name}: wave_period unavailable — skip`);
+    return { written: false, skipped: true, reason: 'wave_period unavailable' };
+  }
   // Use buoy.depthM for validation comparison (buoy measurement depth), not surf-break depth.
   const transformDepth = spot.buoy ? (spot.buoy.depthM ?? spot.depthM) : spot.depthM;
   const tr = nearshoreTransform(H0, T, transformDepth);
@@ -333,7 +342,7 @@ async function processSpot(
     lat:            spot.lat,
     lon:            spot.lon,
     swell_dir:      marine.swellDir,
-    swell_period:   T,
+    swell_period:   marine.swellPeriod,  // swell-only period stored as feature column; transform uses wave_period (T)
     swell_height:   marine.swellHeight,
     wind_from_deg:  marine.windFromDeg,
     wind_speed:     marine.windSpeedMs,
