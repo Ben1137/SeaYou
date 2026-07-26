@@ -79,7 +79,7 @@ interface AssimilationRecord {
   residual:       number;
   source_buoy_id: string;
   engine_version: string;
-  /** wave_period column stores the T actually passed to nearshoreTransform = swell_wave_peak_period (true Tp) */
+  /** wave_period column stores the T actually passed to nearshoreTransform = swell_wave_period (swell mean Tm — best available period proxy; Open-Meteo's peak period fields return null universally) */
   wave_period:    number | null;
   harvest_run:    string;  // engine git SHA at harvest time
 }

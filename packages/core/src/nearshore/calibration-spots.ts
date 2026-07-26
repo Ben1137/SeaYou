@@ -46,7 +46,7 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
       depthM: 206,
       kind: 'deep',
     },
-    notes: 'Big wave reef off Half Moon Bay. NDBC 46012 deep water (206 m) → validates INPUT.',
+    notes: 'Big wave reef off Half Moon Bay. NDBC 46012 deep water (206 m) → validates INPUT. FORCING-MODEL DIAGNOSTIC only. Transform contributes 0.000m at this depth. Engine correction must NOT be fitted to this spot\'s residuals — they measure Open-Meteo vs NDBC offset, not engine error.',
   },
   {
     name: 'Rincon CA',
@@ -62,7 +62,7 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
       depthM: 464,
       kind: 'deep',
     },
-    notes: 'Point break, Santa Barbara Channel. NDBC 46054 deep water (464 m) → validates INPUT.',
+    notes: 'Point break, Santa Barbara Channel. NDBC 46054 deep water (464 m) → validates INPUT. FORCING-MODEL DIAGNOSTIC only. Transform contributes 0.000m at this depth. Engine correction must NOT be fitted to this spot\'s residuals — they measure Open-Meteo vs NDBC offset, not engine error.',
   },
   {
     name: 'Pipeline HI',
@@ -78,7 +78,7 @@ export const CALIBRATION_SPOTS: CalibrationSpot[] = [
       depthM: 3430,
       kind: 'deep',
     },
-    notes: 'Ehukai Beach, N Shore Oahu. NDBC 51001 deep NW Hawaiian Islands buoy → validates INPUT. Corrected buoy lat/lon from NDBC realtime header (was 23.445/-162.279, correct is 24.475/-162.030).',
+    notes: 'Ehukai Beach, N Shore Oahu. NDBC 51001 deep NW Hawaiian Islands buoy → validates INPUT. Corrected buoy lat/lon from NDBC realtime header (was 23.445/-162.279, correct is 24.475/-162.030). FORCING-MODEL DIAGNOSTIC only. Transform contributes 0.000m at this depth. Engine correction must NOT be fitted to this spot\'s residuals — they measure Open-Meteo vs NDBC offset, not engine error.',
   },
   {
     name: 'Hossegor FR',

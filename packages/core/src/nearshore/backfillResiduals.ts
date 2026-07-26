@@ -603,8 +603,8 @@ async function processSpotYear(
       lon:            spot.lon,
       swell_dir:      m.swellDir,
       swell_period:   m.swellPeriod,  // swell-only period stored as feature column
-      wave_period:    T,              // stores the actual T used for transform = swell_wave_period (swell mean Tm)
-      swell_height:   H0,             // H0 = wave_height total (total Hs, misnamed column — see migration note)
+      wave_period:    T,              // stores swell_wave_period (swell mean Tm) — named for the canonical T used for nearshoreTransform; despite the name, does NOT hold Open-Meteo's wave_period (total Tm)
+      swell_height:   m.swellHeight,  // swell_wave_height (true swell partition Hs) — fixed P6.2.14
       wind_from_deg:  m.windFromDeg,
       wind_speed:     m.windSpeedMs,
       buoy_kind:      spot.buoy!.kind,

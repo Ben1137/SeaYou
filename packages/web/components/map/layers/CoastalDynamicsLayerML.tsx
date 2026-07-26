@@ -30,6 +30,7 @@ import {
 } from '../../../webgl/CoastalDynamicsEngine';
 import { createOffscreenCanvas, type OffscreenCanvasHandle } from '../../../webgl/OffscreenCanvasManager';
 import { useCanvasSourceLayer, boundsToCorners } from '../../../hooks/useCanvasSourceLayer';
+import { deriveSwellInputs } from '../../../hooks/useCoastalReading';
 import { BREAKING_WAVE_COLORS } from '../../../webgl/ColorRamps';
 import { getMarineBeforeId } from '../../../utils/mapLayerUtils';
 import { fetchDepthGrid } from '../../../utils/bathymetry/TerrariumBathymetry';
@@ -469,16 +470,24 @@ export function CoastalDynamicsLayerML({
       const DirMap = new Map<string, number>();
       gridData.points.forEach(pt => {
         const key = `${pt.lat.toFixed(4)},${pt.lng.toFixed(4)}`;
-        // Swell-primary H0 policy: use swell_wave_height where meaningful (open-ocean
-        // swell carries shoaling/refraction structure); fall back to total wave_height
-        // where swell≈0 (enclosed seas like Eastern Med in summer).
-        const SWELL_FLOOR = 0.1;
+        // H0/T: single source of truth — deriveSwellInputs from useCoastalReading.
+        // isOcean guard: non-ocean cells return NaN so the shader discards them.
+        // || NaN: coerces zero (calm / no-data) to NaN so the shader gate at MIN_H0
+        // discards those cells rather than rendering a zero-height wave.
+        const SWELL_FLOOR = 0.1;  // kept for direction branch only
         const swH = pt.swellHeight ?? 0;
-        const swP = pt.swellPeriod ?? 0;
         const swD = pt.swellDirection ?? pt.waveDirection ?? 0;
         const wD  = pt.waveDirection ?? 0;
-        const h0 = pt.isOcean ? ((swH > SWELL_FLOOR ? swH : (pt.waveHeight ?? 0)) || NaN) : NaN;
-        const t  = pt.isOcean ? ((swH > SWELL_FLOOR ? (swP > 0 ? swP : (pt.wavePeriod ?? 0)) : (pt.wavePeriod ?? 0)) || NaN) : NaN;
+        const { H0: rawH0, T: rawT } = deriveSwellInputs({
+          swellHeight:    pt.swellHeight   ?? 0,
+          swellPeriod:    pt.swellPeriod   ?? 0,
+          swellDirection: pt.swellDirection ?? 0,
+          waveHeight:     pt.waveHeight    ?? 0,
+          wavePeriod:     pt.wavePeriod    ?? 0,
+          waveDirection:  pt.waveDirection ?? 0,
+        });
+        const h0 = pt.isOcean ? (rawH0 || NaN) : NaN;
+        const t  = pt.isOcean ? (rawT  || NaN) : NaN;
         const d  = pt.isOcean ? (swH > SWELL_FLOOR ? swD : wD) : 0;
         H0Map.set(key, h0);
         TMap.set(key,  t);
