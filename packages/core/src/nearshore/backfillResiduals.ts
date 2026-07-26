@@ -47,7 +47,7 @@ function parseDate(s: string): Date {
 }
 
 // ---------------------------------------------------------------------------
-// Residual record (matches calibration_residuals schema)
+// Residual record (matches calibration_residuals schema — P6.2.13 full input set)
 // ---------------------------------------------------------------------------
 
 interface ResidualRecord {
@@ -72,7 +72,19 @@ interface ResidualRecord {
   /** wave_period column stores the T actually passed to nearshoreTransform.
    *  P6.2.10: T = swell_wave_period (swell mean Tm). NOT wave_period (total Tm). NOT swell_wave_peak_period (null universally). */
   wave_period:    number | null;
-  harvest_run:    string;  // engine git SHA at harvest time
+  harvest_run:    string;  // "<git SHA>@<YYYYMMDDTHHMMSS>" — generated once in main()
+
+  // P6.2.13: Full input set columns
+  wave_height_total:   number | null;  // wave_height (total Hs) — the H0 used by nearshoreTransform
+  wind_wave_height:    number | null;  // wind_wave_height (Open-Meteo partition)
+  wave_period_tm:      number | null;  // wave_period = total Tm (NOAA GRIB2 PERPW) — NOT used as T
+  wind_wave_period:    number | null;  // wind_wave_period
+  wind_wave_direction: number | null;  // wind_wave_direction (deg)
+  buoy_hs:             number | null;  // buoy Hs — explicit alias of buoy_value
+  buoy_tp:             number | null;  // CDIP waveTp / NDBC DPD — true peak period
+  buoy_tm:             number | null;  // NDBC APD — average period; null for CDIP
+  buoy_direction:      number | null;  // MWD (NDBC) or waveDp (CDIP) in degrees
+  transform_depth_m:   number;         // actual depth passed to nearshoreTransform (always set)
 }
 
 // ---------------------------------------------------------------------------
@@ -128,11 +140,12 @@ function getEngineVersion(): string {
 interface NDBCHour {
   /** UTC timestamp, top of hour */
   ts: Date;
-  Hs:     number;   // m
-  DPD:    number;   // s
-  MWD:    number;   // deg
-  WSPD:   number;   // m/s
-  WDIR:   number;   // deg
+  Hs:   number;   // m  — WVHT
+  DPD:  number;   // s  — dominant period (peak, buoy_tp)
+  APD:  number;   // s  — average period (buoy_tm)
+  MWD:  number;   // deg — mean wave direction (buoy_direction)
+  WSPD: number;   // m/s
+  WDIR: number;   // deg
 }
 
 async function fetchNDBCYear(stationId: string, year: number): Promise<NDBCHour[]> {
@@ -165,12 +178,13 @@ function parseNDBCText(text: string, stationId: string, year: number): NDBCHour[
   const header = lines[headerIdx].replace(/^#\s*/, '').trim().split(/\s+/);
 
   // Find column indices
-  const iYY  = header.indexOf('YY');
-  const iMM  = header.indexOf('MM');
-  const iDD  = header.indexOf('DD');
-  const iHH  = header.indexOf('hh');
+  const iYY   = header.indexOf('YY');
+  const iMM   = header.indexOf('MM');
+  const iDD   = header.indexOf('DD');
+  const iHH   = header.indexOf('hh');
   const iWVHT = header.indexOf('WVHT');
   const iDPD  = header.indexOf('DPD');
+  const iAPD  = header.indexOf('APD');  // average period (buoy_tm)
   const iMWD  = header.indexOf('MWD');
   const iWSPD = header.indexOf('WSPD');
   const iWDIR = header.indexOf('WDIR');
@@ -178,7 +192,7 @@ function parseNDBCText(text: string, stationId: string, year: number): NDBCHour[
   if (iWVHT < 0 || iDPD < 0) return []; // no wave data
 
   // Group 10-min obs by hour, then average
-  const byHour = new Map<string, { Hs: number[]; DPD: number[]; MWD: number[]; WSPD: number[]; WDIR: number[] }>();
+  const byHour = new Map<string, { Hs: number[]; DPD: number[]; APD: number[]; MWD: number[]; WSPD: number[]; WDIR: number[] }>();
 
   for (let i = headerIdx + 2; i < lines.length; i++) {  // +2 skips units row
     const cols = lines[i].trim().split(/\s+/);
@@ -194,6 +208,7 @@ function parseNDBCText(text: string, stationId: string, year: number): NDBCHour[
 
     const wvhtStr = cols[iWVHT];
     const dpdStr  = cols[iDPD];
+    const apdStr  = iAPD >= 0 && cols[iAPD] ? cols[iAPD] : null;
     const mwdStr  = iMWD >= 0 ? cols[iMWD] : null;
     const wspdStr = iWSPD >= 0 ? cols[iWSPD] : null;
     const wdirStr = iWDIR >= 0 ? cols[iWDIR] : null;
@@ -202,15 +217,17 @@ function parseNDBCText(text: string, stationId: string, year: number): NDBCHour[
 
     const Hs   = parseFloat(wvhtStr);
     const DPD  = parseFloat(dpdStr);
+    const APD  = apdStr && apdStr !== 'MM' ? parseFloat(apdStr) : NaN;
     const MWD  = mwdStr && mwdStr !== 'MM' ? parseFloat(mwdStr) : NaN;
     const WSPD = wspdStr && wspdStr !== 'MM' ? parseFloat(wspdStr) : NaN;
     const WDIR = wdirStr && wdirStr !== 'MM' ? parseFloat(wdirStr) : NaN;
 
     if (isNaN(Hs) || Hs >= 99 || isNaN(DPD) || DPD >= 99) continue;
 
-    const slot = byHour.get(key) ?? { Hs: [], DPD: [], MWD: [], WSPD: [], WDIR: [] };
+    const slot = byHour.get(key) ?? { Hs: [], DPD: [], APD: [], MWD: [], WSPD: [], WDIR: [] };
     slot.Hs.push(Hs);
     slot.DPD.push(DPD);
+    if (!isNaN(APD) && APD < 99) slot.APD.push(APD);
     if (!isNaN(MWD) && MWD < 999) slot.MWD.push(MWD);
     if (!isNaN(WSPD) && WSPD < 99) slot.WSPD.push(WSPD);
     if (!isNaN(WDIR) && WDIR < 999) slot.WDIR.push(WDIR);
@@ -228,6 +245,7 @@ function parseNDBCText(text: string, stationId: string, year: number): NDBCHour[
       ts,
       Hs:   mean(slot.Hs),
       DPD:  mean(slot.DPD),
+      APD:  isNaN(mean(slot.APD)) ? 0 : mean(slot.APD),
       MWD:  isNaN(mean(slot.MWD)) ? 0 : mean(slot.MWD),
       WSPD: isNaN(mean(slot.WSPD)) ? 0 : mean(slot.WSPD),
       WDIR: isNaN(mean(slot.WDIR)) ? 0 : mean(slot.WDIR),
@@ -246,8 +264,9 @@ function parseNDBCText(text: string, stationId: string, year: number): NDBCHour[
 interface CDIPHour {
   ts:  Date;
   Hs:  number;
-  Tp:  number;
-  Dp:  number;
+  Tp:  number;   // peak period (buoy_tp)
+  Dp:  number;   // direction (buoy_direction)
+  // Note: CDIP does not serve APD — buoy_tm will be null for all CDIP rows
 }
 
 async function fetchCDIPRange(stationId: string, startDate: Date, endDate: Date): Promise<CDIPHour[]> {
@@ -308,21 +327,38 @@ async function fetchCDIPRange(stationId: string, startDate: Date, endDate: Date)
 }
 
 // ---------------------------------------------------------------------------
+// Unified buoy hour (internal — carries full observable set for P6.2.13 columns)
+// ---------------------------------------------------------------------------
+
+interface BuoyHour {
+  ts:   Date;
+  Hs:   number;       // significant wave height (buoy_value / buoy_hs)
+  T:    number;       // primary period used for transform (= Tp for both networks)
+  Tp:   number | null; // peak period (= T; DPD for NDBC, waveTp for CDIP)
+  Tm:   number | null; // average period (APD for NDBC; null for CDIP — provider does not serve it)
+  Dir:  number | null; // wave direction (MWD for NDBC, waveDp for CDIP)
+}
+
+// ---------------------------------------------------------------------------
 // Open-Meteo marine historical (CMEMS reanalysis via marine-api.open-meteo.com)
 // Returns hourly swell + wind for a date range at a lat/lon.
 // input_source = 'reanalysis' (CMEMS GloFAS-ERA5 — confirmed via recon)
+// P6.2.13: now also fetches wind wave partition (wind_wave_height, wind_wave_period, wind_wave_direction)
 // ---------------------------------------------------------------------------
 
 interface MarineHour {
   ts:                 Date;
-  swellHeight:        number;
-  swellPeriod:        number;  // swell_wave_period = swell mean period — canonical T for transform (P6.2.10)
-  swellDir:           number;
-  windFromDeg:        number;
-  windSpeedMs:        number;
-  waveHeight:         number;       // total significant wave height (swell + wind sea)
-  wavePeriod:         number | null; // wave_period (Open-Meteo) = Tm (total mean period) — NOT used as T
-  swellWavePeriod: number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), retained for future use (not the canonical T field)
+  swellHeight:        number;        // swell_wave_height (swell partition Hs)
+  swellPeriod:        number;        // swell_wave_period = swell mean period — canonical T for transform (P6.2.10)
+  swellDir:           number;        // swell_wave_direction (deg)
+  windFromDeg:        number;        // from ERA5 archive
+  windSpeedMs:        number;        // from ERA5 archive
+  waveHeight:         number;        // wave_height = total combined Hs — H0 used by nearshoreTransform
+  wavePeriodTm:       number | null; // wave_period (Open-Meteo) = Tm (total mean period, NOAA GRIB2 PERPW) — stored as wave_period_tm
+  swellWavePeriod:    number | null; // swell_wave_peak_period — null universally (P6.2.10 finding), retained for future use
+  windWaveHeight:     number | null; // wind_wave_height (wind sea partition Hs) — P6.2.13
+  windWavePeriod:     number | null; // wind_wave_period — P6.2.13
+  windWaveDir:        number | null; // wind_wave_direction (deg) — P6.2.13
 }
 
 async function fetchMarineHistorical(
@@ -333,7 +369,7 @@ async function fetchMarineHistorical(
   const end   = endDate.toISOString().slice(0, 10);
   const url =
     `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}` +
-    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,swell_wave_peak_period` +
+    `&hourly=swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,wave_period,swell_wave_peak_period,wind_wave_height,wind_wave_period,wind_wave_direction` +
     `&start_date=${start}&end_date=${end}&timezone=GMT`;
   const windUrl =
     `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}` +
@@ -357,6 +393,9 @@ async function fetchMarineHistorical(
         wave_height: (number | null)[];
         wave_period: (number | null)[];
         swell_wave_peak_period: (number | null)[];
+        wind_wave_height: (number | null)[];
+        wind_wave_period: (number | null)[];
+        wind_wave_direction: (number | null)[];
       };
     };
     const wind = await windRes.json() as {
@@ -373,22 +412,28 @@ async function fetchMarineHistorical(
       const p = marine.hourly.swell_wave_period[i];
       const d = marine.hourly.swell_wave_direction[i];
       if (h == null || p == null) continue;
-      const wh   = marine.hourly.wave_height?.[i] ?? h; // total Hs; fallback to swell if null
-      const wp   = marine.hourly.wave_period?.[i] ?? null; // wave_period = Tm (NOT used for transform)
-      const swtp = marine.hourly.swell_wave_peak_period?.[i] ?? null; // swell_wave_peak_period = true Tp (canonical T)
+      const wh   = marine.hourly.wave_height?.[i] ?? h;   // total Hs; fallback to swell if null
+      const wp   = marine.hourly.wave_period?.[i] ?? null; // wave_period = total Tm
+      const swtp = marine.hourly.swell_wave_peak_period?.[i] ?? null; // null universally (P6.2.10)
+      const wwh  = marine.hourly.wind_wave_height?.[i] ?? null;
+      const wwp  = marine.hourly.wind_wave_period?.[i] ?? null;
+      const wwd  = marine.hourly.wind_wave_direction?.[i] ?? null;
       const wSpd = wind.hourly.wind_speed_10m[i] ?? 0;
       const wDir = wind.hourly.wind_direction_10m[i] ?? 0;
       const key = marine.hourly.time[i].replace('T', ' ').slice(0, 13); // "2023-01-01 06"
       result.set(key, {
-        ts:                  new Date(marine.hourly.time[i] + ':00Z'),
-        swellHeight:         h,
-        swellPeriod:         p,
-        swellDir:            d ?? 0,
-        windFromDeg:         wDir,
-        windSpeedMs:         wSpd,
-        waveHeight:          wh,
-        wavePeriod:          wp,
+        ts:              new Date(marine.hourly.time[i] + ':00Z'),
+        swellHeight:     h,
+        swellPeriod:     p,
+        swellDir:        d ?? 0,
+        windFromDeg:     wDir,
+        windSpeedMs:     wSpd,
+        waveHeight:      wh,
+        wavePeriodTm:    wp,
         swellWavePeriod: swtp,
+        windWaveHeight:  wwh,
+        windWavePeriod:  wwp,
+        windWaveDir:     wwd,
       });
     }
     return result;
@@ -468,6 +513,7 @@ async function processSpotYear(
   spot: CalibrationSpot,
   year: number,
   engineVersion: string,
+  harvestRun: string,
   checkpoint: Checkpoint,
 ): Promise<{ inserted: number; jsonlFallback: number; skipped: number }> {
   const cpKey = `${spot.name}:${year}`;
@@ -482,15 +528,29 @@ async function processSpotYear(
 
   console.log(`  Processing ${spot.name} ${year} (${spot.buoy.network} ${spot.buoy.id}, ${spot.buoy.kind})...`);
 
-  // 1. Fetch buoy data
-  let buoyHours: { ts: Date; Hs: number; T: number }[] = [];
+  // 1. Fetch buoy data — now preserving full observable set for P6.2.13
+  let buoyHours: BuoyHour[] = [];
 
   if (spot.buoy.network === 'NDBC') {
     const raw = await fetchNDBCYear(spot.buoy.id, year);
-    buoyHours = raw.map(h => ({ ts: h.ts, Hs: h.Hs, T: h.DPD }));
+    buoyHours = raw.map(h => ({
+      ts:  h.ts,
+      Hs:  h.Hs,
+      T:   h.DPD,                      // primary period used for transform
+      Tp:  h.DPD,                      // buoy_tp = DPD (dominant period = peak period)
+      Tm:  h.APD > 0 ? h.APD : null,   // buoy_tm = APD (average period); null when not reported
+      Dir: h.MWD > 0 ? h.MWD : null,   // buoy_direction = MWD
+    }));
   } else if (spot.buoy.network === 'CDIP') {
     const raw = await fetchCDIPRange(spot.buoy.id, startDate, endDate);
-    buoyHours = raw.map(h => ({ ts: h.ts, Hs: h.Hs, T: h.Tp }));
+    buoyHours = raw.map(h => ({
+      ts:  h.ts,
+      Hs:  h.Hs,
+      T:   h.Tp,                        // primary period used for transform
+      Tp:  h.Tp,                        // buoy_tp = waveTp
+      Tm:  null,                        // buoy_tm = null (CDIP does not serve APD)
+      Dir: !isNaN(h.Dp) && h.Dp > 0 ? h.Dp : null, // buoy_direction = waveDp
+    }));
   }
 
   if (buoyHours.length === 0) {
@@ -544,7 +604,7 @@ async function processSpotYear(
       swell_dir:      m.swellDir,
       swell_period:   m.swellPeriod,  // swell-only period stored as feature column
       wave_period:    T,              // stores the actual T used for transform = swell_wave_period (swell mean Tm)
-      swell_height:   H0,
+      swell_height:   H0,             // H0 = wave_height total (total Hs, misnamed column — see migration note)
       wind_from_deg:  m.windFromDeg,
       wind_speed:     m.windSpeedMs,
       buoy_kind:      spot.buoy!.kind,
@@ -554,16 +614,28 @@ async function processSpotYear(
       residual,
       source_buoy_id: `${spot.buoy!.network}-${spot.buoy!.id}`,
       engine_version: engineVersion,
-      compare_basis:  'total_h_swell_tp' as const,  // P6.2.10: H0=total Hs, T=swell peak period (Tp)
+      compare_basis:  'total_h_swell_tp' as const,  // P6.2.10: H0=total Hs, T=swell period (Tm)
       data_quality:   'ok' as const,
-      harvest_run:    engineVersion,
+      harvest_run:    harvestRun,
+
+      // P6.2.13: Full input set
+      wave_height_total:   m.waveHeight,        // total Hs (H0) — explicit named column
+      wind_wave_height:    m.windWaveHeight,     // wind sea partition Hs
+      wave_period_tm:      m.wavePeriodTm,       // total Tm (NOT used as T; stored for analysis)
+      wind_wave_period:    m.windWavePeriod,     // wind wave period
+      wind_wave_direction: m.windWaveDir,        // wind wave direction
+      buoy_hs:             b.Hs,                 // explicit alias of buoy_value
+      buoy_tp:             b.Tp,                 // peak period (DPD/NDBC or waveTp/CDIP)
+      buoy_tm:             b.Tm,                 // average period (APD/NDBC; null for CDIP)
+      buoy_direction:      b.Dir,                // wave direction (MWD/NDBC or waveDp/CDIP)
+      transform_depth_m:   transformDepth,        // always set
     });
   }
 
   if (isDryRun) {
     console.log(`    DRY RUN: ${records.length} records computed, ${skipped} skipped. First 3:`);
     records.slice(0, 3).forEach(r => {
-      console.log(`      ${r.ts}  buoy=${r.buoy_value.toFixed(2)}m  engine=${r.engine_value.toFixed(2)}m  Δ=${r.residual.toFixed(2)}m`);
+      console.log(`      ${r.ts}  buoy=${r.buoy_value.toFixed(2)}m  engine=${r.engine_value.toFixed(2)}m  Δ=${r.residual.toFixed(2)}m  wht=${r.wave_height_total?.toFixed(2)}m  btp=${r.buoy_tp?.toFixed(1)}s`);
     });
     return { inserted: 0, jsonlFallback: 0, skipped };
   }
@@ -604,7 +676,14 @@ async function main() {
   console.log(`Window: ${fromDate.toISOString().slice(0, 10)} → ${toDate.toISOString().slice(0, 10)}`);
 
   const engineVersion = getEngineVersion();
-  console.log(`Engine version: ${engineVersion}\n`);
+
+  // P6.2.13: harvestRun = "<git SHA>@<YYYYMMDDTHHMMSS>" — generated once, stable for entire run
+  const tsFormatted = new Date().toISOString().slice(0, 19)
+    .replace(/-/g, '').replace(/:/g, '');  // "20260726T103000"
+  const harvestRun = `${engineVersion}@${tsFormatted}`;
+
+  console.log(`Engine version: ${engineVersion}`);
+  console.log(`Harvest run:    ${harvestRun}\n`);
 
   const checkpoint = loadCheckpoint();
   const spots = CALIBRATION_SPOTS.filter(s => {
@@ -627,14 +706,14 @@ async function main() {
     let spotRows = 0;
     let spotJSONL = 0;
     for (let year = fromYear; year <= toYear; year++) {
-      const r = await processSpotYear(spot, year, engineVersion, checkpoint);
+      const r = await processSpotYear(spot, year, engineVersion, harvestRun, checkpoint);
       totalInserted += r.inserted;
       totalJSONL    += r.jsonlFallback;
       totalSkipped  += r.skipped;
       spotRows  += r.inserted;
       spotJSONL += r.jsonlFallback;
       // Polite delay between station-year requests
-      if (!isDryRun) await new Promise(r => setTimeout(r, 1500));
+      if (!isDryRun) await new Promise(res => setTimeout(res, 1500));
     }
     spotSummary.push({ spot: spot.name, buoyKind: spot.buoy!.kind, rows: spotRows, jsonl: spotJSONL });
   }
@@ -656,6 +735,7 @@ async function main() {
       ``,
       `**Run:** ${new Date().toISOString()}  `,
       `**Engine version:** ${engineVersion}  `,
+      `**Harvest run:** ${harvestRun}  `,
       `**Window:** ${fromDate.toISOString().slice(0,10)} → ${toDate.toISOString().slice(0,10)}  `,
       `**Mode:** LIVE  `,
       ``,
