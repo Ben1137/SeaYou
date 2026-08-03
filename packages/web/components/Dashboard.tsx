@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -20,6 +20,7 @@ import { useAlertConfig } from '../src/contexts/AlertContext';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
 import { useCoastalReading } from '../hooks/useCoastalReading';
+import { EnergyConsistencyCard } from './EnergyConsistencyCard';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
 
 interface DashboardProps {
@@ -585,11 +586,25 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               }, cards[0]).persona
             : null;
 
+          // Personas that show the body-scale wave height term (surf idiom only).
+          // Do NOT add WIND_SURFER, KITE_SURFER, SAILOR, or DIVER — body scale
+          // is a surf concept and misleads in other contexts.
+          const SURF_SCALE_PERSONAS = new Set([
+            ActivityPersona.WAVE_SURFER,
+            ActivityPersona.BOOGIE_BOARDER,
+            ActivityPersona.BEACHGOER,
+          ]);
+
           // Single card: horizontal strip — never a lone grid cell
           if (cards.length === 1) {
             const { persona: cardPersona, icon: Icon, iconColor, labelKey } = cards[0];
             const score = activityScores?.[cardPersona];
             const bw = bestWindows?.[cardPersona];
+            // Body-scale: breaking height from engine, surf personas only.
+            // Input is HFinal (engine output), NOT offshore Hs.
+            const bodyScale = SURF_SCALE_PERSONAS.has(cardPersona) && coastalReading
+              ? waveScaleLabel(coastalReading.HFinal)
+              : null;
             return (
               <div
                 className="glass-panel p-4 flex items-center gap-4 cursor-pointer hover:bg-white/5 hover:border-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-400/50"
@@ -607,6 +622,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   {score ? (
                     <>
                       <p className={`text-xs font-bold mt-0.5 ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
+                      {bodyScale && (
+                        <p className="text-[11px] text-teal-400/80 tabular-nums mt-0.5" dir="ltr">
+                          {t(waveScaleI18nKey(bodyScale), bodyScale)}
+                        </p>
+                      )}
                       {bw && (
                         <p className="text-[11px] text-white/50 mt-1">
                           {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
@@ -644,6 +664,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 const score = activityScores?.[cardPersona];
                 const bw = bestWindows?.[cardPersona];
                 const isFeatured = cardPersona === topPersona;
+                // Body-scale: surf personas only — HFinal from engine (not offshore Hs).
+                const bodyScale = SURF_SCALE_PERSONAS.has(cardPersona) && coastalReading
+                  ? waveScaleLabel(coastalReading.HFinal)
+                  : null;
                 return (
                   <div
                     key={cardPersona}
@@ -677,6 +701,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                     {score ? (
                       <>
                         <p className={`text-xs font-bold ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
+                        {bodyScale && (
+                          <p className="text-[11px] text-teal-400/80 tabular-nums mt-0.5" dir="ltr">
+                            {t(waveScaleI18nKey(bodyScale), bodyScale)}
+                          </p>
+                        )}
                         {bw && (
                           <p className="text-[11px] text-white/50 mt-1">
                             {t('activity.bestWindow')}: {format(parseISO(bw.startTime), 'HH:mm')}–{format(parseISO(bw.endTime), 'HH:mm')}
@@ -731,7 +760,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       })()}
 
       {/* ─── Conditions Grid ─── */}
-      <section className={`grid grid-cols-2 gap-4 ${showTide ? 'lg:grid-cols-6' : 'lg:grid-cols-5'}`}>
+      {/* Layout: 2 cols mobile/tablet → lg: 4+3 wrap (Coastal Break stays row-1) → xl: all 7 in one row */}
+      <section className={`grid grid-cols-2 gap-4 ${showTide ? 'lg:grid-cols-4 xl:grid-cols-7' : 'lg:grid-cols-4 xl:grid-cols-6'}`}>
         {/* Wave Height */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
           <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center"><Activity size={11} className="mr-1.5" /> {t('weather.waveHeight')}</h3>
@@ -833,6 +863,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           </span>
           <Ruler className="absolute bottom-2 right-3 text-white/[0.05]" size={48} />
         </div>
+
+        {/* Energy + Consistency — 7th card */}
+        <EnergyConsistencyCard
+          weatherData={weatherData}
+          coastalReading={coastalReading}
+          currentHourIndex={currentHourIndex}
+        />
 
         {/* Water & Air Temperature — split peers: sea (left) | air (right) */}
         <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">

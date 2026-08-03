@@ -683,6 +683,33 @@
     "secondaryActivities": "Also alert me for",
     "sweetSpotNotify": "Notify when conditions are perfect"
   },
+  "energyCard": {
+    "label": "Energy",
+    "source": "Breaking height · Cg at depth",
+    "energyTooltip": "Wave power per metre of wave crest (kW/m). Uses breaking-wave height from the Coastal Break engine. Upper bound: energy dissipation at the break is not modelled.",
+    "consistencyTooltipTemporal": "Steadiness of breaking-wave height over the next 6 forecast hours. CoV < 0.15 = Steady.",
+    "consistencyTooltipCleanliness": "Fraction of wave energy from swell vs. wind-chop. Note: Open-Meteo swell/wind partitions are modal estimates and may not conserve energy.",
+    "consistencySteady": "Steady",
+    "consistencyVariable": "Variable",
+    "consistencyDropping": "Dropping",
+    "consistencyClean": "Clean",
+    "consistencyMixed": "Mixed",
+    "consistencyMessy": "Messy",
+    "noConsistencyData": "Consistency unavailable"
+  },
+  "waveScale": {
+    "flat": "Flat",
+    "ankleHigh": "Ankle-high",
+    "kneeHigh": "Knee-high",
+    "thighHigh": "Thigh-high",
+    "waistHigh": "Waist-high",
+    "chestHigh": "Chest-high",
+    "shoulderHigh": "Shoulder-high",
+    "headHigh": "Head-high",
+    "overhead": "Overhead",
+    "wellOverhead": "Well overhead",
+    "doubleOverhead": "Double overhead"
+  },
   "comparison": {
     "title": "Model Comparison",
     "pickHint": "Pick 2–3 models to compare",

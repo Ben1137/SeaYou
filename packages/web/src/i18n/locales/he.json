@@ -726,5 +726,32 @@
     "metric": "מדד",
     "highSpread": "המודלים אינם מסכימים — רמת הוודאות של התחזית נמוכה.",
     "fetchError": "לא ניתן לטעון נתוני מודל. נסה שוב."
+  },
+  "energyCard": {
+    "label": "אנרגיה",
+    "source": "גובה שבירה · Cg בעומק",
+    "energyTooltip": "הספק גל לכל מטר קו גל (kW/m). משתמש בגובה גל השבירה מהמנוע Coastal Break. גבול עליון: פיזור אנרגיה בנקודת השבירה לא מדומה.",
+    "consistencyTooltipTemporal": "יציבות גובה גל השבירה ב-6 שעות התחזית הבאות. CoV < 0.15 = יציב.",
+    "consistencyTooltipCleanliness": "שיעור אנרגיית הגלים מנחשולים מול גלי רוח. שים לב: פילוחי נחשול/רוח של Open-Meteo הם הערכות מודליות ועשויים שלא לשמור על אנרגיה.",
+    "consistencySteady": "יציב",
+    "consistencyVariable": "משתנה",
+    "consistencyDropping": "יורד",
+    "consistencyClean": "נקי",
+    "consistencyMixed": "מעורב",
+    "consistencyMessy": "סוער",
+    "noConsistencyData": "נתוני עקביות לא זמינים"
+  },
+  "waveScale": {
+    "flat": "שטוח",
+    "ankleHigh": "[UNREVIEWED] Ankle-high",
+    "kneeHigh": "[UNREVIEWED] Knee-high",
+    "thighHigh": "[UNREVIEWED] Thigh-high",
+    "waistHigh": "[UNREVIEWED] Waist-high",
+    "chestHigh": "[UNREVIEWED] Chest-high",
+    "shoulderHigh": "[UNREVIEWED] Shoulder-high",
+    "headHigh": "[UNREVIEWED] Head-high",
+    "overhead": "[UNREVIEWED] Overhead",
+    "wellOverhead": "[UNREVIEWED] Well overhead",
+    "doubleOverhead": "[UNREVIEWED] Double overhead"
   }
 }
