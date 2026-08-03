@@ -247,6 +247,65 @@ describe('waveScaleI18nKey', () => {
   });
 });
 
+// ─── P5.5.5: dispersion Cg monotonicity proof ────────────────────────────────
+//
+// Cg > Cg0 IS valid linear-wave-theory physics in intermediate water (kd ~ 1-3).
+// For T = 5.2 s: Cg peaks at ~4.86 m/s near d = 7 m, while Cg0 = 4.06 m/s.
+// This corresponds to Ks < 1 (shoaling minimum), confirmed experimentally by
+// Cape Canaveral Ks = 0.9129 test.
+//
+// The invariant is NOT Cg <= Cg0 everywhere. The invariants are:
+//   1. Cg(d→0) = sqrt(g*d) → 0   (very shallow: Cg is small)
+//   2. Cg(d→∞) = Cg0             (deep water: Cg approaches Cg0)
+//   3. Cg is continuous; it must transition through intermediate water
+//      and can exceed Cg0 in the intermediate-water shoaling-minimum band.
+//   4. Ks = sqrt(Cg0/Cg) is also correct and can be < 1 or > 1.
+//
+// This test suite documents the physics and asserts the code is self-consistent.
+
+describe('dispersion monotonicity (P5.5.5)', () => {
+  it('Cg(d=0.01) << Cg0 for T=5.2s (very shallow)', () => {
+    const { Cg } = dispersion(5.2, 0.01);
+    expect(Cg).toBeLessThan(deepWaterGroupSpeed(5.2) * 0.2);
+  });
+
+  it('Cg(d=1000) ≈ Cg0 for T=5.2s (deep water)', () => {
+    const { Cg } = dispersion(5.2, 1000);
+    expect(Cg).toBeCloseTo(deepWaterGroupSpeed(5.2), 2);
+  });
+
+  it('Cg CAN exceed Cg0 in intermediate water (T=5.2s, d=7m)', () => {
+    // This is valid physics, not a bug.
+    const { Cg } = dispersion(5.2, 7);
+    expect(Cg).toBeGreaterThan(deepWaterGroupSpeed(5.2));
+  });
+
+  it('Cg approaches 0 in very shallow water (d=0.01m, T=5s)', () => {
+    const { Cg } = dispersion(5.0, 0.01);
+    expect(Cg).toBeGreaterThan(0);
+    expect(Cg).toBeLessThan(0.5); // sqrt(g*0.01) ≈ 0.313 m/s
+  });
+
+  it('Ks = sqrt(Cg0/Cg) < 1 when Cg > Cg0 (intermediate water shoaling minimum)', () => {
+    const T = 5.2, d = 7;
+    const { Cg } = dispersion(T, d);
+    const Cg0_val = deepWaterGroupSpeed(T);
+    const Ks = Math.sqrt(Cg0_val / Cg);
+    expect(Cg).toBeGreaterThan(Cg0_val);  // Cg > Cg0 is physically valid
+    expect(Ks).toBeLessThan(1);            // Ks < 1 is the shoaling minimum
+    expect(Ks).toBeGreaterThan(0.85);     // not pathologically small
+  });
+
+  it('Ks > 1 in shallow water (wave amplifies approaching shore)', () => {
+    // For T=5.2s at very shallow d=0.5m: Cg << Cg0 → Ks > 1
+    const T = 5.2, d = 0.5;
+    const { Cg } = dispersion(T, d);
+    const Cg0_val = deepWaterGroupSpeed(T);
+    expect(Cg).toBeLessThan(Cg0_val);
+    expect(Math.sqrt(Cg0_val / Cg)).toBeGreaterThan(1);
+  });
+});
+
 // ─── Komar-Gaughan vs shoaling cross-check (P5.5.4) ──────────────────────────
 //
 // The two methods address different regimes:

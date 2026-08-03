@@ -201,11 +201,11 @@ export const NAVIGATION_CONSTANTS = {
     MARINA_PARALLEL_REQUESTS: 4,
   },
 
-  /** Default location (Tel Aviv) */
+  /** Default location (Tel Aviv — Gordon Beach waterline, confirmed P5.5.3) */
   DEFAULT_LOCATION: {
     name: 'Tel Aviv',
-    lat: 32.0853,
-    lng: 34.7818,
+    lat: 32.082,
+    lng: 34.762,
     country: 'Israel',
   },
 } as const;

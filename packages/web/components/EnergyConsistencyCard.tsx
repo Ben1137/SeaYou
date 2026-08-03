@@ -22,6 +22,7 @@ import {
   surfPowerKwPerM,
   temporalSteadiness,
   nearshoreTransform,
+  GAMMA,
   type ConsistencyResult,
 } from '@seame/core';
 import type { MarineWeatherData } from '@seame/core';
@@ -128,11 +129,14 @@ export function EnergyConsistencyCard({
   let d: number = Infinity; // deep-water fallback
 
   if (ENERGY_HEIGHT_SOURCE === 'BREAKING' && coastalReading) {
-    // Use K-G breaker height (depth-independent) rather than HShoaled.
-    // HBreaker is what the Coastal Break card displays; energy should match that number.
+    // Use K-G breaker height at the breaking depth, not the Terrarium-resolved depth.
+    // d_break = HBreaker / γ (depth at which a wave of height H is just breaking).
+    // Using the Terrarium depth (d ~ 7m at Tel Aviv) with H_break would mismatch
+    // height and depth — H_break belongs at d_break, not at the shelf depth.
+    // Cg is evaluated at d_break via the full FM dispersion formula.
     H = coastalReading.HBreaker;
     T = coastalReading.T;
-    d = coastalReading.d;
+    d = H > 0 ? H / GAMMA : Infinity; // d_break = H_break / γ
   } else if (ENERGY_HEIGHT_SOURCE === 'SWELL') {
     H = current?.swellHeight ?? null;
     T = current?.swellPeriod ?? null;
@@ -180,7 +184,7 @@ export function EnergyConsistencyCard({
   // ── Energy tooltip ─────────────────────────────────────────────────────────
   const energyTooltip = t(
     'energyCard.energyTooltip',
-    'Wave power per metre of wave crest (kW/m). Uses Komar-Gaughan breaker height (empirical, no depth required). Upper bound: energy dissipation at the break is not modelled.',
+    'Wave power per metre of wave crest (kW/m). H = Komar-Gaughan breaker height; Cg evaluated at d_break = H/γ. Upper bound: energy dissipation at the break is not modelled.',
   );
 
   return (

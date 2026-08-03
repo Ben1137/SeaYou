@@ -176,8 +176,13 @@ export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): 
   };
   const grid = await fetchDepthGrid(bounds, 5, 5, zoom);
 
-  const SURF_MIN = 1, SURF_MAX = 20; // m — surf-zone preference window
-  let shallowest: number | null = null;  // nearest surf-zone depth (1–20 m)
+  // SURF_MIN floor: 3 m minimum. 1-2 m cells are swash-zone pixels — they resolve
+  // to γ·d = 0.78-1.56 m, which clips any realistic swell and produces wildly
+  // inaccurate Waist/Chest labels at world-class breaks (e.g. Jeffreys Bay
+  // returned 1.1 m and clipped 1.8 m swell to γ·d = 0.86 m). A 3 m floor means
+  // the breaking cap γ·d ≥ 2.34 m, which is above typical swell Hs.
+  const SURF_MIN = 3, SURF_MAX = 20; // m — surf-zone preference window (floor raised from 1 to 3)
+  let shallowest: number | null = null;  // nearest surf-zone depth (3–20 m)
   let anyOcean:   number | null = null;  // any valid nearshore depth (< 200 m fallback)
 
   for (const row of grid) {
@@ -188,6 +193,12 @@ export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): 
         if (shallowest === null || cell < shallowest) shallowest = cell;
       }
     }
+  }
+  // If box search finds no cell at or above SURF_MIN but finds a shallower ocean cell,
+  // return null (not the swash-zone cell). The hook's null guard will suppress the card
+  // and let K-G still compute from offshore data without a misleading breaking-cap clip.
+  if (shallowest === null && anyOcean !== null && anyOcean < SURF_MIN) {
+    return NaN; // swash-zone only — reject; K-G does not need depth
   }
   return shallowest ?? anyOcean ?? NaN;
 }
