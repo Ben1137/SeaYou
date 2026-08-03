@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { nearshoreTransform, shoreNormalFromDepthGradient } from '@seame/core';
+import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient } from '@seame/core';
 import { fetchNearshoreDepthWithGradient } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
@@ -40,7 +40,31 @@ export interface CoastalReadingInputs {
 }
 
 export interface CoastalReading {
-  /** Estimated breaking-wave height at the spot depth (m). Equal to γ·d when breaking. */
+  /**
+   * Shoaled wave height at the resolved bathymetry depth (m).
+   * = nearshoreTransform(H0, T, d).H
+   * Useful for the heatmap layer and as a cross-check against HBreaker.
+   * NOT the height at the actual break — Terrarium never resolves surf-zone depths.
+   */
+  HShoaled: number;
+  /**
+   * Komar-Gaughan (1976) breaker height estimate (m).
+   * = 0.39 · g^0.2 · (T · H0²)^0.4
+   * Requires no local depth — useful precisely when bathymetry cannot resolve the surf zone.
+   * Caveats: empirical (gently-sloping plane beaches); no refraction or diffraction; Hb is
+   * significant breaker height, NOT face height — face height is a separate decision.
+   * Use for the Coastal Break card display and waveScaleLabel.
+   */
+  HBreaker: number;
+  /**
+   * Which method produced the primary displayed height.
+   * 'komar-gaughan': HBreaker is the display value (depth resolved too deep to shoal).
+   * 'shoaling': HShoaled is the display value (depth resolves genuinely shallow).
+   * Currently always 'komar-gaughan' because Terrarium z10 never resolves surf-zone depths.
+   * The shoaling path remains for the map layer and as a cross-check.
+   */
+  method: 'komar-gaughan' | 'shoaling';
+  /** @deprecated Use HShoaled. Kept for backwards compatibility with map layers. */
   HFinal: number;
   /** Shoaling coefficient applied. */
   Ks: number;
@@ -121,9 +145,26 @@ export function useCoastalReading(
           setReading(null);
           return;
         }
-        const result = nearshoreTransform(H0, T, centreDepth);
+        const result  = nearshoreTransform(H0, T, centreDepth);
+        const HBreaker = komarGaughanBreakerHeight(H0, T);
+        // Log both heights so the divergence between shoaling and K-G is always visible.
+        // Silence with ?coastalReadingDebug omitted; full output at ?coastalReadingDebug=1.
+        if (dbg) {
+          console.log('[CoastalReading][heights]', {
+            location: `${spotLat.toFixed(4)},${spotLon.toFixed(4)}`,
+            H0: H0.toFixed(3), T: T.toFixed(1), d: centreDepth.toFixed(1),
+            HShoaled:  result.H.toFixed(3),
+            HBreaker:  HBreaker.toFixed(3),
+            Ks:        result.Ks.toFixed(4),
+            'KG/Shoal': (HBreaker / result.H).toFixed(3),
+            method:    'komar-gaughan',
+          });
+        }
         setReading({
-          HFinal:      result.H,
+          HShoaled:    result.H,
+          HBreaker,
+          method:      'komar-gaughan',
+          HFinal:      result.H,  // backwards compat for map layer
           Ks:          result.Ks,
           Kr:          result.Kr,
           breaking:    result.breaking,

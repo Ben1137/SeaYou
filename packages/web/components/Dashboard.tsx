@@ -299,7 +299,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         lat: currentLat, lon: currentLng,
         H0: coastalReading.H0.toFixed(2), T: coastalReading.T.toFixed(1),
         d: coastalReading.d.toFixed(1),
-        HFinal: coastalReading.HFinal.toFixed(2),
+        HShoaled: coastalReading.HShoaled.toFixed(2),
+        HBreaker: coastalReading.HBreaker.toFixed(2),
+        method: coastalReading.method,
         Ks: coastalReading.Ks.toFixed(3), Kr: coastalReading.Kr.toFixed(3),
         breaking: coastalReading.breaking, breakingCap: coastalReading.breakingCap.toFixed(2),
       });
@@ -610,7 +612,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             // Body-scale: breaking height from engine, surf personas only.
             // Input is HFinal (engine output), NOT offshore Hs.
             const bodyScale = SURF_SCALE_PERSONAS.has(cardPersona) && coastalReading
-              ? waveScaleLabel(coastalReading.HFinal)
+              ? waveScaleLabel(coastalReading.HBreaker)
               : null;
             return (
               <div
@@ -673,7 +675,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 const isFeatured = cardPersona === topPersona;
                 // Body-scale: surf personas only — HFinal from engine (not offshore Hs).
                 const bodyScale = SURF_SCALE_PERSONAS.has(cardPersona) && coastalReading
-                  ? waveScaleLabel(coastalReading.HFinal)
+                  ? waveScaleLabel(coastalReading.HBreaker)
                   : null;
                 return (
                   <div
@@ -820,15 +822,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             {coastalReading ? (
               <>
                 <div className="flex items-end mb-1">
-                  <span className={`text-4xl font-bold leading-none tabular-nums ${coastalReading.breaking ? 'text-amber-400' : 'text-teal-300'}`}>
-                    {coastalReading.HFinal.toFixed(1)}
+                  <span className="text-4xl font-bold leading-none tabular-nums text-teal-300">
+                    {coastalReading.HBreaker.toFixed(2)}
                   </span>
                   <span className="text-lg ml-1 mb-1 font-medium">m</span>
                 </div>
-                <p className={`text-[11px] tabular-nums flex items-center gap-1 ${coastalReading.breaking ? 'text-amber-400/80' : 'text-teal-400/80'}`}>
-                  {coastalReading.breaking
-                    ? t('coastalDynamics.breaking', 'Breaking')
-                    : t('coastalDynamics.shoaling', 'Shoaling')}
+                <p className="text-[11px] tabular-nums flex items-center gap-1 text-teal-400/80">
+                  {t('coastalDynamics.methodKG', 'Komar-Gaughan')}
                   <span className="text-white/30 mx-0.5">·</span>
                   <span className="text-white/60">{coastalReading.T.toFixed(1)}s</span>
                 </p>

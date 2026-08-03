@@ -1,5 +1,5 @@
 /**
- * P5.5 unit tests — surfEnergy, consistency, waveScale
+ * P5.5 + P5.5.4 unit tests — surfEnergy, consistency, waveScale, K-G cross-check
  *
  * Covers:
  *   • surfPowerKwPerM: deep-water agreement with analytic form, shallow vs deep
@@ -7,10 +7,12 @@
  *   • swellCleanliness: delegates to chopIndex, labels
  *   • waveScaleLabel: every boundary, both sides (half-open [low, high))
  *   • waveScaleI18nKey: spot-check key shape
+ *   • K-G vs shoaling cross-check: both methods agree within tolerance in the valid regime
  */
 
 import { describe, it, expect } from 'vitest';
 import { G, dispersion, deepWaterGroupSpeed } from '../dispersion';
+import { nearshoreTransform, komarGaughanBreakerHeight, shoalingCoeff } from '../transform';
 import { surfPowerKwPerM, surfPowerWPerM } from '../surfEnergy';
 import {
   temporalSteadiness,
@@ -242,5 +244,75 @@ describe('waveScaleI18nKey', () => {
   });
   it('Double overhead → waveScale.doubleOverhead', () => {
     expect(waveScaleI18nKey('Double overhead')).toBe('waveScale.doubleOverhead');
+  });
+});
+
+// ─── Komar-Gaughan vs shoaling cross-check (P5.5.4) ──────────────────────────
+//
+// The two methods address different regimes:
+//   nearshoreTransform: exact at the sampled depth (shoaling + depth-limited breaking)
+//   komarGaughanBreakerHeight: direct deep-water → breaker estimate, no depth needed
+//
+// Cross-check regime: intermediate-to-shallow water where Ks > 1.0 (shoaling amplifies
+// the wave) and γ·d is comparable to H. At d/L0 ~ 0.05–0.15 (shallow-intermediate),
+// K-G and the shoaling path should broadly agree — both represent the height at the
+// breaking point. They need not be identical (K-G uses empirical exponents; the shoaling
+// path uses linear wave theory + a fixed breaker index γ=0.78), but the ratio should
+// be in a physically meaningful range (1.0–2.0) for realistic inputs.
+//
+// This test confirms the cross-check holds and documents the known ratio band.
+
+describe('K-G vs shoaling cross-check', () => {
+  // Cases: [H0, T, d_surf_zone] — calibration-intent depths where BOTH methods are valid.
+  // These use calibration-spots.ts design depths (the surf zone, not Terrarium-resolved).
+  const cases: [number, number, number, string][] = [
+    [0.40, 5.2,  4.0, 'Tel Aviv (calib intent)'],
+    [1.50, 14.0, 2.5, 'Hossegor FR (calib intent)'],
+    [1.20, 12.0, 8.0, 'Uluwatu ID (calib intent)'],
+    [1.80, 14.0, 6.0, 'Jeffreys Bay ZA (calib intent)'],
+    [2.50, 14.0, 4.0, 'Pipeline HI (calib intent)'],
+    [0.70,  9.0, 6.0, 'Scripps CA (calib intent)'],
+  ];
+
+  for (const [H0, T, d, label] of cases) {
+    it(`K-G / Shoaling ratio in [1.0, 2.5] at ${label} (H0=${H0}m T=${T}s d=${d}m)`, () => {
+      const shoaled = nearshoreTransform(H0, T, d).H;
+      const kg      = komarGaughanBreakerHeight(H0, T);
+      const ratio   = kg / shoaled;
+      // Both methods represent heights in the wave-breaking regime.
+      // Ratio < 1 would mean K-G gives a lower breaker than linear shoaling — physically
+      // unexpected for standard beach profiles. Ratio > 2.5 signals an extreme discrepancy.
+      expect(ratio).toBeGreaterThanOrEqual(1.0);
+      expect(ratio).toBeLessThan(2.5);
+    });
+  }
+
+  it('K-G reduces to Hs-order magnitude (no depth singularity)', () => {
+    // K-G should never produce negative or zero output for positive inputs.
+    expect(komarGaughanBreakerHeight(0.5, 8)).toBeGreaterThan(0);
+    expect(komarGaughanBreakerHeight(3.0, 16)).toBeGreaterThan(0);
+  });
+
+  it('K-G scales as H0^0.8 (partial quadratic)', () => {
+    // Hb = 0.39 · g^0.2 · (T · H0²)^0.4 = 0.39 · g^0.2 · T^0.4 · H0^0.8
+    // Doubling H0 should multiply Hb by 2^0.8 ≈ 1.741.
+    const T = 10;
+    const r = komarGaughanBreakerHeight(2.0, T) / komarGaughanBreakerHeight(1.0, T);
+    expect(r).toBeCloseTo(Math.pow(2, 0.8), 3);
+  });
+
+  it('K-G scales as T^0.4', () => {
+    // Doubling T should multiply Hb by 2^0.4 ≈ 1.320.
+    const H0 = 1.5;
+    const r = komarGaughanBreakerHeight(H0, 14.0) / komarGaughanBreakerHeight(H0, 7.0);
+    expect(r).toBeCloseTo(Math.pow(2, 0.4), 3);
+  });
+
+  it('Tel Aviv live: K-G gives Thigh-high (0.572m > 0.50m threshold)', () => {
+    const H0 = 0.40, T = 5.2;
+    const kg = komarGaughanBreakerHeight(H0, T);
+    expect(kg).toBeGreaterThan(0.50);   // Thigh-high threshold
+    expect(kg).toBeLessThan(0.70);       // not Waist-high
+    expect(kg).toBeCloseTo(0.572, 2);   // confirm the specific value
   });
 });

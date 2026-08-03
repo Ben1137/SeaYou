@@ -688,8 +688,8 @@
   },
   "energyCard": {
     "label": "Energy",
-    "source": "Breaking height · Cg at depth",
-    "energyTooltip": "Wave power per metre of wave crest (kW/m). Uses breaking-wave height from the Coastal Break engine. Upper bound: energy dissipation at the break is not modelled.",
+    "source": "Komar-Gaughan Hb · Cg(T,d)",
+    "energyTooltip": "Wave power per metre of wave crest (kW/m). Uses Komar-Gaughan breaker height (empirical, no depth required). Upper bound: energy dissipation at the break is not modelled.",
     "consistencyTooltipTemporal": "Steadiness of breaking-wave height over the next 6 forecast hours. CoV < 0.15 = Steady.",
     "consistencyTooltipCleanliness": "Fraction of wave energy from swell vs. wind-chop. Note: Open-Meteo swell/wind partitions are modal estimates and may not conserve energy.",
     "consistencySteady": "Steady",
@@ -712,5 +712,9 @@
     "overhead": "Au-dessus de la tête",
     "wellOverhead": "Bien au-dessus",
     "doubleOverhead": "Double overhead"
+  },
+  "coastalDynamics": {
+    "methodKG": "Komar-Gaughan",
+    "methodShoaling": "Shoaling"
   }
 }

@@ -128,7 +128,9 @@ export function EnergyConsistencyCard({
   let d: number = Infinity; // deep-water fallback
 
   if (ENERGY_HEIGHT_SOURCE === 'BREAKING' && coastalReading) {
-    H = coastalReading.HFinal;
+    // Use K-G breaker height (depth-independent) rather than HShoaled.
+    // HBreaker is what the Coastal Break card displays; energy should match that number.
+    H = coastalReading.HBreaker;
     T = coastalReading.T;
     d = coastalReading.d;
   } else if (ENERGY_HEIGHT_SOURCE === 'SWELL') {
@@ -178,7 +180,7 @@ export function EnergyConsistencyCard({
   // ── Energy tooltip ─────────────────────────────────────────────────────────
   const energyTooltip = t(
     'energyCard.energyTooltip',
-    'Wave power per metre of wave crest (kW/m). Uses breaking-wave height from the Coastal Break engine. Upper bound: energy dissipation at the break is not modelled.',
+    'Wave power per metre of wave crest (kW/m). Uses Komar-Gaughan breaker height (empirical, no depth required). Upper bound: energy dissipation at the break is not modelled.',
   );
 
   return (
@@ -207,7 +209,7 @@ export function EnergyConsistencyCard({
             </div>
           )}
           <p className="text-[10px] text-white/40 leading-tight">
-            {t('energyCard.source', 'Breaking height · Cg at depth')}
+            {t('energyCard.source', 'Komar-Gaughan Hb · Cg(T,d)')}
           </p>
         </div>
 
