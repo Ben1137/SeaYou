@@ -86,3 +86,16 @@ export function waveScaleI18nKey(label: WaveScaleLabel): string {
 }
 
 export { BRACKETS as WAVE_SCALE_BRACKETS };
+
+// ─── i18n translation status ──────────────────────────────────────────────────
+// TODO(i18n): Body-scale idioms require native surf-speaker review in every
+// non-English locale. Current state (as of P5.5.1, 2026-08-03):
+//   de — machine-translated body-part terms (knöchelhoch etc.) — review needed
+//   es — machine-translated (tobillo, rodilla etc.) — review needed
+//   fr — machine-translated (cheville, genou etc.) — review needed
+//   it — machine-translated (caviglia, ginocchio etc.) — review needed
+//   ru — machine-translated (по щиколотку etc.) — review needed
+//   he — English fallback values used (Israeli surf community uses EN terms) — confirm with native speaker
+// Do NOT ship these as "final" translations for body-scale terms. They are
+// functional defaults that will not show [UNREVIEWED] to users, but they may
+// read unnaturally in each language's surf context.

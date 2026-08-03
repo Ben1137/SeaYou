@@ -743,15 +743,15 @@
   },
   "waveScale": {
     "flat": "שטוח",
-    "ankleHigh": "[UNREVIEWED] Ankle-high",
-    "kneeHigh": "[UNREVIEWED] Knee-high",
-    "thighHigh": "[UNREVIEWED] Thigh-high",
-    "waistHigh": "[UNREVIEWED] Waist-high",
-    "chestHigh": "[UNREVIEWED] Chest-high",
-    "shoulderHigh": "[UNREVIEWED] Shoulder-high",
-    "headHigh": "[UNREVIEWED] Head-high",
-    "overhead": "[UNREVIEWED] Overhead",
-    "wellOverhead": "[UNREVIEWED] Well overhead",
-    "doubleOverhead": "[UNREVIEWED] Double overhead"
+    "ankleHigh": "Ankle-high",
+    "kneeHigh": "Knee-high",
+    "thighHigh": "Thigh-high",
+    "waistHigh": "Waist-high",
+    "chestHigh": "Chest-high",
+    "shoulderHigh": "Shoulder-high",
+    "headHigh": "Head-high",
+    "overhead": "Overhead",
+    "wellOverhead": "Well overhead",
+    "doubleOverhead": "Double overhead"
   }
 }

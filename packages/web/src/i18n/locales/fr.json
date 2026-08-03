@@ -701,16 +701,16 @@
     "noConsistencyData": "Consistency unavailable"
   },
   "waveScale": {
-    "flat": "Flat",
-    "ankleHigh": "[UNREVIEWED] Ankle-high",
-    "kneeHigh": "[UNREVIEWED] Knee-high",
-    "thighHigh": "[UNREVIEWED] Thigh-high",
-    "waistHigh": "[UNREVIEWED] Waist-high",
-    "chestHigh": "[UNREVIEWED] Chest-high",
-    "shoulderHigh": "[UNREVIEWED] Shoulder-high",
-    "headHigh": "[UNREVIEWED] Head-high",
-    "overhead": "[UNREVIEWED] Overhead",
-    "wellOverhead": "[UNREVIEWED] Well overhead",
-    "doubleOverhead": "[UNREVIEWED] Double overhead"
+    "flat": "Plat",
+    "ankleHigh": "Cheville",
+    "kneeHigh": "Genou",
+    "thighHigh": "Cuisse",
+    "waistHigh": "Taille",
+    "chestHigh": "Poitrine",
+    "shoulderHigh": "Épaule",
+    "headHigh": "Tête",
+    "overhead": "Au-dessus de la tête",
+    "wellOverhead": "Bien au-dessus",
+    "doubleOverhead": "Double overhead"
   }
 }

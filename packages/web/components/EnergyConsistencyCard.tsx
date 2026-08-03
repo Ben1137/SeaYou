@@ -6,7 +6,10 @@
  * Height source is controlled by ENERGY_HEIGHT_SOURCE below.
  * Default: BREAKING — the engine's own output, the differentiator.
  *
- * Consistency: temporal steadiness (CoV of Hb over STEADINESS_WINDOW_H hours).
+ * Consistency: CoV of nearshoreTransform().H over STEADINESS_WINDOW_H hours.
+ * Each hour runs its own transform at the same spot depth (depth is stable;
+ * H0 and T vary per hour from the API forecast arrays). CoV is scale-invariant —
+ * a ratio proxy would return swell CoV, not breaking-height CoV.
  * Displayed as a word + proportional bar. Tooltip states what is measured.
  *
  * Both metrics are computed in @seame/core — this component is purely display.
@@ -18,10 +21,12 @@ import { useTranslation } from 'react-i18next';
 import {
   surfPowerKwPerM,
   temporalSteadiness,
+  nearshoreTransform,
   type ConsistencyResult,
 } from '@seame/core';
 import type { MarineWeatherData } from '@seame/core';
 import type { CoastalReading } from '../hooks/useCoastalReading';
+import { deriveSwellInputs } from '../hooks/useCoastalReading';
 
 // ─── Build-time configuration ────────────────────────────────────────────────
 
@@ -140,32 +145,33 @@ export function EnergyConsistencyCard({
       : null;
 
   // ── Consistency (temporal steadiness over STEADINESS_WINDOW_H hours) ──────
-  // Collect future breaking heights from the hourly swell data
-  // using the same deriveSwellInputs logic as useCoastalReading.
-  // We do NOT run nearshoreTransform per hour here (no per-hour depth data in
-  // the hourly array). Instead, we use the ratio: future_swell / current_swell
-  // scaled from the known HFinal. This approximation is conservative but avoids
-  // a new per-hour depth fetch. A future round can improve with full per-hour transform.
+  // Run nearshoreTransform per forecast hour using each hour's own H0 and T,
+  // at the same spot depth (d doesn't change hour-to-hour).
+  // This gives actual transformed heights — not a scaling approximation.
+  // CoV is scale-invariant, so using a scaled proxy would return the CoV of
+  // swell height, not of breaking-wave height.
   let consistencyResult: ConsistencyResult | null = null;
 
-  if (coastalReading && coastalReading.HFinal > 0) {
-    const currentSwell = current?.swellHeight ?? 0;
-    const futureHeights: number[] = [];
+  if (coastalReading && coastalReading.d > 0 && hourly) {
+    const transformedHeights: number[] = [coastalReading.HFinal]; // hour 0 = current
 
     for (let i = 1; i <= 6; i++) {
       const idx = currentHourIndex + i;
-      const futureSwell = hourly?.swell_wave_height?.[idx] ?? 0;
-      if (currentSwell > 0 && futureSwell > 0) {
-        // Scale HFinal by the hourly swell ratio — preserves shoaling/breaking shape
-        const scaled = coastalReading.HFinal * (futureSwell / currentSwell);
-        futureHeights.push(Math.max(0, scaled));
-      } else {
-        futureHeights.push(futureSwell);
+      const inputs = deriveSwellInputs({
+        swellHeight:    hourly.swell_wave_height?.[idx]  ?? 0,
+        swellPeriod:    hourly.swell_wave_period?.[idx]  ?? 0,
+        swellDirection: 0, // direction not used by nearshoreTransform
+        waveHeight:     hourly.wave_height?.[idx]        ?? 0,
+        wavePeriod:     hourly.wave_period?.[idx]        ?? 0,
+      });
+      if (inputs.H0 > 0.05 && inputs.T > 1) {
+        const result = nearshoreTransform(inputs.H0, inputs.T, coastalReading.d);
+        transformedHeights.push(result.H);
       }
     }
 
-    if (futureHeights.length >= 2) {
-      consistencyResult = temporalSteadiness([coastalReading.HFinal, ...futureHeights]);
+    if (transformedHeights.length >= 2) {
+      consistencyResult = temporalSteadiness(transformedHeights);
     }
   }
 

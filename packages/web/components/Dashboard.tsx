@@ -587,12 +587,19 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             : null;
 
           // Personas that show the body-scale wave height term (surf idiom only).
-          // Do NOT add WIND_SURFER, KITE_SURFER, SAILOR, or DIVER — body scale
-          // is a surf concept and misleads in other contexts.
+          // WAVE_SURFER and BOOGIE_BOARDER only — these are the personas where
+          // the surf body-scale idiom is unambiguously correct.
+          //
+          // BEACHGOER intentionally excluded: the spec calls for a safety-framed
+          // variant ("gentle swell" / "rough" vocabulary, not "knee-high") because
+          // the same height reads differently to a parent vs a surfer. That variant
+          // is not yet built. TODO(p5.6): add BEACHGOER with a safety-framed scale.
+          //
+          // WIND_SURFER, KITE_SURFER, SAILOR, DIVER intentionally excluded:
+          // body scale is a surf idiom and misleads in those contexts.
           const SURF_SCALE_PERSONAS = new Set([
             ActivityPersona.WAVE_SURFER,
             ActivityPersona.BOOGIE_BOARDER,
-            ActivityPersona.BEACHGOER,
           ]);
 
           // Single card: horizontal strip — never a lone grid cell

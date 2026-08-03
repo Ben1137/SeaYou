@@ -719,16 +719,16 @@
     "noConsistencyData": "Consistency unavailable"
   },
   "waveScale": {
-    "flat": "Flat",
-    "ankleHigh": "[UNREVIEWED] Ankle-high",
-    "kneeHigh": "[UNREVIEWED] Knee-high",
-    "thighHigh": "[UNREVIEWED] Thigh-high",
-    "waistHigh": "[UNREVIEWED] Waist-high",
-    "chestHigh": "[UNREVIEWED] Chest-high",
-    "shoulderHigh": "[UNREVIEWED] Shoulder-high",
-    "headHigh": "[UNREVIEWED] Head-high",
-    "overhead": "[UNREVIEWED] Overhead",
-    "wellOverhead": "[UNREVIEWED] Well overhead",
-    "doubleOverhead": "[UNREVIEWED] Double overhead"
+    "flat": "Штиль",
+    "ankleHigh": "По щиколотку",
+    "kneeHigh": "По колено",
+    "thighHigh": "По бедро",
+    "waistHigh": "По пояс",
+    "chestHigh": "По грудь",
+    "shoulderHigh": "По плечо",
+    "headHigh": "По голову",
+    "overhead": "Выше головы",
+    "wellOverhead": "Намного выше головы",
+    "doubleOverhead": "Двойной оверхед"
   }
 }
