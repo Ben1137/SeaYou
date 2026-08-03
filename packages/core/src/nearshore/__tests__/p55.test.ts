@@ -247,6 +247,74 @@ describe('waveScaleI18nKey', () => {
   });
 });
 
+// ─── P5.5.6: energy flux invariance along the shoaling path ──────────────────
+//
+// P = (1/16)·ρ·g·H²·Cg is constant along the shoaling path under linear theory.
+// Proof: H = H0·Ks and Ks² = Cg0/Cg, so H²·Cg = H0²·Ks²·Cg = H0²·Cg0 = const.
+// Consequence: surfPowerKwPerM(H0, T, Infinity) ≡ surfPowerKwPerM(H0*Ks, T, d)
+//   for any finite d (before breaking). The simplest and correct representation
+//   of the arriving wave power is surfPowerKwPerM(H0, T, Infinity).
+//
+// K-G BREAKS this invariant: HBreaker > H0·Ks(d_break) by a factor of ~1.14,
+// so P(HKG, d_break) ≈ 1.14² ≈ 1.30× the arriving flux. KG represents an
+// empirical enhancement above Airy theory, not a physical energy gain.
+//
+// The ENERGY card ships option (a): H0 with deep-water Cg0. Exact, depth-invariant,
+// and the value displayed does not overstate the arriving flux.
+
+describe('energy flux invariance (P5.5.6)', () => {
+  const RHO = 1025;
+  const G_loc = 9.81;
+
+  function fluxKw(H: number, T: number, d: number): number {
+    return surfPowerKwPerM(H, T, d);
+  }
+
+  it('P is conserved along the shoaling path: H0 deep-water equals H_shoaled at any depth', () => {
+    const H0 = 0.4, T = 5.2;
+    const p0 = fluxKw(H0, T, Infinity);
+
+    for (const d of [0.5, 1, 2, 3, 5, 7, 10, 15, 20, 25, 50]) {
+      const { Cg: cg } = dispersion(T, d);
+      const Cg0_val = deepWaterGroupSpeed(T);
+      const Ks = Math.sqrt(Cg0_val / cg);
+      const H_shoaled = H0 * Ks;
+      const p_shoaled = fluxKw(H_shoaled, T, d);
+      // Allow <0.01% floating-point tolerance
+      expect(Math.abs(p_shoaled - p0) / p0).toBeLessThan(1e-4);
+    }
+  });
+
+  it('algebraic proof: H^2*Cg = H0^2*Cg0 when H = H0*Ks and Ks^2 = Cg0/Cg', () => {
+    const H0 = 2.0, T = 14.0, d = 5.0;
+    const { Cg: cg } = dispersion(T, d);
+    const Cg0_val = deepWaterGroupSpeed(T);
+    const Ks = Math.sqrt(Cg0_val / cg);
+    const H = H0 * Ks;
+    expect(H * H * cg).toBeCloseTo(H0 * H0 * Cg0_val, 6);
+  });
+
+  it('K-G exceeds the invariant by ~1.14^2 = ~1.30x (energy above arriving flux)', () => {
+    const H0 = 0.4, T = 5.2;
+    const HKG = komarGaughanBreakerHeight(H0, T);
+    const d_break = HKG / 0.78;
+    const { Cg: cg_break } = dispersion(T, d_break);
+    const { Cg: cg0 } = dispersion(T, 1e6); // deep water
+    // K-G energy vs arriving flux
+    const ratio = (HKG * HKG * cg_break) / (H0 * H0 * cg0);
+    expect(ratio).toBeGreaterThan(1.25);
+    expect(ratio).toBeLessThan(1.40);
+    // ~1.14^2 = 1.297 ± tolerance
+    expect(ratio).toBeCloseTo(Math.pow(HKG / (H0 * Math.sqrt(cg0 / cg_break)), 2), 2);
+  });
+
+  it('option (a): surfPowerKwPerM(H0, T, Infinity) is the canonical arriving flux', () => {
+    // Tel Aviv: H0=0.40m, T=5.2s
+    const p = surfPowerKwPerM(0.40, 5.2, Infinity);
+    expect(p).toBeCloseTo(0.4082, 3);
+  });
+});
+
 // ─── P5.5.5: dispersion Cg monotonicity proof ────────────────────────────────
 //
 // Cg > Cg0 IS valid linear-wave-theory physics in intermediate water (kd ~ 1-3).

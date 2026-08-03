@@ -1,17 +1,21 @@
 /**
  * EnergyConsistencyCard — Wave Energy + Consistency metric card.
  *
- * Energy: wave power per metre of wave crest (kW/m) using the general form
- *   P = (1/16)·ρ·g·H²·Cg  (exact at all depths, not deep-water-only).
- * Height source is controlled by ENERGY_HEIGHT_SOURCE below.
- * Default: BREAKING — the engine's own output, the differentiator.
+ * Energy: wave power per metre of wave crest (kW/m).
+ *
+ * Under linear wave theory, P = (1/16)·ρ·g·H²·Cg is depth-invariant along the
+ * shoaling path: H = H0·Ks and Ks² = Cg0/Cg, so H²·Cg = H0²·Cg0 = const.
+ * Evaluating at d=∞ (deep water, Cg = Cg0) gives the same number as any finite
+ * shoaling depth and is the simplest correct representation of the arriving flux.
+ *
+ * The BREAKING source therefore computes P = surfPowerKwPerM(H0, T, Infinity) —
+ * equal to SWELL by construction.  K-G HBreaker is intentionally not used here:
+ * P(HKG, d_break) ≈ 1.30× the arriving flux because KG > Airy by ~1.14, and
+ * power scales as H². That surplus is an empirical correction factor, not a
+ * physical energy gain that the wave carries to shore. Energy DENSITY rises in
+ * shallow water; energy FLUX is conserved until breaking dissipates it.
  *
  * Consistency: CoV of nearshoreTransform().H over STEADINESS_WINDOW_H hours.
- * Each hour runs its own transform at the same spot depth (depth is stable;
- * H0 and T vary per hour from the API forecast arrays). CoV is scale-invariant —
- * a ratio proxy would return swell CoV, not breaking-height CoV.
- * Displayed as a word + proportional bar. Tooltip states what is measured.
- *
  * Both metrics are computed in @seame/core — this component is purely display.
  */
 
@@ -22,7 +26,6 @@ import {
   surfPowerKwPerM,
   temporalSteadiness,
   nearshoreTransform,
-  GAMMA,
   type ConsistencyResult,
 } from '@seame/core';
 import type { MarineWeatherData } from '@seame/core';
@@ -32,10 +35,15 @@ import { deriveSwellInputs } from '../hooks/useCoastalReading';
 // ─── Build-time configuration ────────────────────────────────────────────────
 
 /**
- * Which wave height feeds the energy calculation.
- * BREAKING: nearshoreTransform().H — the engine's own output, exact at depth.
- *           This is the height a surfer actually meets.
- * SWELL:    swell_wave_height from the API (modal estimate — see modal-partition caveat).
+ * Which offshore height feeds the energy calculation.
+ *
+ * All three options evaluate at deep-water Cg = Cg0 because wave energy flux is
+ * depth-invariant: P = H0²·Cg0 = const along the shoaling path until breaking.
+ *
+ * BREAKING: H0 from deriveSwellInputs (the same offshore height that feeds the
+ *           nearshore transform). Labelled "Arriving flux" — correct and honest.
+ *           Identical to SWELL when swell dominates (swellHeight > 0.1 m).
+ * SWELL:    swell_wave_height from the API directly (modal estimate).
  * TOTAL:    wave_height from the API (provider's total significant height).
  */
 export const ENERGY_HEIGHT_SOURCE: 'BREAKING' | 'SWELL' | 'TOTAL' = 'BREAKING';
@@ -129,14 +137,15 @@ export function EnergyConsistencyCard({
   let d: number = Infinity; // deep-water fallback
 
   if (ENERGY_HEIGHT_SOURCE === 'BREAKING' && coastalReading) {
-    // Use K-G breaker height at the breaking depth, not the Terrarium-resolved depth.
-    // d_break = HBreaker / γ (depth at which a wave of height H is just breaking).
-    // Using the Terrarium depth (d ~ 7m at Tel Aviv) with H_break would mismatch
-    // height and depth — H_break belongs at d_break, not at the shelf depth.
-    // Cg is evaluated at d_break via the full FM dispersion formula.
-    H = coastalReading.HBreaker;
+    // Use H0 (deep-water input) at d=Infinity.
+    // Wave energy flux is depth-invariant: P = H0²·Cg0 at every depth until breaking.
+    // Evaluating at d=Inf gives the same result as any shoaling depth and is the
+    // correct representation of the arriving flux. K-G HBreaker is used for the
+    // height card and scale label; it is not used for energy (KG > Airy by ~1.14,
+    // so P(HKG) ≈ 1.30× arriving flux — that surplus is not real energy flux).
+    H = coastalReading.H0;
     T = coastalReading.T;
-    d = H > 0 ? H / GAMMA : Infinity; // d_break = H_break / γ
+    d = Infinity; // deep-water Cg0 = depth-invariant arriving flux
   } else if (ENERGY_HEIGHT_SOURCE === 'SWELL') {
     H = current?.swellHeight ?? null;
     T = current?.swellPeriod ?? null;
@@ -184,7 +193,7 @@ export function EnergyConsistencyCard({
   // ── Energy tooltip ─────────────────────────────────────────────────────────
   const energyTooltip = t(
     'energyCard.energyTooltip',
-    'Wave power per metre of wave crest (kW/m). H = Komar-Gaughan breaker height; Cg evaluated at d_break = H/γ. Upper bound: energy dissipation at the break is not modelled.',
+    'Wave energy flux (kW/m) — the power per metre of crest arriving at this location. Uses deep-water H0 and Cg0: flux is depth-invariant under linear theory until breaking dissipates it.',
   );
 
   return (
@@ -213,7 +222,7 @@ export function EnergyConsistencyCard({
             </div>
           )}
           <p className="text-[10px] text-white/40 leading-tight">
-            {t('energyCard.source', 'Komar-Gaughan Hb · Cg(T,d)')}
+            {t('energyCard.source', 'Arriving flux · H₀ · Cg₀')}
           </p>
         </div>
 
