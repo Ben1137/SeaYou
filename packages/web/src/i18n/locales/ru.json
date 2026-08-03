@@ -734,5 +734,13 @@
   "coastalDynamics": {
     "methodKG": "Komar-Gaughan",
     "methodShoaling": "Shoaling"
+  },
+  "beach": {
+    "safetyCalm": "Спокойно — безопасно для купания",
+    "safetyMild": "Несильные волны — можно войти",
+    "safetyModerate": "Умеренный прибой — осторожно",
+    "safetyRough": "Сильное волнение — опасно",
+    "safetyDangerous": "Опасно — не входить",
+    "safetyTooltip": "Оценка высоты разбивающихся волн."
   }
 }

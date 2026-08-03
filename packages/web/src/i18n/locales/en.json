@@ -722,5 +722,13 @@
   "coastalDynamics": {
     "methodKG": "Komar-Gaughan",
     "methodShoaling": "Shoaling"
+  },
+  "beach": {
+    "safetyCalm": "Calm — safe for swimming",
+    "safetyMild": "Mild — wading conditions",
+    "safetyModerate": "Moderate surf — caution",
+    "safetyRough": "Rough — hazardous for swimming",
+    "safetyDangerous": "Dangerous — do not enter",
+    "safetyTooltip": "Breaking wave height estimate. Long-period swell (12s+) may carry stronger rips at the same height."
   }
 }

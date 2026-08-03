@@ -757,5 +757,13 @@
   "coastalDynamics": {
     "methodKG": "Komar-Gaughan",
     "methodShoaling": "Shoaling"
+  },
+  "beach": {
+    "safetyCalm": "שקט — בטוח לשחייה",
+    "safetyMild": "קל — ניתן לכניסה למים",
+    "safetyModerate": "גלים בינוניים — זהירות",
+    "safetyRough": "גלים גבוהים — מסוכן לשחייה",
+    "safetyDangerous": "מסוכן — אין להיכנס",
+    "safetyTooltip": "הערכת גובה גלים שוברים."
   }
 }

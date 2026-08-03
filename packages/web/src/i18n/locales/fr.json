@@ -716,5 +716,13 @@
   "coastalDynamics": {
     "methodKG": "Komar-Gaughan",
     "methodShoaling": "Shoaling"
+  },
+  "beach": {
+    "safetyCalm": "Calme — sûr pour nager",
+    "safetyMild": "Doux — pataugeage",
+    "safetyModerate": "Surf modéré — prudence",
+    "safetyRough": "Agité — dangereux pour la baignade",
+    "safetyDangerous": "Dangereux — ne pas entrer",
+    "safetyTooltip": "Estimation de la hauteur des vagues déferlantes."
   }
 }

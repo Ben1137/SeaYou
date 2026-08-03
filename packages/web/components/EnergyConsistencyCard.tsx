@@ -39,10 +39,15 @@ import { deriveSwellInputs } from '../hooks/useCoastalReading';
  *
  * All three options evaluate at deep-water Cg = Cg0 because wave energy flux is
  * depth-invariant: P = H0²·Cg0 = const along the shoaling path until breaking.
+ * Proven algebraically and in unit tests (P5.5.6).
  *
  * BREAKING: H0 from deriveSwellInputs (the same offshore height that feeds the
- *           nearshore transform). Labelled "Arriving flux" — correct and honest.
- *           Identical to SWELL when swell dominates (swellHeight > 0.1 m).
+ *           nearshore transform). Evaluated at d=Infinity (Cg = Cg0).
+ *           THIS IS NOT A DISTINCT COMPUTATION from SWELL. When swell dominates
+ *           (swellHeight > SWELL_FLOOR = 0.1 m, which is 100% of ocean hours),
+ *           deriveSwellInputs selects swellHeight as H0, so BREAKING = SWELL
+ *           exactly. The label "Arriving flux · H₀ · Cg₀" is retained for card
+ *           clarity; do not read it as implying different physics.
  * SWELL:    swell_wave_height from the API directly (modal estimate).
  * TOTAL:    wave_height from the API (provider's total significant height).
  */

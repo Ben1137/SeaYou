@@ -87,15 +87,87 @@ export function waveScaleI18nKey(label: WaveScaleLabel): string {
 
 export { BRACKETS as WAVE_SCALE_BRACKETS };
 
+// ─── Beachgoer safety labels (P5.6) ──────────────────────────────────────────
+
+/**
+ * Safety framing for the BEACHGOER persona.
+ *
+ * Input is Komar-Gaughan significant breaker height Hb (m), NOT offshore H0.
+ * Hb ≈ 1.4–1.6× H0 at typical periods, so the bands are calibrated for Hb, not Hs.
+ * Mis-using offshore H0 would over-warn: an H0=0.40m / Hb=0.57m day reads "Calm"
+ * on Hb but would read "Mild" if the threshold were applied to raw H0.
+ *
+ * Bands (half-open [low, high)):
+ *   Hb < 0.80 m   → "Calm — safe for swimming"
+ *   0.80–1.20 m   → "Mild — wading conditions"
+ *   1.20–1.80 m   → "Moderate surf — caution"
+ *   1.80–2.80 m   → "Rough — hazardous for swimming"
+ *   ≥ 2.80 m      → "Dangerous — do not enter"
+ *
+ * Band calibration (P5.6 sanity check, T=8s):
+ *   Calm ceiling 0.80 Hb  ↔  H0 < 0.49 m  (flat Mediterranean day, swim OK)
+ *   Mild ceiling 1.20 Hb  ↔  H0 < 0.81 m  (light beach conditions)
+ *   Moderate    1.80 Hb   ↔  H0 < 1.35 m  (around Israeli Red Flag threshold)
+ *   Rough       2.80 Hb   ↔  H0 < 2.35 m  (storm-adjacent)
+ * Tel Aviv today (Hb=0.572 m) → Calm — confirmed (< 0.80 boundary).
+ *
+ * Period escalation (T≥12): NOT implemented as a discrete bump — K-G encodes
+ * period continuously via T^0.4. A discrete bump would double-count the effect
+ * and cause label flicker between forecast hours. The tooltip notes that
+ * long-period surf may carry stronger rips at the same height.
+ *
+ * Returns an i18n key (e.g. 'beach.safetyCalm'), not a display string.
+ */
+export type BeachgoerSafetyLabel =
+  | 'beach.safetyCalm'
+  | 'beach.safetyMild'
+  | 'beach.safetyModerate'
+  | 'beach.safetyRough'
+  | 'beach.safetyDangerous';
+
+interface SafetyBracket {
+  low: number;
+  high: number;
+  key: BeachgoerSafetyLabel;
+}
+
+const SAFETY_BRACKETS: SafetyBracket[] = [
+  { low: 0,    high: 0.80, key: 'beach.safetyCalm'      },
+  { low: 0.80, high: 1.20, key: 'beach.safetyMild'      },
+  { low: 1.20, high: 1.80, key: 'beach.safetyModerate'  },
+  { low: 1.80, high: 2.80, key: 'beach.safetyRough'     },
+  { low: 2.80, high: Infinity, key: 'beach.safetyDangerous' },
+];
+
+/**
+ * Return the beachgoer safety i18n key for a given Komar-Gaughan breaker height.
+ *
+ * @param HbMeters  Komar-Gaughan significant breaker height (m). NOT offshore H0.
+ *                  Use komarGaughanBreakerHeight(H0, T) from transform.ts.
+ */
+export function beachgoerSafetyLabel(HbMeters: number): BeachgoerSafetyLabel {
+  const h = Math.max(0, HbMeters);
+  for (const b of SAFETY_BRACKETS) {
+    if (h >= b.low && h < b.high) return b.key;
+  }
+  return 'beach.safetyDangerous';
+}
+
+export { SAFETY_BRACKETS as BEACH_SAFETY_BRACKETS };
+
 // ─── i18n translation status ──────────────────────────────────────────────────
-// TODO(i18n): Body-scale idioms require native surf-speaker review in every
-// non-English locale. Current state (as of P5.5.1, 2026-08-03):
-//   de — machine-translated body-part terms (knöchelhoch etc.) — review needed
-//   es — machine-translated (tobillo, rodilla etc.) — review needed
-//   fr — machine-translated (cheville, genou etc.) — review needed
-//   it — machine-translated (caviglia, ginocchio etc.) — review needed
-//   ru — machine-translated (по щиколотку etc.) — review needed
-//   he — English fallback values used (Israeli surf community uses EN terms) — confirm with native speaker
-// Do NOT ship these as "final" translations for body-scale terms. They are
-// functional defaults that will not show [UNREVIEWED] to users, but they may
-// read unnaturally in each language's surf context.
+// TODO(i18n, P5.5.1/P5.6): The following locale strings need native-speaker review:
+//
+// waveScale.* (surf body-scale idioms):
+//   de — machine-translated body-part terms (knöchelhoch etc.)
+//   es — machine-translated (tobillo, rodilla etc.)
+//   fr — machine-translated (cheville, genou etc.)
+//   it — machine-translated (caviglia, ginocchio etc.)
+//   ru — machine-translated (по щиколотку etc.)
+//   he — English fallback (Israeli surf community uses EN terms — confirm with native)
+//
+// beach.safety* (beachgoer safety labels, added P5.6):
+//   de/es/fr/it/ru/he — machine-translated; safety framing idioms in particular
+//   may not match local beach-safety vocabulary. Flag for review before L10N launch.
+//
+// Do NOT show [UNREVIEWED] to users — English fallback renders cleanly.

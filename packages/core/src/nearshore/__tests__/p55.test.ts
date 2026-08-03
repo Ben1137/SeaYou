@@ -20,7 +20,7 @@ import {
   waveConsistency,
   STEADINESS_WINDOW_H,
 } from '../consistency';
-import { waveScaleLabel, waveScaleI18nKey, WAVE_SCALE_BRACKETS } from '../waveScale';
+import { waveScaleLabel, waveScaleI18nKey, WAVE_SCALE_BRACKETS, beachgoerSafetyLabel, BEACH_SAFETY_BRACKETS } from '../waveScale';
 
 const RHO = 1025;
 
@@ -232,6 +232,44 @@ describe('waveScaleLabel — all brackets covered', () => {
     for (const b of WAVE_SCALE_BRACKETS) {
       const mid = b.high === Infinity ? b.low + 1 : (b.low + b.high) / 2;
       expect(waveScaleLabel(mid)).toBe(b.label);
+    }
+  });
+});
+
+// ─── beachgoerSafetyLabel (P5.6) ──────────────────────────────────────────────
+
+describe('beachgoerSafetyLabel — half-open [low, high) boundaries', () => {
+  it('0 m → Calm', () => expect(beachgoerSafetyLabel(0)).toBe('beach.safetyCalm'));
+  it('0.572 m → Calm (Tel Aviv live: Hb=0.572, spec requires Calm)', () =>
+    expect(beachgoerSafetyLabel(0.572)).toBe('beach.safetyCalm'));
+  it('0.79 m → Calm (just below 0.80)', () =>
+    expect(beachgoerSafetyLabel(0.79)).toBe('beach.safetyCalm'));
+  it('0.80 m → Mild (lower-inclusive at 0.80)', () =>
+    expect(beachgoerSafetyLabel(0.80)).toBe('beach.safetyMild'));
+  it('1.19 m → Mild (below 1.20)', () =>
+    expect(beachgoerSafetyLabel(1.19)).toBe('beach.safetyMild'));
+  it('1.20 m → Moderate (lower-inclusive at 1.20)', () =>
+    expect(beachgoerSafetyLabel(1.20)).toBe('beach.safetyModerate'));
+  it('1.79 m → Moderate (below 1.80)', () =>
+    expect(beachgoerSafetyLabel(1.79)).toBe('beach.safetyModerate'));
+  it('1.80 m → Rough (lower-inclusive at 1.80)', () =>
+    expect(beachgoerSafetyLabel(1.80)).toBe('beach.safetyRough'));
+  it('2.79 m → Rough (below 2.80)', () =>
+    expect(beachgoerSafetyLabel(2.79)).toBe('beach.safetyRough'));
+  it('2.80 m → Dangerous (lower-inclusive at 2.80)', () =>
+    expect(beachgoerSafetyLabel(2.80)).toBe('beach.safetyDangerous'));
+  it('5.0 m → Dangerous (top bracket)', () =>
+    expect(beachgoerSafetyLabel(5.0)).toBe('beach.safetyDangerous'));
+  it('negative clamped to Calm', () =>
+    expect(beachgoerSafetyLabel(-1)).toBe('beach.safetyCalm'));
+
+  it('BEACH_SAFETY_BRACKETS has 5 entries', () =>
+    expect(BEACH_SAFETY_BRACKETS).toHaveLength(5));
+
+  it('each bracket midpoint maps to its label', () => {
+    for (const b of BEACH_SAFETY_BRACKETS) {
+      const mid = b.high === Infinity ? b.low + 0.5 : (b.low + b.high) / 2;
+      expect(beachgoerSafetyLabel(mid)).toBe(b.key);
     }
   });
 });

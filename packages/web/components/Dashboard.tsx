@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey, beachgoerSafetyLabel } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line
@@ -588,17 +588,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               }, cards[0]).persona
             : null;
 
-          // Personas that show the body-scale wave height term (surf idiom only).
-          // WAVE_SURFER and BOOGIE_BOARDER only — these are the personas where
-          // the surf body-scale idiom is unambiguously correct.
-          //
-          // BEACHGOER intentionally excluded: the spec calls for a safety-framed
-          // variant ("gentle swell" / "rough" vocabulary, not "knee-high") because
-          // the same height reads differently to a parent vs a surfer. That variant
-          // is not yet built. TODO(p5.6): add BEACHGOER with a safety-framed scale.
-          //
-          // WIND_SURFER, KITE_SURFER, SAILOR, DIVER intentionally excluded:
-          // body scale is a surf idiom and misleads in those contexts.
+          // Body-scale labels per persona:
+          //   WAVE_SURFER, BOOGIE_BOARDER: surf idiom (Knee-high, Overhead, etc.)
+          //   BEACHGOER: safety framing (Calm, Mild, Moderate, Rough, Dangerous)
+          //   WIND_SURFER, KITE_SURFER, SAILOR, DIVER: no label — body scale misleads
           const SURF_SCALE_PERSONAS = new Set([
             ActivityPersona.WAVE_SURFER,
             ActivityPersona.BOOGIE_BOARDER,
@@ -609,10 +602,23 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             const { persona: cardPersona, icon: Icon, iconColor, labelKey } = cards[0];
             const score = activityScores?.[cardPersona];
             const bw = bestWindows?.[cardPersona];
-            // Body-scale: breaking height from engine, surf personas only.
-            // Input is HFinal (engine output), NOT offshore Hs.
-            const bodyScale = SURF_SCALE_PERSONAS.has(cardPersona) && coastalReading
-              ? waveScaleLabel(coastalReading.HBreaker)
+            // Body-scale label: surf idiom for WAVE_SURFER/BOOGIE_BOARDER;
+            // safety framing for BEACHGOER; null for all other personas.
+            // Input is K-G HBreaker, NOT offshore Hs.
+            const isSurfScale = SURF_SCALE_PERSONAS.has(cardPersona);
+            const isBeachScale = cardPersona === ActivityPersona.BEACHGOER;
+            const bodyScaleText: string | null = coastalReading
+              ? isSurfScale
+                ? waveScaleLabel(coastalReading.HBreaker)
+                : isBeachScale
+                  ? beachgoerSafetyLabel(coastalReading.HBreaker)
+                  : null
+              : null;
+            // For surf labels: key via waveScaleI18nKey. For beach safety: key IS the label.
+            const bodyScaleI18nKey: string | null = bodyScaleText
+              ? isSurfScale
+                ? waveScaleI18nKey(waveScaleLabel(coastalReading!.HBreaker))
+                : bodyScaleText
               : null;
             return (
               <div
@@ -631,9 +637,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   {score ? (
                     <>
                       <p className={`text-xs font-bold mt-0.5 ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
-                      {bodyScale && (
+                      {bodyScaleI18nKey && bodyScaleText && (
                         <p className="text-[11px] text-teal-400/80 tabular-nums mt-0.5" dir="ltr">
-                          {t(waveScaleI18nKey(bodyScale), bodyScale)}
+                          {t(bodyScaleI18nKey, bodyScaleText)}
                         </p>
                       )}
                       {bw && (
@@ -673,9 +679,20 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 const score = activityScores?.[cardPersona];
                 const bw = bestWindows?.[cardPersona];
                 const isFeatured = cardPersona === topPersona;
-                // Body-scale: surf personas only — HFinal from engine (not offshore Hs).
-                const bodyScale = SURF_SCALE_PERSONAS.has(cardPersona) && coastalReading
-                  ? waveScaleLabel(coastalReading.HBreaker)
+                // Body-scale: surf idiom for WAVE_SURFER/BOOGIE_BOARDER; safety for BEACHGOER.
+                const isSurfScale2 = SURF_SCALE_PERSONAS.has(cardPersona);
+                const isBeachScale2 = cardPersona === ActivityPersona.BEACHGOER;
+                const bodyScale2Text: string | null = coastalReading
+                  ? isSurfScale2
+                    ? waveScaleLabel(coastalReading.HBreaker)
+                    : isBeachScale2
+                      ? beachgoerSafetyLabel(coastalReading.HBreaker)
+                      : null
+                  : null;
+                const bodyScale2Key: string | null = bodyScale2Text
+                  ? isSurfScale2
+                    ? waveScaleI18nKey(waveScaleLabel(coastalReading!.HBreaker))
+                    : bodyScale2Text
                   : null;
                 return (
                   <div
@@ -710,9 +727,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                     {score ? (
                       <>
                         <p className={`text-xs font-bold ${score.color}`}>{t(`scoring.${score.label.toLowerCase()}`, score.label)}</p>
-                        {bodyScale && (
+                        {bodyScale2Key && bodyScale2Text && (
                           <p className="text-[11px] text-teal-400/80 tabular-nums mt-0.5" dir="ltr">
-                            {t(waveScaleI18nKey(bodyScale), bodyScale)}
+                            {t(bodyScale2Key, bodyScale2Text)}
                           </p>
                         )}
                         {bw && (
