@@ -230,93 +230,132 @@ export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): 
   if (winDepth === null || winLat === null || winLon === null) return NaN;
 
   // ── Bearing guard ────────────────────────────────────────────────────────
-  // Compute seaward normal from depth gradient (zoom 9, ±6 km LS plane fit).
-  // Same method as fetchNearshoreDepthWithGradient — do not duplicate the math.
+  // Guard threshold: 90°. A cell within ±90° of the seaward normal is
+  // genuinely offshore. Beyond ±90° it is on the wrong side of the coast.
+  // Strict `>` means exactly 90° passes (perpendicular = ambiguous, not wrong).
   const BEARING_GUARD_DEG = 90;
-  try {
-    const GRAD_ROWS = 5, GRAD_COLS = 5;
-    const HALF_KM    = 6;
-    const GRAD_ZOOM  = 9;
-    const dLatSpan = HALF_KM / 110.57;
-    const dLonSpan = HALF_KM / (111.32 * Math.cos(lat * Math.PI / 180));
-    const gradBounds: DepthGridBounds = {
-      minLon: lon - dLonSpan, maxLon: lon + dLonSpan,
-      minLat: lat - dLatSpan, maxLat: lat + dLatSpan,
-    };
-    const gradGrid = await fetchDepthGrid(gradBounds, GRAD_COLS, GRAD_ROWS, GRAD_ZOOM);
-    const colStepM = (2 * dLonSpan * Math.cos(lat * Math.PI / 180) * 111320) / (GRAD_COLS - 1);
-    const rowStepM = (2 * dLatSpan * 110570) / (GRAD_ROWS - 1);
+  const gradient = await computeDepthGradient(lat, lon);
 
-    const gradCells: { E_m: number; N_m: number; depth: number }[] = [];
-    for (let row = 0; row < GRAD_ROWS; row++) {
-      for (let col = 0; col < GRAD_COLS; col++) {
-        const depth = gradGrid[row]?.[col];
-        if (!isFinite(depth) || depth <= 0 || depth >= 200) continue;
-        gradCells.push({ E_m: (col - 2) * colStepM, N_m: (2 - row) * rowStepM, depth });
-      }
+  if (isFinite(gradient.seawardNormal)) {
+    // Bearing from pin to winning box-search cell
+    const dLon = Math.atan2(
+      Math.sin((winLon - lon) * Math.PI / 180) * Math.cos(winLat * Math.PI / 180),
+      Math.cos(lat * Math.PI / 180) * Math.sin(winLat * Math.PI / 180) -
+      Math.sin(lat * Math.PI / 180) * Math.cos(winLat * Math.PI / 180) *
+        Math.cos((winLon - lon) * Math.PI / 180),
+    ) * 180 / Math.PI;
+    const cellBearing = (dLon + 360) % 360;
+
+    // Arc difference (smallest angle between the two bearings)
+    const rawDiff = Math.abs(gradient.seawardNormal - cellBearing) % 360;
+    const delta = Math.min(rawDiff, 360 - rawDiff);
+
+    // Always log so the diagnostic stays visible in production.
+    if (typeof window !== 'undefined') {
+      console.log('[BearingGuard]', {
+        lat: lat.toFixed(4), lon: lon.toFixed(4),
+        seawardNormal: gradient.seawardNormal.toFixed(1),
+        cellBearing: cellBearing.toFixed(1),
+        delta: delta.toFixed(1),
+        winDepth: winDepth.toFixed(1),
+        result: delta > BEARING_GUARD_DEG ? 'REJECTED' : 'ACCEPTED',
+      });
     }
 
-    if (gradCells.length >= 4) {
-      const n = gradCells.length;
-      const meanE = gradCells.reduce((s, c) => s + c.E_m, 0) / n;
-      const meanN = gradCells.reduce((s, c) => s + c.N_m, 0) / n;
-      const meanD = gradCells.reduce((s, c) => s + c.depth, 0) / n;
-      let sEE = 0, sEN = 0, sNN = 0, sdE = 0, sdN = 0;
-      for (const { E_m, N_m, depth } of gradCells) {
-        const e = E_m - meanE, nv = N_m - meanN, dv = depth - meanD;
-        sEE += e * e; sEN += e * nv; sNN += nv * nv;
-        sdE += dv * e; sdN += dv * nv;
-      }
-      const det = sEE * sNN - sEN * sEN;
-      if (Math.abs(det) >= 1e-12) {
-        const gE = (sdE * sNN - sdN * sEN) / det;
-        const gN = (sEE * sdN - sEN * sdE) / det;
-        const mag = Math.hypot(gE, gN);
-        if (mag >= 1e-4) {
-          // Seaward bearing: direction of increasing depth = toward open sea
-          const seawardNormal = (Math.atan2(gE, gN) * 180 / Math.PI + 360) % 360;
-
-          // Bearing from pin to winning box-search cell
-          const dLon = Math.atan2(
-            Math.sin((winLon - lon) * Math.PI / 180) * Math.cos(winLat * Math.PI / 180),
-            Math.cos(lat * Math.PI / 180) * Math.sin(winLat * Math.PI / 180) -
-            Math.sin(lat * Math.PI / 180) * Math.cos(winLat * Math.PI / 180) *
-              Math.cos((winLon - lon) * Math.PI / 180),
-          ) * 180 / Math.PI;
-          const cellBearing = (dLon + 360) % 360;
-
-          // Arc difference (smallest angle between the two bearings)
-          const rawDiff = Math.abs(seawardNormal - cellBearing) % 360;
-          const delta = Math.min(rawDiff, 360 - rawDiff);
-
-          // Always log so the diagnostic stays visible in production.
-          if (typeof window !== 'undefined') {
-            console.log('[BearingGuard]', {
-              lat: lat.toFixed(4), lon: lon.toFixed(4),
-              seawardNormal: seawardNormal.toFixed(1),
-              cellBearing: cellBearing.toFixed(1),
-              delta: delta.toFixed(1),
-              winDepth: winDepth.toFixed(1),
-              result: delta > BEARING_GUARD_DEG ? 'REJECTED' : 'ACCEPTED',
-            });
-          }
-
-          if (delta > BEARING_GUARD_DEG) {
-            return NaN; // Cell is more than 90° off the seaward direction → wrong water body
-          }
-        }
-      }
+    if (delta > BEARING_GUARD_DEG) {
+      return NaN; // Cell is more than 90° off the seaward direction → wrong water body
     }
-  } catch {
-    // Gradient fetch failed — skip the bearing guard and return the depth as-is.
-    // This is conservative: better to show a possibly-wrong cell than to suppress
-    // a valid reading because of a transient tile error.
   }
+  // If gradient unavailable (< 4 ocean cells or tile error): skip guard, return depth as-is.
+  // Conservative: prefer a possibly-wrong cell over suppressing a valid reading on a tile error.
 
   return winDepth;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
+
+// ─── Gradient constants — single source of truth ─────────────────────────────
+// Both the bearing guard (fetchNearshoreDepth) and the gradient output
+// (fetchNearshoreDepthWithGradient) use identical parameters. Defined once here.
+const GRADIENT_HALF_KM  = 6;   // ±6 km — clears the ~1.85 km ETOPO native cell
+const GRADIENT_ZOOM     = 9;   // honest fidelity ceiling; z10 upsamples → false precision
+const GRADIENT_ROWS     = 5;
+const GRADIENT_COLS     = 5;
+
+/** Result of a least-squares depth-gradient plane fit. */
+interface DepthGradientResult {
+  /** Eastward depth gradient (m/m), cos(lat)-corrected. NaN if fit failed. */
+  gradEast: number;
+  /** Northward depth gradient (m/m). NaN if fit failed. */
+  gradNorth: number;
+  /** Seaward compass bearing (°, [0,360)) from the gradient. NaN if fit failed. */
+  seawardNormal: number;
+  /** Number of ocean cells that entered the fit. */
+  cellsUsed: number;
+}
+
+/**
+ * Compute the depth gradient and seaward normal for a given lat/lon.
+ *
+ * Fetches a 5×5 grid at zoom 9, ±6 km (GRADIENT_* constants), keeps ocean-only
+ * cells (0 < d < 200 m), and fits a plane depth ≈ a·E_m + b·N_m + c via
+ * least-squares. Returns the gradient components, the seaward bearing
+ * (direction of increasing depth = toward open sea), and the cell count.
+ *
+ * Returns NaN values when fewer than 4 ocean cells are available or the fit
+ * is degenerate. The caller must guard on isFinite(seawardNormal) before use.
+ *
+ * Tile fetches are deduped via tileCache — concurrent or sequential calls for
+ * nearby points with the same z9 tile are free after the first.
+ */
+async function computeDepthGradient(lat: number, lon: number): Promise<DepthGradientResult> {
+  const NaN_RESULT: DepthGradientResult = { gradEast: NaN, gradNorth: NaN, seawardNormal: NaN, cellsUsed: 0 };
+  try {
+    const dLatSpan = GRADIENT_HALF_KM / 110.57;
+    const dLonSpan = GRADIENT_HALF_KM / (111.32 * Math.cos(lat * Math.PI / 180));
+    const bounds: DepthGridBounds = {
+      minLon: lon - dLonSpan, maxLon: lon + dLonSpan,
+      minLat: lat - dLatSpan, maxLat: lat + dLatSpan,
+    };
+    const grid = await fetchDepthGrid(bounds, GRADIENT_COLS, GRADIENT_ROWS, GRADIENT_ZOOM);
+    const colStepM = (2 * dLonSpan * Math.cos(lat * Math.PI / 180) * 111320) / (GRADIENT_COLS - 1);
+    const rowStepM = (2 * dLatSpan * 110570) / (GRADIENT_ROWS - 1);
+
+    const cells: { E_m: number; N_m: number; depth: number }[] = [];
+    for (let row = 0; row < GRADIENT_ROWS; row++) {
+      for (let col = 0; col < GRADIENT_COLS; col++) {
+        const depth = grid[row]?.[col];
+        if (!isFinite(depth) || depth <= 0 || depth >= 200) continue;
+        cells.push({ E_m: (col - 2) * colStepM, N_m: (2 - row) * rowStepM, depth });
+      }
+    }
+
+    if (cells.length < 4) return { ...NaN_RESULT, cellsUsed: cells.length };
+
+    const n = cells.length;
+    const meanE = cells.reduce((s, c) => s + c.E_m,  0) / n;
+    const meanN = cells.reduce((s, c) => s + c.N_m,  0) / n;
+    const meanD = cells.reduce((s, c) => s + c.depth, 0) / n;
+    let sEE = 0, sEN = 0, sNN = 0, sdE = 0, sdN = 0;
+    for (const { E_m, N_m, depth } of cells) {
+      const e = E_m - meanE, nv = N_m - meanN, dv = depth - meanD;
+      sEE += e * e; sEN += e * nv; sNN += nv * nv;
+      sdE += dv * e; sdN += dv * nv;
+    }
+    const det = sEE * sNN - sEN * sEN;
+    if (Math.abs(det) < 1e-12) return { ...NaN_RESULT, cellsUsed: n };
+
+    const gradEast  = (sdE * sNN - sdN * sEN) / det;
+    const gradNorth = (sEE * sdN - sEN * sdE) / det;
+    const mag = Math.hypot(gradEast, gradNorth);
+    if (mag < 1e-4) return { ...NaN_RESULT, cellsUsed: n };
+
+    const seawardNormal = (Math.atan2(gradEast, gradNorth) * 180 / Math.PI + 360) % 360;
+    return { gradEast, gradNorth, seawardNormal, cellsUsed: n };
+  } catch {
+    return NaN_RESULT;
+  }
+}
 
 export interface DepthGridBounds {
   minLon: number;
@@ -456,79 +495,18 @@ export async function fetchNearshoreDepthWithGradient(
   // Step 1 — centre depth (proven path; never fails the reading)
   const centreDepth = await fetchNearshoreDepth(lat, lon, zoom);
 
-  // Step 2 — gradient grid in its own try/catch so a tile error never nulls the reading
-  try {
-    const ROWS = 5, COLS = 5;
-    const HALF_KM   = 6;   // ±6 km — must clear the ~1.85 km ETOPO native cell + blocky coastline
-    const GRAD_ZOOM = 9;   // honest fidelity ceiling; z10 upsamples one coarse cell → false precision
+  // Step 2 — gradient via shared helper (same constants as bearing guard)
+  const gradient = await computeDepthGradient(lat, lon);
 
-    const dLatSpan = HALF_KM / 110.57;
-    const dLonSpan = HALF_KM / (111.32 * Math.cos(lat * Math.PI / 180));
-
-    const bounds: DepthGridBounds = {
-      minLon: lon - dLonSpan, maxLon: lon + dLonSpan,
-      minLat: lat - dLatSpan, maxLat: lat + dLatSpan,
-    };
-    const grid = await fetchDepthGrid(bounds, COLS, ROWS, GRAD_ZOOM);
-
-    // ~3 km between adjacent cells (5 cells over 12 km = 4 intervals)
-    const colStepM = (2 * dLonSpan * Math.cos(lat * Math.PI / 180) * 111320) / (COLS - 1);
-    const rowStepM = (2 * dLatSpan * 110570) / (ROWS - 1);
-
-    // row 0 = north (maxLat) → N_m positive; col 0 = west (minLon) → E_m negative
-    const cells: { E_m: number; N_m: number; depth: number }[] = [];
-    let oceanCells = 0, landCells = 0, noTileCells = 0;
-    let depthMin = Infinity, depthMax = -Infinity;
-    for (let row = 0; row < ROWS; row++) {
-      for (let col = 0; col < COLS; col++) {
-        const depth = grid[row][col];
-        if (!isFinite(depth))      { noTileCells++; continue; }
-        if (depth <= 0)            { landCells++;   continue; }
-        if (depth >= 200)          { continue; }  // deep — outside nearshore band
-        oceanCells++;
-        if (depth < depthMin) depthMin = depth;
-        if (depth > depthMax) depthMax = depth;
-        cells.push({ E_m: (col - 2) * colStepM, N_m: (2 - row) * rowStepM, depth });
-      }
-    }
-
-    // Cell-count diagnostic — flag-gated on ?windQualityDebug=1
-    if (typeof window !== 'undefined' && window.location.search.includes('windQualityDebug=1')) {
-      console.log('[GradientDiag]', {
-        lat: lat.toFixed(4), lon: lon.toFixed(4), zoom: GRAD_ZOOM, halfKm: HALF_KM,
-        totalCells: ROWS * COLS, oceanCells, landCells, noTileCells,
-        depthMin: isFinite(depthMin) ? depthMin.toFixed(1) : '-',
-        depthMax: isFinite(depthMax) ? depthMax.toFixed(1) : '-',
-      });
-    }
-
-    if (cells.length < 4) {
-      return { centreDepth, gradEast: NaN, gradNorth: NaN };
-    }
-
-    // Least-squares plane fit: depth ≈ a·E_m + b·N_m + c (demeaned → 2×2 normal equations)
-    const n = cells.length;
-    const meanE = cells.reduce((s, c) => s + c.E_m,  0) / n;
-    const meanN = cells.reduce((s, c) => s + c.N_m,  0) / n;
-    const meanD = cells.reduce((s, c) => s + c.depth, 0) / n;
-
-    let sEE = 0, sEN = 0, sNN = 0, sdE = 0, sdN = 0;
-    for (const { E_m, N_m, depth } of cells) {
-      const e = E_m - meanE, nv = N_m - meanN, d = depth - meanD;
-      sEE += e * e; sEN += e * nv; sNN += nv * nv;
-      sdE += d * e; sdN += d * nv;
-    }
-
-    const det = sEE * sNN - sEN * sEN;
-    if (Math.abs(det) < 1e-12) {
-      return { centreDepth, gradEast: NaN, gradNorth: NaN };
-    }
-
-    const gradEast  = (sdE * sNN - sdN * sEN) / det;
-    const gradNorth = (sEE * sdN - sEN * sdE) / det;
-
-    return { centreDepth, gradEast, gradNorth };
-  } catch {
-    return { centreDepth, gradEast: NaN, gradNorth: NaN };
+  // Cell-count diagnostic — flag-gated on ?windQualityDebug=1
+  if (typeof window !== 'undefined' && window.location.search.includes('windQualityDebug=1')) {
+    console.log('[GradientDiag]', {
+      lat: lat.toFixed(4), lon: lon.toFixed(4),
+      zoom: GRADIENT_ZOOM, halfKm: GRADIENT_HALF_KM,
+      cellsUsed: gradient.cellsUsed,
+      seawardNormal: isFinite(gradient.seawardNormal) ? gradient.seawardNormal.toFixed(1) : 'NaN',
+    });
   }
+
+  return { centreDepth, gradEast: gradient.gradEast, gradNorth: gradient.gradNorth };
 }
