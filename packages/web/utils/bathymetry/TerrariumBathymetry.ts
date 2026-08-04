@@ -157,12 +157,21 @@ export async function fetchDepthAtPoint(lat: number, lon: number, zoom = 10): Pr
  *  1. Sample the exact point. If depth is in a usable nearshore range (0 < d < 200 m) return it.
  *  2. If the exact point is on land / waterline (d ≤ 0) or has no tile data (NaN), the marker
  *     may sit on the beach. Search a ~2 km box (5×5 grid) for the shallowest surf-zone cell
- *     (1–20 m first choice; any ocean cell < 200 m as fallback). This makes any coastal marker
- *     work, not just ones that are already in the water.
- *  3. If no usable depth found anywhere nearby → return NaN (hook returns null, P5.2 shows nothing).
- *
- * Rule: deep-water points (d ≥ 200 m) also trigger the search, since the engine only renders
- * nearshore and a deep result means the marker is offshore of the surf zone.
+ *     (3–20 m first choice; any ocean cell < 200 m as fallback).
+ *  3. Bearing guard: compute the seaward normal from the depth gradient (zoom 9, ±6 km LS
+ *     plane fit — same method as fetchNearshoreDepthWithGradient). If the bearing from the
+ *     pin to the winning box-search cell is more than BEARING_GUARD_DEG off the seaward
+ *     normal, the search has crossed land or found water on the wrong side of a headland.
+ *     In that case return NaN so the hook falls back to K-G (which needs no depth).
+ *     Threshold: 90°. Rationale: ±90° is exactly one quadrant — any cell within a right
+ *     angle of the seaward direction is genuinely offshore. Cells beyond ±90° are either
+ *     perpendicular to the coast (ambiguous) or pointing inland.
+ *     Note: this catches Uluwatu (delta=154°, ocean found NNW = inland Bali) but NOT
+ *     Pipeline (delta=72°, ocean found NNE = just inside the right angle even though it
+ *     is the Haleiwa shelf rather than the break). Pipeline requires a coordinate move.
+ *  4. SURF_MIN floor: 3 m minimum avoids swash-zone pixels (γ·d would clip all realistic
+ *     swell).
+ *  5. If no usable depth found anywhere nearby → return NaN.
  */
 export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): Promise<number> {
   const d = await fetchDepthAtPoint(lat, lon, zoom);
@@ -178,29 +187,133 @@ export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): 
 
   // SURF_MIN floor: 3 m minimum. 1-2 m cells are swash-zone pixels — they resolve
   // to γ·d = 0.78-1.56 m, which clips any realistic swell and produces wildly
-  // inaccurate Waist/Chest labels at world-class breaks (e.g. Jeffreys Bay
-  // returned 1.1 m and clipped 1.8 m swell to γ·d = 0.86 m). A 3 m floor means
-  // the breaking cap γ·d ≥ 2.34 m, which is above typical swell Hs.
-  const SURF_MIN = 3, SURF_MAX = 20; // m — surf-zone preference window (floor raised from 1 to 3)
-  let shallowest: number | null = null;  // nearest surf-zone depth (3–20 m)
-  let anyOcean:   number | null = null;  // any valid nearshore depth (< 200 m fallback)
+  // inaccurate labels at world-class breaks (e.g. Jeffreys Bay returned 1.1 m).
+  const SURF_MIN = 3, SURF_MAX = 20; // m — surf-zone preference window
 
-  for (const row of grid) {
-    for (const cell of row) {
+  // Track winning cell position for bearing guard below.
+  let shallowest: number | null = null;
+  let shallowestLat: number | null = null;
+  let shallowestLon: number | null = null;
+  let anyOcean:   number | null = null;
+  let anyOceanLat: number | null = null;
+  let anyOceanLon: number | null = null;
+
+  const ROWS = 5, COLS = 5;
+  for (let row = 0; row < ROWS; row++) {
+    for (let col = 0; col < COLS; col++) {
+      const cell = grid[row]?.[col];
       if (!isFinite(cell) || cell <= 0 || cell >= 200) continue;
-      if (anyOcean === null || cell < anyOcean) anyOcean = cell;
+      // Reconstruct the lat/lon of this grid cell (matching fetchDepthGrid's sampling)
+      const cellLat = (lat + BOX_DEG) - (row / (ROWS - 1)) * (2 * BOX_DEG);
+      const cellLon = (lon - BOX_DEG) + (col / (COLS - 1)) * (2 * BOX_DEG);
+      if (anyOcean === null || cell < anyOcean) {
+        anyOcean = cell; anyOceanLat = cellLat; anyOceanLon = cellLon;
+      }
       if (cell >= SURF_MIN && cell <= SURF_MAX) {
-        if (shallowest === null || cell < shallowest) shallowest = cell;
+        if (shallowest === null || cell < shallowest) {
+          shallowest = cell; shallowestLat = cellLat; shallowestLon = cellLon;
+        }
       }
     }
   }
-  // If box search finds no cell at or above SURF_MIN but finds a shallower ocean cell,
-  // return null (not the swash-zone cell). The hook's null guard will suppress the card
-  // and let K-G still compute from offshore data without a misleading breaking-cap clip.
+
+  // Reject swash-zone-only result (same logic as before).
   if (shallowest === null && anyOcean !== null && anyOcean < SURF_MIN) {
-    return NaN; // swash-zone only — reject; K-G does not need depth
+    return NaN;
   }
-  return shallowest ?? anyOcean ?? NaN;
+
+  // Winning cell and its depth.
+  const winDepth = shallowest ?? anyOcean ?? null;
+  const winLat   = shallowest !== null ? shallowestLat : anyOceanLat;
+  const winLon   = shallowest !== null ? shallowestLon : anyOceanLon;
+
+  if (winDepth === null || winLat === null || winLon === null) return NaN;
+
+  // ── Bearing guard ────────────────────────────────────────────────────────
+  // Compute seaward normal from depth gradient (zoom 9, ±6 km LS plane fit).
+  // Same method as fetchNearshoreDepthWithGradient — do not duplicate the math.
+  const BEARING_GUARD_DEG = 90;
+  try {
+    const GRAD_ROWS = 5, GRAD_COLS = 5;
+    const HALF_KM    = 6;
+    const GRAD_ZOOM  = 9;
+    const dLatSpan = HALF_KM / 110.57;
+    const dLonSpan = HALF_KM / (111.32 * Math.cos(lat * Math.PI / 180));
+    const gradBounds: DepthGridBounds = {
+      minLon: lon - dLonSpan, maxLon: lon + dLonSpan,
+      minLat: lat - dLatSpan, maxLat: lat + dLatSpan,
+    };
+    const gradGrid = await fetchDepthGrid(gradBounds, GRAD_COLS, GRAD_ROWS, GRAD_ZOOM);
+    const colStepM = (2 * dLonSpan * Math.cos(lat * Math.PI / 180) * 111320) / (GRAD_COLS - 1);
+    const rowStepM = (2 * dLatSpan * 110570) / (GRAD_ROWS - 1);
+
+    const gradCells: { E_m: number; N_m: number; depth: number }[] = [];
+    for (let row = 0; row < GRAD_ROWS; row++) {
+      for (let col = 0; col < GRAD_COLS; col++) {
+        const depth = gradGrid[row]?.[col];
+        if (!isFinite(depth) || depth <= 0 || depth >= 200) continue;
+        gradCells.push({ E_m: (col - 2) * colStepM, N_m: (2 - row) * rowStepM, depth });
+      }
+    }
+
+    if (gradCells.length >= 4) {
+      const n = gradCells.length;
+      const meanE = gradCells.reduce((s, c) => s + c.E_m, 0) / n;
+      const meanN = gradCells.reduce((s, c) => s + c.N_m, 0) / n;
+      const meanD = gradCells.reduce((s, c) => s + c.depth, 0) / n;
+      let sEE = 0, sEN = 0, sNN = 0, sdE = 0, sdN = 0;
+      for (const { E_m, N_m, depth } of gradCells) {
+        const e = E_m - meanE, nv = N_m - meanN, dv = depth - meanD;
+        sEE += e * e; sEN += e * nv; sNN += nv * nv;
+        sdE += dv * e; sdN += dv * nv;
+      }
+      const det = sEE * sNN - sEN * sEN;
+      if (Math.abs(det) >= 1e-12) {
+        const gE = (sdE * sNN - sdN * sEN) / det;
+        const gN = (sEE * sdN - sEN * sdE) / det;
+        const mag = Math.hypot(gE, gN);
+        if (mag >= 1e-4) {
+          // Seaward bearing: direction of increasing depth = toward open sea
+          const seawardNormal = (Math.atan2(gE, gN) * 180 / Math.PI + 360) % 360;
+
+          // Bearing from pin to winning box-search cell
+          const dLon = Math.atan2(
+            Math.sin((winLon - lon) * Math.PI / 180) * Math.cos(winLat * Math.PI / 180),
+            Math.cos(lat * Math.PI / 180) * Math.sin(winLat * Math.PI / 180) -
+            Math.sin(lat * Math.PI / 180) * Math.cos(winLat * Math.PI / 180) *
+              Math.cos((winLon - lon) * Math.PI / 180),
+          ) * 180 / Math.PI;
+          const cellBearing = (dLon + 360) % 360;
+
+          // Arc difference (smallest angle between the two bearings)
+          const rawDiff = Math.abs(seawardNormal - cellBearing) % 360;
+          const delta = Math.min(rawDiff, 360 - rawDiff);
+
+          // Always log so the diagnostic stays visible in production.
+          if (typeof window !== 'undefined') {
+            console.log('[BearingGuard]', {
+              lat: lat.toFixed(4), lon: lon.toFixed(4),
+              seawardNormal: seawardNormal.toFixed(1),
+              cellBearing: cellBearing.toFixed(1),
+              delta: delta.toFixed(1),
+              winDepth: winDepth.toFixed(1),
+              result: delta > BEARING_GUARD_DEG ? 'REJECTED' : 'ACCEPTED',
+            });
+          }
+
+          if (delta > BEARING_GUARD_DEG) {
+            return NaN; // Cell is more than 90° off the seaward direction → wrong water body
+          }
+        }
+      }
+    }
+  } catch {
+    // Gradient fetch failed — skip the bearing guard and return the depth as-is.
+    // This is conservative: better to show a possibly-wrong cell than to suppress
+    // a valid reading because of a transient tile error.
+  }
+
+  return winDepth;
 }
 
 // ── Public API ──────────────────────────────────────────────────────────────
