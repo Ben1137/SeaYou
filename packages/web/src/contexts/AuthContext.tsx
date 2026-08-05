@@ -17,13 +17,10 @@ import {
 } from '@seame/core';
 
 // ─── Supabase credentials ───
-// Hardcoded for now to bypass Vite .env path confusion between worktree and
-// main checkout. These are the public anon key (safe — protected by RLS).
-// TODO: restore import.meta.env.VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
-//       once the worktree issue is resolved.
-const SUPABASE_URL: string | undefined = 'https://mxuvijlowneokmzeompn.supabase.co';
-const SUPABASE_ANON_KEY: string | undefined = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14dXZpamxvd25lb2ttemVvbXBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NTI3NzEsImV4cCI6MjA5MTEyODc3MX0.dmgDNzmpvMIYMiPgjh-AQ9RX_qFUg-L1WVaPBB8ooyc';
-
+// Read from Vite env (publishable anon key — safe, protected by RLS).
+// Set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY on the Vercel target.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // Initialize the client once at module load if credentials are present.
 // If missing, Auth features are disabled gracefully (the app still runs
 // in local-only mode).
