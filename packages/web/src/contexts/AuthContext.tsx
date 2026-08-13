@@ -15,6 +15,8 @@ import {
 
   type AuthProvider as OAuthProvider,
 } from '@seame/core';
+// DEV-ONLY: build-time gated (import.meta.env.DEV). Tree-shaken from prod — see mockAuth.ts.
+import { DEV_MOCK_USER, DEV_MOCK_SESSION } from '../dev/mockAuth';
 
 // ─── Supabase credentials ───
 // Read from Vite env (publishable anon key — safe, protected by RLS).
@@ -68,6 +70,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // ─── Bootstrap session + subscribe to auth changes ───
   useEffect(() => {
+    // ─── DEV-ONLY mock-auth short-circuit (build-time gated) ───
+    // `import.meta.env.DEV` is statically FALSE in the production build, so this
+    // whole block is dead-code-eliminated and the mock import is tree-shaken out.
+    // In prod this is byte-identical to before: control falls straight through to
+    // the real `if (!isConfigured)` path below. Dev-only: seed a purely LOCAL fake
+    // session so the dashboard renders for screenshots — NO Supabase, NO real
+    // credential, NO network. Runs BEFORE the real path; never modifies it.
+    if (import.meta.env.DEV) {
+      setSession(DEV_MOCK_SESSION);
+      setUser(DEV_MOCK_USER);
+      setLoading(false);
+      return; // skip real getCurrentSession()/onAuthStateChange under dev-mock
+    }
+
     if (!isConfigured) {
       setLoading(false);
       return;

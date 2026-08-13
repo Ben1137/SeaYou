@@ -8,6 +8,9 @@ import { ErrorState } from './components/ErrorState';
 import { ThemeProvider } from './src/contexts/ThemeContext';
 import i18n from './src/i18n/config';
 import './src/index.css'; // Import Tailwind CSS and theme variables
+// DEV-ONLY: build-time gated (import.meta.env.DEV) — tree-shaken from prod. See src/dev/mockAuth.ts.
+import { seedDevBypassState } from './src/dev/mockAuth';
+import { DevModeBadge } from './src/dev/DevModeBadge';
 
 // Configure React Query
 const queryClient = new QueryClient({
@@ -21,6 +24,12 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// DEV-ONLY: seed the local bypass gates (onboarding + tour) before first render.
+// import.meta.env.DEV is statically false in prod → this call is dead-code-eliminated.
+if (import.meta.env.DEV) {
+  seedDevBypassState();
+}
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -38,6 +47,8 @@ root.render(
         <ThemeProvider defaultTheme="light">
           <QueryClientProvider client={queryClient}>
             <App />
+            {/* DEV-ONLY badge — tree-shaken from prod (import.meta.env.DEV → false). */}
+            {import.meta.env.DEV && <DevModeBadge />}
           </QueryClientProvider>
         </ThemeProvider>
       </I18nextProvider>
