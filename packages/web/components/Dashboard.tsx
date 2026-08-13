@@ -781,6 +781,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             onClose={() => setBreakdownPersona(null)}
             activityLabel={breakdownPersona ? LABEL_MAP[breakdownPersona] : ''}
             score={breakdownPersona && activityScores ? activityScores[breakdownPersona] : null}
+            weatherData={weatherData}
+            coastalReading={coastalReading}
+            currentHourIndex={currentHourIndex}
           />
         );
       })()}

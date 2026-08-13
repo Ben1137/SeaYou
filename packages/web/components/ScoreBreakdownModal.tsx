@@ -15,8 +15,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { X, Lock, TrendingUp, Minus, TrendingDown } from 'lucide-react';
-import type { ActivityScore, ScoreFactor } from '@seame/core';
+import type { ActivityScore, ScoreFactor, MarineWeatherData } from '@seame/core';
 import { useTranslation } from 'react-i18next';
+import { EnergyConsistencyCard } from './EnergyConsistencyCard';
+import type { CoastalReading } from '../hooks/useCoastalReading';
 
 interface ScoreBreakdownModalProps {
   isOpen: boolean;
@@ -25,6 +27,12 @@ interface ScoreBreakdownModalProps {
   activityLabel: string;
   /** Pre-computed score + breakdown. */
   score: ActivityScore | null;
+  /** Live weather data — enables the Energy/Consistency card in the detail view. */
+  weatherData?: MarineWeatherData | null;
+  /** Coastal Break reading for the current spot (feeds the energy card). */
+  coastalReading?: CoastalReading | null;
+  /** Current hour index into weatherData.hourly arrays. */
+  currentHourIndex?: number;
 }
 
 /** Map each impact bucket to Tailwind text + background classes.
@@ -41,6 +49,9 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
   onClose,
   activityLabel,
   score,
+  weatherData,
+  coastalReading = null,
+  currentHourIndex = 0,
 }) => {
   const { t } = useTranslation();
   const [toast, setToast] = useState<string | null>(null);
@@ -138,6 +149,19 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Energy + Consistency — reuses the dashboard card as-is.
+            Naming-collision-safe: the card computes temporalSteadiness (CoV) internally;
+            it never reads the ensemble hs_spread_m. */}
+        {weatherData && (
+          <div className="px-4 pb-1">
+            <EnergyConsistencyCard
+              weatherData={weatherData}
+              coastalReading={coastalReading}
+              currentHourIndex={currentHourIndex}
+            />
+          </div>
+        )}
 
         {/* Pro upsell — premium-styled gradient button */}
         <div className="p-4 border-t border-slate-200 dark:border-white/10">
