@@ -848,9 +848,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   <span className="text-lg ml-1 mb-1 font-medium">m</span>
                 </div>
                 <p className="text-[11px] tabular-nums flex items-center gap-1 text-teal-400/80">
-                  {t('coastalDynamics.methodKG', 'Komar-Gaughan')}
-                  <span className="text-white/30 mx-0.5">·</span>
                   <span className="text-white/60">{coastalReading.T.toFixed(1)}s</span>
+                  <span
+                    className="inline-flex cursor-help"
+                    title={`${t('coastalDynamics.methodKG', 'Komar-Gaughan')} — ${t('coastalDynamics.methodFormula', 'breaker height Hb = 0.39·g^0.2·(T·H₀²)^0.4')}`}
+                  >
+                    <Info size={11} className="text-white/30 shrink-0" />
+                  </span>
                 </p>
               </>
             ) : (

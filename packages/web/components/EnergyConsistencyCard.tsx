@@ -198,7 +198,7 @@ export function EnergyConsistencyCard({
   // ── Energy tooltip ─────────────────────────────────────────────────────────
   const energyTooltip = t(
     'energyCard.energyTooltip',
-    'Wave energy flux (kW/m) — the power per metre of crest arriving at this location. Uses deep-water H0 and Cg0: flux is depth-invariant under linear theory until breaking dissipates it.',
+    'Wave energy flux (kW/m) — power per metre of wave crest arriving at this location. Computed from deep-water H₀ and Cg₀; energy flux is depth-invariant under linear theory until breaking dissipates it.',
   );
 
   return (
@@ -227,7 +227,7 @@ export function EnergyConsistencyCard({
             </div>
           )}
           <p className="text-[10px] text-white/40 leading-tight">
-            {t('energyCard.source', 'Arriving flux · H₀ · Cg₀')}
+            {t('energyCard.source', 'Wave energy flux')}
           </p>
         </div>
 

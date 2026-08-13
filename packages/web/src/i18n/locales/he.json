@@ -729,8 +729,8 @@
   },
   "energyCard": {
     "label": "אנרגיה",
-    "source": "Komar-Gaughan Hb · Cg(T,d)",
-    "energyTooltip": "Wave power per metre of wave crest (kW/m). Uses Komar-Gaughan breaker height (empirical, no depth required). Upper bound: energy dissipation at the break is not modelled.",
+    "source": "Wave energy flux",
+    "energyTooltip": "Wave energy flux (kW/m) — power per metre of wave crest arriving at this location. Computed from deep-water H₀ and Cg₀; energy flux is depth-invariant under linear theory until breaking dissipates it.",
     "consistencyTooltipTemporal": "יציבות גובה גל השבירה ב-6 שעות התחזית הבאות. CoV < 0.15 = יציב.",
     "consistencyTooltipCleanliness": "שיעור אנרגיית הגלים מנחשולים מול גלי רוח. שים לב: פילוחי נחשול/רוח של Open-Meteo הם הערכות מודליות ועשויים שלא לשמור על אנרגיה.",
     "consistencySteady": "יציב",
