@@ -351,6 +351,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       const swellPeriods = sliceIndexes.map(idx => weatherData.hourly.swell_wave_period?.[idx] ?? 0);
       const swellDirs = sliceIndexes.map(idx => weatherData.hourly.swell_wave_direction?.[idx] ?? 0);
       const uvs = sliceIndexes.map(idx => weatherData.hourly.uv_index?.[idx] || 0);
+      // Diver-relevant marine inputs (real sea-surface temp + current), sourced per-hour
+      // from the marine API. Kept separate from `temp` (AIR temp) so the Diver page can
+      // show actual SEA temperature instead of air. Null-safe: missing → '—' below.
+      const seaTemps = sliceIndexes.map(idx => weatherData.hourly.sea_surface_temperature?.[idx]).filter((v): v is number => v != null);
+      const currents = sliceIndexes.map(idx => weatherData.hourly.ocean_current_velocity?.[idx]).filter((v): v is number => v != null);
       const minPress = Math.min(...pressures).toFixed(0), maxPress = Math.max(...pressures).toFixed(0);
       const minWave = Math.min(...waveHeights), maxWave = Math.max(...waveHeights);
       const minWind = Math.min(...windSpeeds).toFixed(0), maxWind = Math.max(...windSpeeds).toFixed(0);
@@ -373,6 +378,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         waveHeight: `${minWave.toFixed(1)}-${maxWave.toFixed(1)}m`,
         wavePeriod: (wavePeriods.reduce((a, b) => a + b, 0) / wavePeriods.length).toFixed(1),
         temp: weatherData.general?.temperature.toFixed(0) || "20",
+        seaTemp: seaTemps.length ? `${(seaTemps.reduce((a, b) => a + b, 0) / seaTemps.length).toFixed(0)}°C` : '—',
+        currentSpeed: currents.length ? `${(currents.reduce((a, b) => a + b, 0) / currents.length).toFixed(2)} m/s` : '—',
         uv: Math.max(...uvs).toFixed(0)
       });
     }
@@ -1102,7 +1109,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 {forecastTab === 'kite_surfer' && (<><th className="px-4 py-2 font-medium">{t('table.windSpeed')}</th><th className="px-4 py-2 font-medium">{t('table.direction')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.weather')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
                 {forecastTab === 'boogie_boarder' && (<><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.period')}</th><th className="px-4 py-2 font-medium">{t('table.swellHeight')}</th><th className="px-4 py-2 font-medium">{t('table.swellPeriod')}</th><th className="px-4 py-2 font-medium">{t('table.swellDir')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
 
-                {forecastTab === 'diver' && (<><th className="px-4 py-2 font-medium">{t('table.visibility')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('weather.sea')}</th><th className="px-4 py-2 font-medium">{t('table.wind')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
+                {forecastTab === 'diver' && (<><th className="px-4 py-2 font-medium">{t('table.visibility')}</th><th className="px-4 py-2 font-medium">{t('table.waveHeight')}</th><th className="px-4 py-2 font-medium">{t('table.current', 'Current')}</th><th className="px-4 py-2 font-medium">{t('weather.seaTemp', 'Sea Temp')}</th><th className="px-4 py-2 font-medium">{t('table.wind')}</th><th className="px-4 py-2 font-medium">{t('activity.score')}</th></>)}
                 {forecastTab === 'beach' && (<><th className="px-4 py-2 font-medium">{t('table.temp')}</th><th className="px-4 py-2 font-medium">{t('table.uvIndex')}</th><th className="px-4 py-2 font-medium">{t('table.windSand')}</th><th className="px-4 py-2 font-medium">{t('table.seaState')}</th><th className="px-4 py-2 font-medium">{t('table.comfort')}</th></>)}
               </tr>
             </thead>
@@ -1123,7 +1130,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   {forecastTab === 'kite_surfer' && (<><td className="px-4 py-3 font-bold text-cyan-300">{row.wind.split('(')[1]?.replace(')', '') || row.wind}</td><td className="px-4 py-3">{row.wind.split('(')[0]}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3 flex items-center gap-1"><WeatherAnimation code={row.weatherCode} />{getWeatherConditionTranslated(row.weatherCode)}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
                   {forecastTab === 'boogie_boarder' && (<><td className="px-4 py-3 font-bold text-rose-300">{row.waveHeight}</td><td className="px-4 py-3">{row.wavePeriod}s</td><td className="px-4 py-3 font-medium text-accent">{row.swellHeight}m</td><td className="px-4 py-3">{row.swellPeriod}s</td><td className="px-4 py-3">{row.swell}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
 
-                  {forecastTab === 'diver' && (<><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3">{row.temp}°C</td><td className="px-4 py-3">{row.wind}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
+                  {forecastTab === 'diver' && (<><td className="px-4 py-3 text-white/80">{row.visibility}</td><td className="px-4 py-3">{row.waveHeight}</td><td className="px-4 py-3">{row.currentSpeed}</td><td className="px-4 py-3 font-medium text-cyan-300">{row.seaTemp}</td><td className="px-4 py-3">{row.wind}</td><td className="px-4 py-3">{blockScore && <span className={`font-bold ${blockScore.color}`}>{blockScore.overall}</span>}</td></>)}
                   {forecastTab === 'beach' && (<><td className="px-4 py-3 font-bold text-yellow-300">{row.temp}°C</td><td className="px-4 py-3">{row.uv}</td><td className="px-4 py-3">{row.wind}</td><td className="px-4 py-3">{row.seaStatus.split('(')[0]}</td><td className="px-4 py-3">{(() => { const code = row.weatherCode, temp = parseFloat(row.temp); if (code >= 51 || code >= 80) return <span className="text-red-400 font-bold">{t('activity.beach.poorRain')}</span>; if (code === 3 && temp <= 20) return <span className="text-white/60">{t('activity.beach.coolCloudy')}</span>; if (code === 3) return <span className="text-white/60">{t('activity.beach.cloudy')}</span>; if (temp < 18) return <span className="text-blue-300">{t('activity.beach.cold')}</span>; if (temp < 22) return <span className="text-blue-200">{t('activity.beach.cool')}</span>; return <span className="text-green-400 font-bold">{t('activity.beach.great')}</span>; })()}</td></>)}
                 </tr>
                 );
