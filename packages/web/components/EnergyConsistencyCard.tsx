@@ -61,6 +61,13 @@ export interface EnergyConsistencyCardProps {
   coastalReading: CoastalReading | null;
   /** Current hour index into weatherData.hourly arrays. */
   currentHourIndex: number;
+  /**
+   * Presentation context. 'dashboard' (default) = the glass-panel card on the
+   * Conditions Grid (unchanged). 'modal' = restyled to sit inside
+   * ScoreBreakdownModal (solid modal-native panel, dual-mode text). Presentation
+   * ONLY — identical computed values (kW/m, Steady %) in both variants.
+   */
+  variant?: 'dashboard' | 'modal';
 }
 
 // ─── Bar component ────────────────────────────────────────────────────────────
@@ -130,8 +137,10 @@ export function EnergyConsistencyCard({
   weatherData,
   coastalReading,
   currentHourIndex,
+  variant = 'dashboard',
 }: EnergyConsistencyCardProps) {
   const { t } = useTranslation();
+  const isModal = variant === 'modal';
 
   // ── Energy ────────────────────────────────────────────────────────────────
   const current = weatherData.current;
@@ -202,12 +211,30 @@ export function EnergyConsistencyCard({
   );
 
   return (
-    <div className="glass-panel p-4 relative overflow-hidden flex flex-col justify-between">
+    <div
+      className={
+        isModal
+          ? 'rounded-xl border border-slate-200 dark:border-white/10 bg-slate-500/5 dark:bg-white/[0.04] px-4 py-3 relative overflow-hidden'
+          : 'glass-panel p-4 relative overflow-hidden flex flex-col justify-between'
+      }
+    >
       {/* Header */}
-      <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
-        <Zap size={11} className="mr-1.5 shrink-0 text-yellow-400" />
-        {t('energyCard.label', 'Energy')}
-      </h3>
+      {isModal ? (
+        <h3 className="text-[10px] font-medium tracking-widest mb-2 uppercase relative z-10 flex items-center justify-between text-slate-500 dark:text-white/50">
+          <span className="flex items-center">
+            <Zap size={11} className="mr-1.5 shrink-0 text-yellow-400" />
+            {t('energyCard.label', 'Energy')}
+          </span>
+          <span className="text-[9px] font-normal normal-case tracking-normal text-slate-400 dark:text-white/30">
+            {t('energyCard.notScored', 'Not a score factor')}
+          </span>
+        </h3>
+      ) : (
+        <h3 className="text-[10px] font-medium tracking-widest text-white/50 mb-2 uppercase relative z-10 flex items-center">
+          <Zap size={11} className="mr-1.5 shrink-0 text-yellow-400" />
+          {t('energyCard.label', 'Energy')}
+        </h3>
+      )}
 
       {/* Value block */}
       <div className="relative z-10 mt-1 flex flex-col gap-2">
@@ -226,7 +253,7 @@ export function EnergyConsistencyCard({
               <span className="text-lg ml-1 mb-1 font-medium text-white/20">kW/m</span>
             </div>
           )}
-          <p className="text-[10px] text-white/40 leading-tight">
+          <p className={isModal ? 'text-[10px] leading-tight text-slate-500 dark:text-white/40' : 'text-[10px] text-white/40 leading-tight'}>
             {t('energyCard.source', 'Wave energy flux')}
           </p>
         </div>
@@ -241,8 +268,8 @@ export function EnergyConsistencyCard({
         )}
       </div>
 
-      {/* Background icon */}
-      <Zap className="absolute bottom-2 right-3 text-white/5" size={48} />
+      {/* Background icon — dashboard flourish only; omitted in the tighter modal panel. */}
+      {!isModal && <Zap className="absolute bottom-2 right-3 text-white/5" size={48} />}
     </div>
   );
 }

@@ -159,6 +159,7 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
               weatherData={weatherData}
               coastalReading={coastalReading}
               currentHourIndex={currentHourIndex}
+              variant="modal"
             />
           </div>
         )}
