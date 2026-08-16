@@ -395,14 +395,35 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     beachgoer: ['beach'],
   };
   const FORECAST_TABS: ForecastTab[] = useMemo(
-    // Harden against the primaryPersona rename (Apr 2026): the onboarding
-    // flow can now write more specific sport keys ("wave_surfer") that
-    // aren't in PERSONA_TAB_MAP (which only has the four umbrella
-    // categories). When the map lookup returns `undefined`, fall back to
-    // the full tab set so the Dashboard doesn't crash with
-    // "Cannot read properties of undefined (reading 'includes')".
-    () => (persona ? (PERSONA_TAB_MAP[persona] ?? ALL_FORECAST_TABS) : ALL_FORECAST_TABS),
-    [persona]
+    // UNION-GATING (bugfix): show the primary persona's tabs PLUS a tab for every
+    // enabled SECONDARY activity (Alert Config → selectedActivities). Previously
+    // this read the primary onboarding persona ONLY, so a Surfer who added Dive
+    // (or Sailing) as a secondary activity never saw that carousel page — a general
+    // bug for ANY secondary activity outside the primary umbrella, not diver-only.
+    // Pure-primary output is unchanged: PERSONA_TAB_MAP lists are subsequences of
+    // ALL_FORECAST_TABS, so filtering by `wanted` preserves the same tabs + order.
+    //
+    // Also hardens against the primaryPersona rename (Apr 2026): a `persona` value
+    // absent from PERSONA_TAB_MAP falls back to the full tab set (never crashes).
+    () => {
+      const ACTIVITY_TO_TAB: Record<ActivityPersona, ForecastTab> = {
+        [ActivityPersona.WAVE_SURFER]: 'wave_surfer',
+        [ActivityPersona.WIND_SURFER]: 'wind_surfer',
+        [ActivityPersona.KITE_SURFER]: 'kite_surfer',
+        [ActivityPersona.BOOGIE_BOARDER]: 'boogie_boarder',
+        [ActivityPersona.SAILOR]: 'mariner',
+        [ActivityPersona.DIVER]: 'diver',
+        [ActivityPersona.BEACHGOER]: 'beach',
+      };
+      const primaryTabs = persona ? (PERSONA_TAB_MAP[persona] ?? ALL_FORECAST_TABS) : ALL_FORECAST_TABS;
+      const wanted = new Set<ForecastTab>([
+        ...primaryTabs,
+        ...selectedActivities.map((a) => ACTIVITY_TO_TAB[a]).filter(Boolean),
+      ]);
+      const tabs = ALL_FORECAST_TABS.filter((tab) => wanted.has(tab));
+      return tabs.length ? tabs : ALL_FORECAST_TABS;
+    },
+    [persona, selectedActivities]
   );
   // Ensure the active tab is always valid for the current persona
   useEffect(() => {
