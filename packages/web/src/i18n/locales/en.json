@@ -697,6 +697,19 @@
     "consistencyMessy": "Messy",
     "noConsistencyData": "Consistency unavailable"
   },
+  "surfaceExposure": {
+    "label": "Surface Swell Exposure",
+    "notScored": "Not a score factor",
+    "scopeNote": "Entry/exit & boat comfort — not the surge felt at depth",
+    "barCaption": "Surface exposure",
+    "basis": "{{height}} m · {{period}} s swell",
+    "levelCalm": "Calm",
+    "levelModerate": "Moderate",
+    "levelRough": "Rough",
+    "levelSevere": "Severe",
+    "unavailable": "Swell data unavailable",
+    "tooltip": "Relative exposure to surface swell, period-weighted from swell height & period (longer period carries more energy). Indicates entry/exit difficulty and boat comfort at the surface — NOT the orbital surge felt at depth, which depends on local water depth."
+  },
   "waveScale": {
     "flat": "Flat",
     "ankleHigh": "Ankle-high",

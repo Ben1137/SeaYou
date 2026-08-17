@@ -16,8 +16,10 @@
 import React, { useEffect, useState } from 'react';
 import { X, Lock, TrendingUp, Minus, TrendingDown } from 'lucide-react';
 import type { ActivityScore, ScoreFactor, MarineWeatherData } from '@seame/core';
+import { ActivityPersona } from '@seame/core';
 import { useTranslation } from 'react-i18next';
 import { EnergyConsistencyCard } from './EnergyConsistencyCard';
+import { SurfaceSwellExposureCard } from './SurfaceSwellExposureCard';
 import type { CoastalReading } from '../hooks/useCoastalReading';
 
 interface ScoreBreakdownModalProps {
@@ -33,6 +35,12 @@ interface ScoreBreakdownModalProps {
   coastalReading?: CoastalReading | null;
   /** Current hour index into weatherData.hourly arrays. */
   currentHourIndex?: number;
+  /**
+   * Selected activity persona. Used ONLY to pick the surface-conditions card:
+   * DIVER → SurfaceSwellExposureCard (honest surface exposure); every other
+   * persona → the unchanged surf EnergyConsistencyCard.
+   */
+  persona?: ActivityPersona | null;
 }
 
 /** Map each impact bucket to Tailwind text + background classes.
@@ -52,6 +60,7 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
   weatherData,
   coastalReading = null,
   currentHourIndex = 0,
+  persona = null,
 }) => {
   const { t } = useTranslation();
   const [toast, setToast] = useState<string | null>(null);
@@ -150,17 +159,25 @@ export const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
           )}
         </div>
 
-        {/* Energy + Consistency — reuses the dashboard card as-is.
-            Naming-collision-safe: the card computes temporalSteadiness (CoV) internally;
-            it never reads the ensemble hs_spread_m. */}
+        {/* Surface-conditions card.
+            DIVER/SNORKEL → honest SurfaceSwellExposureCard (surface swell exposure,
+            NOT bottom surge; inverted polarity; no steadiness bar). See
+            docs/phase-b/B6-diver-energy-card.md for the decision + physics ceiling.
+            Every OTHER persona → the surf EnergyConsistencyCard, UNCHANGED.
+            Naming-collision-safe: the energy card computes temporalSteadiness (CoV)
+            internally; it never reads the ensemble hs_spread_m. */}
         {weatherData && (
           <div className="px-4 pb-1">
-            <EnergyConsistencyCard
-              weatherData={weatherData}
-              coastalReading={coastalReading}
-              currentHourIndex={currentHourIndex}
-              variant="modal"
-            />
+            {persona === ActivityPersona.DIVER ? (
+              <SurfaceSwellExposureCard weatherData={weatherData} />
+            ) : (
+              <EnergyConsistencyCard
+                weatherData={weatherData}
+                coastalReading={coastalReading}
+                currentHourIndex={currentHourIndex}
+                variant="modal"
+              />
+            )}
           </div>
         )}
 

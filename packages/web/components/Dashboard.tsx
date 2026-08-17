@@ -812,6 +812,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             weatherData={weatherData}
             coastalReading={coastalReading}
             currentHourIndex={currentHourIndex}
+            persona={breakdownPersona}
           />
         );
       })()}
