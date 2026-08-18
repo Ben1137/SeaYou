@@ -88,6 +88,25 @@ export interface CoastalReading {
  * Derive H0, T following the map's exact input policy.
  * Exported so Dashboard can call it directly without the hook overhead.
  */
+/**
+ * MODAL PARTITION CAVEAT (measured P6.2.15, 2026-07-25):
+ *
+ * Open-Meteo's `swell_wave_height` is a modal estimate, NOT an energy-conserving partition.
+ * Verified: sqrt(swell_wave_height² + wind_wave_height²) misses the provider's own `wave_height`
+ * (total) by a mean of 0.06–0.25 m and up to 1.56 m at individual timesteps across 9 measured
+ * locations. The partition is internally inconsistent with the total.
+ *
+ * Consequence: when `swellHeight > SWELL_FLOOR` (which is 100% of hours at all measured ocean
+ * spots), production displays and computes with a modal swell estimate whose physical meaning is
+ * provider-defined and not comparable to buoy total-Hs measurements.
+ *
+ * OPEN PRODUCT DECISION: swell vs total H0 is not a calibration choice — it is a product choice
+ * about what the user should see. Surfers want swell height; mariners and beachgoers want total
+ * sea state. The persona routing could express this distinction explicitly.
+ *
+ * This comment does NOT change any behaviour. It documents a measurement result so it is visible
+ * to product-facing code rather than buried in a gitignored calibration report.
+ */
 export function deriveSwellInputs(c: CoastalReadingInputs): { H0: number; T: number } {
   const swDominant = c.swellHeight > SWELL_FLOOR;
   const H0 = swDominant ? c.swellHeight : c.waveHeight;
