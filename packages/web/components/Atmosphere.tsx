@@ -323,13 +323,95 @@ const Atmosphere: React.FC<AtmosphereProps> = ({ weatherData }) => {
         </div>
       </div>
 
-      {/* --- 16-DAY FORECAST --- */}
+      {/* --- DAILY FORECAST (PAST + FUTURE) --- */}
       <div className="glass-panel p-4">
         <h2 className="text-xs font-bold text-white/60 uppercase mb-3 flex items-center gap-2">
-          <Calendar size={14} className="text-teal-400" /> {t('atmosphere.dailyForecast')}
+          <Calendar size={14} className="text-teal-400" /> {t('atmosphere.forecast')}
         </h2>
 
         <div className="space-y-1">
+          {/* PAST SECTION (when available) */}
+          {general.dailyPast && general.dailyPast.length > 0 && (
+            <>
+              {/* Past label and divider */}
+              <div className="py-2 px-1 mb-2">
+                <p className="text-[10px] text-white/30 uppercase font-bold tracking-wide">Past 3 days</p>
+              </div>
+
+              {/* Past forecast rows - dimmed */}
+              {general.dailyPast.map((day: DailyForecastItem, index: number) => {
+                const lowPercent = ((day.tempMin - minTempRange) / tempRangeSpan) * 100;
+                const highPercent = ((day.tempMax - minTempRange) / tempRangeSpan) * 100;
+                const barWidth = highPercent - lowPercent;
+
+                const getBarColor = () => {
+                  const avgTemp = (day.tempMin + day.tempMax) / 2;
+                  if (avgTemp < 15) return 'from-teal-400 to-blue-500';
+                  return 'from-yellow-400 to-orange-500';
+                };
+
+                // Parse date to show "Sat 16" format (weekday + day-of-month)
+                const dayDate = parseISO(day.time);
+                const dayNameShort = format(dayDate, 'EEE');
+                const dayOfMonth = format(dayDate, 'd');
+
+                return (
+                  <div
+                    key={day.time}
+                    className="flex items-center justify-between text-xs py-2 border-b border-white/5 opacity-55"
+                  >
+                    {/* Day Name + Date */}
+                    <div className="w-12 text-xs text-white/60 font-medium">
+                      {dayNameShort} {dayOfMonth}
+                    </div>
+
+                    {/* Weather Icon */}
+                    <div className="w-7 flex justify-center">
+                      {getWeatherIcon(day.code, true, 18)}
+                    </div>
+
+                    {/* Precipitation probability */}
+                    <div className="w-9 text-right">
+                      {day.precipitationProbability > 0 ? (
+                        <span className="text-[10px] text-blue-400 font-medium">
+                          {day.precipitationProbability}%
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-transparent">0%</span>
+                      )}
+                    </div>
+
+                    {/* Low Temp */}
+                    <div className="w-7 text-right text-[11px] text-white/30">
+                      {Math.round(day.tempMin)}°
+                    </div>
+
+                    {/* Temperature Bar */}
+                    <div className="flex-1 h-1 glass-inner rounded-full relative overflow-hidden mx-2">
+                      <div
+                        className={`absolute h-full rounded-full bg-gradient-to-r ${getBarColor()}`}
+                        style={{
+                          left: `${lowPercent}%`,
+                          width: `${Math.max(barWidth, 5)}%`,
+                          opacity: 0.7
+                        }}
+                      />
+                    </div>
+
+                    {/* High Temp */}
+                    <div className="w-7 text-left text-[11px] text-white/60 font-medium">
+                      {Math.round(day.tempMax)}°
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Divider between past and forecast */}
+              <div className="h-px bg-gradient-to-r from-white/0 via-white/20 to-white/0 my-1" />
+            </>
+          )}
+
+          {/* FORECAST SECTION (always present) */}
           {general.dailyForecast.map((day: DailyForecastItem, index: number) => {
             // Calculate bar position for temperature range
             const lowPercent = ((day.tempMin - minTempRange) / tempRangeSpan) * 100;
