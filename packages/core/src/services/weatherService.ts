@@ -159,19 +159,34 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
       windGusts: hourly.wind_gusts_10m?.[currentHourIndex + i] || 0
     })) || [];
 
-    // Build 10-day daily forecast with extended data
-    const dailyForecast = daily.time?.slice(0, 10).map((t: string, i: number) => ({
-      time: t,
-      code: daily.weather_code?.[i] || 0,
-      tempMax: daily.temperature_2m_max?.[i] || 0,
-      tempMin: daily.temperature_2m_min?.[i] || 0,
-      sunrise: daily.sunrise?.[i] || '',
-      sunset: daily.sunset?.[i] || '',
-      precipitationProbability: daily.precipitation_probability_max?.[i] || 0,
-      precipitationSum: daily.precipitation_sum?.[i] || 0,
-      uvIndexMax: daily.uv_index_max?.[i] || 0,
-      windSpeedMax: daily.wind_speed_10m_max?.[i] || 0
-    })) || [];
+    // Calculate today's index in the daily arrays
+    // When timezone='auto', API returns times in local timezone (e.g., "2026-01-21")
+    // Parse the local date (YYYY-MM-DD) and find its index
+    const nowLocalDate = `${currentYear}-${currentMonth}-${currentDay}`;
+    let todayDailyIndex = daily.time?.findIndex((t: string) => t.startsWith(nowLocalDate)) ?? 0;
+    if (todayDailyIndex < 0) todayDailyIndex = 0; // explicit guard for -1 return value
+
+    // Reusable daily builder (index-safe, anchor-relative)
+    // Used for today's 10-day forecast and (later) past data
+    const buildDaily = (startIdx: number, endIdx: number) =>
+      daily.time?.slice(startIdx, endIdx).map((t: string, i: number) => {
+        const idx = startIdx + i;
+        return {
+          time: t,
+          code: daily.weather_code?.[idx] || 0,
+          tempMax: daily.temperature_2m_max?.[idx] || 0,
+          tempMin: daily.temperature_2m_min?.[idx] || 0,
+          sunrise: daily.sunrise?.[idx] || '',
+          sunset: daily.sunset?.[idx] || '',
+          precipitationProbability: daily.precipitation_probability_max?.[idx] || 0,
+          precipitationSum: daily.precipitation_sum?.[idx] || 0,
+          uvIndexMax: daily.uv_index_max?.[idx] || 0,
+          windSpeedMax: daily.wind_speed_10m_max?.[idx] || 0
+        };
+      }) || [];
+
+    // Build 10-day daily forecast anchored to today
+    const dailyForecast = buildDaily(todayDailyIndex, todayDailyIndex + 10);
 
     const general: GeneralWeather = {
       temperature: current.temperature_2m || 0,
