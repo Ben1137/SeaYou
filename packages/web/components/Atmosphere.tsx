@@ -407,7 +407,7 @@ const Atmosphere: React.FC<AtmosphereProps> = ({ weatherData }) => {
               })}
 
               {/* Divider between past and forecast */}
-              <div className="h-px bg-gradient-to-r from-white/0 via-white/20 to-white/0 my-1" />
+              <div className="h-0.5 bg-gradient-to-r from-white/0 via-white/40 to-white/0 my-2" />
             </>
           )}
 
