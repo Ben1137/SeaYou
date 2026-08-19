@@ -593,6 +593,7 @@ export function buildMarineParams(
   lng: number,
   options: {
     forecastDays?: number;
+    pastDays?: number;
     model?: string;
     includeDaily?: boolean;
     includeCurrent?: boolean;
@@ -600,6 +601,7 @@ export function buildMarineParams(
 ): URLSearchParams {
   const {
     forecastDays = 7,
+    pastDays = 0,
     model,
     includeDaily = true,
     includeCurrent = true
@@ -616,6 +618,10 @@ export function buildMarineParams(
     models: selectedModel,
     cell_selection: 'sea' // Best practice: prioritize ocean cells for marine data
   });
+
+  if (pastDays > 0) {
+    params.set('past_days', pastDays.toString());
+  }
 
   if (includeDaily) {
     params.set('daily', API_PARAMS.marine.daily);
@@ -636,6 +642,7 @@ export function buildForecastParams(
   lng: number,
   options: {
     forecastDays?: number;
+    pastDays?: number;
     model?: string;
     includeDaily?: boolean;
     includeCurrent?: boolean;
@@ -644,6 +651,7 @@ export function buildForecastParams(
 ): URLSearchParams {
   const {
     forecastDays = 7,
+    pastDays = 0,
     model,
     includeDaily = true,
     includeCurrent = true,
@@ -661,6 +669,10 @@ export function buildForecastParams(
     models: selectedModel,
     cell_selection: cellSelection
   });
+
+  if (pastDays > 0) {
+    params.set('past_days', pastDays.toString());
+  }
 
   if (includeDaily) {
     params.set('daily', API_PARAMS.forecast.daily);
