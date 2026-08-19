@@ -126,6 +126,7 @@ export interface GeneralWeather {
   pressure: number;
   visibility: number;
   dailyForecast: DailyForecastItem[];
+  dailyPast: DailyForecastItem[];
   hourlyForecast: HourlyForecastItem[];
 }
 

@@ -87,6 +87,16 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
       cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
+    // Feature flag: Historical timeline (3 days of past weather)
+    // Set VITE_FEATURE_ATMOSPHERE_TIMELINE=true in Vercel env to enable
+    // This is evaluated in the web package where import.meta.env is available
+    const TIMELINE_ON = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_FEATURE_ATMOSPHERE_TIMELINE === 'true';
+
+    if (TIMELINE_ON) {
+      marineParams.set('past_days', '3');
+      generalParams.set('past_days', '3');
+    }
+
     // Run both fetches concurrently. Marine API returns 400 for inland locations
     // (no ocean grid cells) — treat that as a graceful null so terrestrial data
     // still resolves and the location change completes.
@@ -188,6 +198,12 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
     // Build 10-day daily forecast anchored to today
     const dailyForecast = buildDaily(todayDailyIndex, todayDailyIndex + 10);
 
+    // Past daily data (only populated when feature flag is ON)
+    // Slice the 3 days prior to today, or fewer if unavailable
+    const dailyPast = TIMELINE_ON
+      ? buildDaily(Math.max(0, todayDailyIndex - 3), todayDailyIndex)
+      : [];
+
     const general: GeneralWeather = {
       temperature: current.temperature_2m || 0,
       feelsLike: current.apparent_temperature || 0,
@@ -206,6 +222,7 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
       pressure: current.surface_pressure || 0,
       visibility: current.visibility || 0,
       dailyForecast,
+      dailyPast,
       hourlyForecast
     };
 
