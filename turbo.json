@@ -3,7 +3,17 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", "build/**"]
+      "outputs": ["dist/**", "build/**"],
+      "env": [
+        "VITE_USE_WEBGL_MAP",
+        "VITE_SUPABASE_URL",
+        "VITE_SUPABASE_ANON_KEY",
+        "VITE_GOOGLE_PLACES_API_KEY",
+        "VITE_ONESIGNAL_APP_ID",
+        "VITE_PWA_BASE",
+        "VITE_LINZ_API_KEY",
+        "VITE_MAPTILER_KEY"
+      ]
     },
     "dev": {
       "cache": false,
