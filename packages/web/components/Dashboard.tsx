@@ -167,13 +167,30 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
     const data = weatherData.hourly.time.slice(start, end).map((time, i) => {
       const gi = start + i;
+      const waveHeight = weatherData.hourly.wave_height?.[gi] || 0;
+      const wavePeriod = weatherData.hourly.wave_period?.[gi] || 0;
+      const swellHeight = weatherData.hourly.swell_wave_height?.[gi] || 0;
+      const swellPeriod = weatherData.hourly.swell_wave_period?.[gi] || 0;
+
+      // Flag ON: split into past/future series (with overlap at seam for continuous line)
+      // Past: indices 0..nowOffsetInSlice, Future: indices nowOffsetInSlice..end
+      const isPast = i < nowOffsetInSlice;
+      const isNow = i === nowOffsetInSlice;
+
       return {
         time, displayTime: format(parseISO(time), 'HH:mm'),
-        waveHeight: weatherData.hourly.wave_height?.[gi] || 0,
+        // Flag OFF uses original keys (never read when flag is ON, so no overhead)
+        waveHeight, wavePeriod, swellHeight, swellPeriod,
         windSpeed: weatherData.hourly.wind_speed_10m?.[gi] || 0,
-        swellHeight: weatherData.hourly.swell_wave_height?.[gi] || 0,
-        wavePeriod: weatherData.hourly.wave_period?.[gi] || 0,
-        swellPeriod: weatherData.hourly.swell_wave_period?.[gi] || 0,
+        // Flag ON uses split keys: past series get values, future series get null until seam; future series get values at seam onwards
+        waveHeightPast: isPast || isNow ? waveHeight : null,
+        wavePeriodPast: isPast || isNow ? wavePeriod : null,
+        swellHeightPast: isPast || isNow ? swellHeight : null,
+        swellPeriodPast: isPast || isNow ? swellPeriod : null,
+        waveHeightFuture: isNow || !isPast ? waveHeight : null,
+        wavePeriodFuture: isNow || !isPast ? wavePeriod : null,
+        swellHeightFuture: isNow || !isPast ? swellHeight : null,
+        swellPeriodFuture: isNow || !isPast ? swellPeriod : null,
       };
     });
 
@@ -1064,7 +1081,40 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <Waves size={28} />
               <p className="text-xs text-center">{t('forecast.noTideData', 'No tide data available for this location')}</p>
             </div>
+          ) : MARINE_TIMELINE_ON ? (
+            // Flag ON: 144h two-series chart (prepared for scroll in STEP 3)
+            <div style={{ width: '100%', height: '100%', minHeight: 256 }}>
+              <div style={{ width: 'fit-content', minWidth: '100%', height: '100%' }}>
+                <ComposedChart data={chartData} width={Math.max(800, chartData.length * 20)} height={256}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                  <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
+                  <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} labelStyle={{ color: 'rgba(255,255,255,0.6)' }} />
+                  {activeGraph === 'wave' ? (
+                    <>
+                      {/* Past data: reduced opacity, desaturated */}
+                      <Area yAxisId="left" type="monotone" dataKey="waveHeightPast" stroke="rgba(59, 130, 246, 0.4)" fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.15} strokeWidth={2} connectNulls={false} name={t('weather.waveHeight') + ' (' + t('forecast.past', 'Past') + ')'} />
+                      <Line yAxisId="right" type="monotone" dataKey="wavePeriodPast" stroke="rgba(250, 204, 21, 0.4)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod') + ' (' + t('forecast.past', 'Past') + ')'} />
+                      {/* Future data: full vibrancy */}
+                      <Area yAxisId="left" type="monotone" dataKey="waveHeightFuture" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} connectNulls={false} name={t('weather.waveHeight')} />
+                      <Line yAxisId="right" type="monotone" dataKey="wavePeriodFuture" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod')} />
+                    </>
+                  ) : (
+                    <>
+                      {/* Past data: reduced opacity, desaturated */}
+                      <Area yAxisId="left" type="monotone" dataKey="swellHeightPast" stroke="rgba(59, 130, 246, 0.4)" fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.15} strokeWidth={2} connectNulls={false} name={t('weather.swellHeight') + ' (' + t('forecast.past', 'Past') + ')'} />
+                      <Line yAxisId="right" type="monotone" dataKey="swellPeriodPast" stroke="rgba(250, 204, 21, 0.4)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod') + ' (' + t('forecast.past', 'Past') + ')'} />
+                      {/* Future data: full vibrancy */}
+                      <Area yAxisId="left" type="monotone" dataKey="swellHeightFuture" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} connectNulls={false} name={t('weather.swellHeight')} />
+                      <Line yAxisId="right" type="monotone" dataKey="swellPeriodFuture" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod')} />
+                    </>
+                  )}
+                </ComposedChart>
+              </div>
+            </div>
           ) : (
+            // Flag OFF: Original 24h single-series chart (pixel-identical to prod)
             <div style={{ width: '100%', height: '100%', minHeight: 256 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               {activeGraph === 'tide' ? (
