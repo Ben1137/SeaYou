@@ -68,6 +68,13 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
       marineParams.set('minutely_15', 'ocean_current_velocity,ocean_current_direction');
     }
 
+    // Feature flags: Historical timeline (3 days of past weather)
+    // Set VITE_FEATURE_ATMOSPHERE_TIMELINE=true for atmospheric data (wind, temp, pressure)
+    // Set VITE_FEATURE_MARINE_TIMELINE=true for marine data (wave, swell, sea temp)
+    // These are evaluated in the web package where import.meta.env is available
+    const ATMOSPHERE_TIMELINE_ON = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_FEATURE_ATMOSPHERE_TIMELINE === 'true';
+    const MARINE_TIMELINE_ON = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_FEATURE_MARINE_TIMELINE === 'true';
+
     // FORECAST API: Fetch atmospheric data (Wind, Temp, Pressure)
     // Best Practices Applied:
     // - cell_selection: 'land' for coastal/land data accuracy
@@ -75,15 +82,11 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
     // - Geolocation-based model selection for optimal resolution
     // - Extended hourly data for 24-hour forecast display
     // - Extended daily data for 10-day forecast display
-    // Feature flag: Historical timeline (3 days of past weather)
-    // Set VITE_FEATURE_ATMOSPHERE_TIMELINE=true in Vercel env to enable
-    // This is evaluated in the web package where import.meta.env is available
-    const TIMELINE_ON = typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_FEATURE_ATMOSPHERE_TIMELINE === 'true';
 
     // Gate forecast_days by feature flag:
     // - FLAG ON: forecast_days=12 (with past_days=3, API returns 15 total: 3 past + 12 forecast)
     // - FLAG OFF: forecast_days=10 (production default, no past_days)
-    const forecastDays = TIMELINE_ON ? '12' : WEATHER_CONSTANTS.FORECAST_DAYS.toString();
+    const forecastDays = ATMOSPHERE_TIMELINE_ON ? '12' : WEATHER_CONSTANTS.FORECAST_DAYS.toString();
 
     const generalParams = new URLSearchParams({
       latitude: lat.toString(),
@@ -97,8 +100,11 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
       cell_selection: WEATHER_CONSTANTS.LAND_CELL_SELECTION
     });
 
-    if (TIMELINE_ON) {
+    // Gate past_days by separate feature flags for marine and atmospheric data
+    if (MARINE_TIMELINE_ON) {
       marineParams.set('past_days', '3');
+    }
+    if (ATMOSPHERE_TIMELINE_ON) {
       generalParams.set('past_days', '3');
     }
 
@@ -203,12 +209,12 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
     // Build daily forecast anchored to today
     // - FLAG ON: 11 rows (today + 10 ahead), paired with 3 past days
     // - FLAG OFF: 10 rows (today + 9 ahead), no past days — production default
-    const forecastRowCount = TIMELINE_ON ? 11 : 10;
+    const forecastRowCount = ATMOSPHERE_TIMELINE_ON ? 11 : 10;
     const dailyForecast = buildDaily(todayDailyIndex, todayDailyIndex + forecastRowCount);
 
     // Past daily data (only populated when feature flag is ON)
     // Slice the 3 days prior to today, or fewer if unavailable
-    const dailyPast = TIMELINE_ON
+    const dailyPast = ATMOSPHERE_TIMELINE_ON
       ? buildDaily(Math.max(0, todayDailyIndex - 3), todayDailyIndex)
       : [];
 
