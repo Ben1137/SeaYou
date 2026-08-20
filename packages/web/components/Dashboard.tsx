@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey, beachgoerSafetyLabel } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
@@ -80,6 +80,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   // Marine timeline feature flag: when enabled, expands chart to show 72h past + 72h future
   const MARINE_TIMELINE_ON = import.meta.env.VITE_FEATURE_MARINE_TIMELINE === 'true';
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'boogie_boarder' | 'diver' | 'beach';
@@ -167,30 +168,38 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
     const data = weatherData.hourly.time.slice(start, end).map((time, i) => {
       const gi = start + i;
+      // Flag OFF: coerce missing data to 0 (production behavior, unchanged)
       const waveHeight = weatherData.hourly.wave_height?.[gi] || 0;
       const wavePeriod = weatherData.hourly.wave_period?.[gi] || 0;
       const swellHeight = weatherData.hourly.swell_wave_height?.[gi] || 0;
       const swellPeriod = weatherData.hourly.swell_wave_period?.[gi] || 0;
 
+      // Flag ON: preserve nulls for graceful connectNulls={false} breaks
+      const rawWaveH = weatherData.hourly.wave_height?.[gi] ?? null;
+      const rawWaveP = weatherData.hourly.wave_period?.[gi] ?? null;
+      const rawSwellH = weatherData.hourly.swell_wave_height?.[gi] ?? null;
+      const rawSwellP = weatherData.hourly.swell_wave_period?.[gi] ?? null;
+
       // Flag ON: split into past/future series (with overlap at seam for continuous line)
-      // Past: indices 0..nowOffsetInSlice, Future: indices nowOffsetInSlice..end
+      // Past: indices 0..nowOffsetInSlice (inclusive), Future: indices nowOffsetInSlice..end
+      // Seam point (i === nowOffsetInSlice) appears in BOTH series for clean handoff
       const isPast = i < nowOffsetInSlice;
-      const isNow = i === nowOffsetInSlice;
 
       return {
         time, displayTime: format(parseISO(time), 'HH:mm'),
-        // Flag OFF uses original keys (never read when flag is ON, so no overhead)
+        // Flag OFF uses original keys with 0 coercion (never read when flag is ON, so no overhead)
         waveHeight, wavePeriod, swellHeight, swellPeriod,
         windSpeed: weatherData.hourly.wind_speed_10m?.[gi] || 0,
-        // Flag ON uses split keys: past series get values, future series get null until seam; future series get values at seam onwards
-        waveHeightPast: isPast || isNow ? waveHeight : null,
-        wavePeriodPast: isPast || isNow ? wavePeriod : null,
-        swellHeightPast: isPast || isNow ? swellHeight : null,
-        swellPeriodPast: isPast || isNow ? swellPeriod : null,
-        waveHeightFuture: isNow || !isPast ? waveHeight : null,
-        wavePeriodFuture: isNow || !isPast ? wavePeriod : null,
-        swellHeightFuture: isNow || !isPast ? swellHeight : null,
-        swellPeriodFuture: isNow || !isPast ? swellPeriod : null,
+        // Flag ON uses split keys: preserve nulls so connectNulls={false} can break on gaps
+        // Seam overlap: nowOffsetInSlice included in BOTH past and future
+        waveHeightPast: (isPast || i === nowOffsetInSlice) ? rawWaveH : null,
+        wavePeriodPast: (isPast || i === nowOffsetInSlice) ? rawWaveP : null,
+        swellHeightPast: (isPast || i === nowOffsetInSlice) ? rawSwellH : null,
+        swellPeriodPast: (isPast || i === nowOffsetInSlice) ? rawSwellP : null,
+        waveHeightFuture: !isPast ? rawWaveH : null,
+        wavePeriodFuture: !isPast ? rawWaveP : null,
+        swellHeightFuture: !isPast ? rawSwellH : null,
+        swellPeriodFuture: !isPast ? rawSwellP : null,
       };
     });
 
@@ -467,6 +476,16 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       setForecastTab(FORECAST_TABS[0]);
     }
   }, [FORECAST_TABS, forecastTab]);
+
+  // Flag ON: scroll chart so "now" sits left-of-center on mount
+  useEffect(() => {
+    if (!MARINE_TIMELINE_ON || !scrollContainerRef.current || chartData.length === 0) return;
+    const nowOffsetIndex = (chartData as any).nowOffsetIndex ?? 0;
+    // Each hour is ~20px wide; scroll so ~6h (120px) of past is visible left of center
+    const scrollPos = Math.max(0, nowOffsetIndex * 20 - 120);
+    scrollContainerRef.current.scrollLeft = scrollPos;
+  }, [MARINE_TIMELINE_ON, chartData]);
+
   const handleNextTab = () => {
     if (FORECAST_TABS.length === 0) return;
     const idx = FORECAST_TABS.indexOf(forecastTab);
@@ -1082,36 +1101,34 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <p className="text-xs text-center">{t('forecast.noTideData', 'No tide data available for this location')}</p>
             </div>
           ) : MARINE_TIMELINE_ON ? (
-            // Flag ON: 144h two-series chart (prepared for scroll in STEP 3)
-            <div style={{ width: '100%', height: '100%', minHeight: 256 }}>
-              <div style={{ width: 'fit-content', minWidth: '100%', height: '100%' }}>
-                <ComposedChart data={chartData} width={Math.max(800, chartData.length * 20)} height={256}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                  <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
-                  <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} labelStyle={{ color: 'rgba(255,255,255,0.6)' }} />
-                  {activeGraph === 'wave' ? (
-                    <>
-                      {/* Past data: reduced opacity, desaturated */}
-                      <Area yAxisId="left" type="monotone" dataKey="waveHeightPast" stroke="rgba(59, 130, 246, 0.4)" fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.15} strokeWidth={2} connectNulls={false} name={t('weather.waveHeight') + ' (' + t('forecast.past', 'Past') + ')'} />
-                      <Line yAxisId="right" type="monotone" dataKey="wavePeriodPast" stroke="rgba(250, 204, 21, 0.4)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod') + ' (' + t('forecast.past', 'Past') + ')'} />
-                      {/* Future data: full vibrancy */}
-                      <Area yAxisId="left" type="monotone" dataKey="waveHeightFuture" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} connectNulls={false} name={t('weather.waveHeight')} />
-                      <Line yAxisId="right" type="monotone" dataKey="wavePeriodFuture" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod')} />
-                    </>
-                  ) : (
-                    <>
-                      {/* Past data: reduced opacity, desaturated */}
-                      <Area yAxisId="left" type="monotone" dataKey="swellHeightPast" stroke="rgba(59, 130, 246, 0.4)" fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.15} strokeWidth={2} connectNulls={false} name={t('weather.swellHeight') + ' (' + t('forecast.past', 'Past') + ')'} />
-                      <Line yAxisId="right" type="monotone" dataKey="swellPeriodPast" stroke="rgba(250, 204, 21, 0.4)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod') + ' (' + t('forecast.past', 'Past') + ')'} />
-                      {/* Future data: full vibrancy */}
-                      <Area yAxisId="left" type="monotone" dataKey="swellHeightFuture" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} connectNulls={false} name={t('weather.swellHeight')} />
-                      <Line yAxisId="right" type="monotone" dataKey="swellPeriodFuture" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod')} />
-                    </>
-                  )}
-                </ComposedChart>
-              </div>
+            // Flag ON: 144h two-series chart with scroll anchoring at "now"
+            <div style={{ width: '100%', height: '100%', minHeight: 256, overflowX: 'auto' }} ref={scrollContainerRef}>
+              <ComposedChart data={chartData} width={Math.max(800, chartData.length * 20)} height={256}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
+                <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
+                <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
+                <Tooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)' }} itemStyle={{ color: '#fff' }} labelStyle={{ color: 'rgba(255,255,255,0.6)' }} />
+                {activeGraph === 'wave' ? (
+                  <>
+                    {/* Past data: reduced opacity, desaturated */}
+                    <Area yAxisId="left" type="monotone" dataKey="waveHeightPast" stroke="rgba(59, 130, 246, 0.4)" fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.15} strokeWidth={2} connectNulls={false} name={t('weather.waveHeight') + ' (' + t('forecast.past', 'Past') + ')'} />
+                    <Line yAxisId="right" type="monotone" dataKey="wavePeriodPast" stroke="rgba(250, 204, 21, 0.4)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod') + ' (' + t('forecast.past', 'Past') + ')'} />
+                    {/* Future data: full vibrancy */}
+                    <Area yAxisId="left" type="monotone" dataKey="waveHeightFuture" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} connectNulls={false} name={t('weather.waveHeight')} />
+                    <Line yAxisId="right" type="monotone" dataKey="wavePeriodFuture" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod')} />
+                  </>
+                ) : (
+                  <>
+                    {/* Past data: reduced opacity, desaturated */}
+                    <Area yAxisId="left" type="monotone" dataKey="swellHeightPast" stroke="rgba(59, 130, 246, 0.4)" fill="rgba(59, 130, 246, 0.15)" fillOpacity={0.15} strokeWidth={2} connectNulls={false} name={t('weather.swellHeight') + ' (' + t('forecast.past', 'Past') + ')'} />
+                    <Line yAxisId="right" type="monotone" dataKey="swellPeriodPast" stroke="rgba(250, 204, 21, 0.4)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod') + ' (' + t('forecast.past', 'Past') + ')'} />
+                    {/* Future data: full vibrancy */}
+                    <Area yAxisId="left" type="monotone" dataKey="swellHeightFuture" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2} connectNulls={false} name={t('weather.swellHeight')} />
+                    <Line yAxisId="right" type="monotone" dataKey="swellPeriodFuture" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod')} />
+                  </>
+                )}
+              </ComposedChart>
             </div>
           ) : (
             // Flag OFF: Original 24h single-series chart (pixel-identical to prod)
