@@ -77,6 +77,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, resetDismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
+
+  // Marine timeline feature flag: when enabled, expands chart to show 72h past + 72h future
+  const MARINE_TIMELINE_ON = import.meta.env.VITE_FEATURE_MARINE_TIMELINE === 'true';
+
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'boogie_boarder' | 'diver' | 'beach';
   const [forecastTab, setForecastTab] = useState<ForecastTab>('mariner');
@@ -150,9 +154,18 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
   const chartData = useMemo(() => {
     if (!weatherData?.hourly?.time) return [];
-    const start = currentHourIndex;
-    const end = Math.min(start + 24, weatherData.hourly.time.length);
-    return weatherData.hourly.time.slice(start, end).map((time, i) => {
+
+    // Flag OFF: 24-hour window from now (production behavior)
+    // Flag ON:  144-hour window: 72h before now to 72h after now (marine timeline)
+    const start = MARINE_TIMELINE_ON ? Math.max(0, currentHourIndex - 72) : currentHourIndex;
+    const end = MARINE_TIMELINE_ON
+      ? Math.min(currentHourIndex + 72, weatherData.hourly.time.length)
+      : Math.min(currentHourIndex + 24, weatherData.hourly.time.length);
+
+    // Calculate "now" offset within the sliced array (for Phase 2 past/future split)
+    const nowOffsetInSlice = currentHourIndex - start;
+
+    const data = weatherData.hourly.time.slice(start, end).map((time, i) => {
       const gi = start + i;
       return {
         time, displayTime: format(parseISO(time), 'HH:mm'),
@@ -163,7 +176,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         swellPeriod: weatherData.hourly.swell_wave_period?.[gi] || 0,
       };
     });
-  }, [weatherData, currentHourIndex]);
+
+    // Expose the "now" offset for Phase 2 (past/future divider rendering)
+    (data as any).nowOffsetIndex = nowOffsetInSlice;
+
+    return data;
+  }, [weatherData, currentHourIndex, MARINE_TIMELINE_ON]);
 
   const tideChartData = useMemo(() => {
     if (!weatherData?.tides) return [];
