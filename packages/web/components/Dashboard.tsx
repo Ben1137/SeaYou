@@ -78,18 +78,17 @@ const getWeatherConditionKey = (code: number): string => {
 const MarineTimelineTooltip: React.FC<any> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
-  if (!point || !point.time) return null;
+  if (!point || typeof point.time !== 'string') return null;
 
-  const pointDate = parseISO(point.time);
-  const nowDate = new Date();
-  const isSameDay = pointDate.toDateString() === nowDate.toDateString();
-  const timeLabel = isSameDay
-    ? format(pointDate, "'Today, 'HH:mm")
-    : format(pointDate, 'EEE d MMM, HH:mm');
+  const d = parseISO(point.time);
+  const today = new Date();
+  const title = d.toDateString() === today.toDateString()
+    ? format(d, "'Today, 'HH:mm")
+    : format(d, 'EEE d MMM, HH:mm');
 
   return (
     <div style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)', padding: '8px 12px' }}>
-      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{timeLabel}</p>
+      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{title}</p>
       {payload.map((entry: any, i: number) => (
         entry.value !== null && (
           <p key={i} style={{ color: entry.color || '#fff', fontSize: '13px', margin: '4px 0 0 0' }}>
@@ -270,30 +269,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     }));
   }, [weatherData]);
 
-  // DEBUG: Test tooltip formatting on actual chartData (flag-ON marine chart only)
-  const debugTooltipOutput = useMemo(() => {
-    if (!MARINE_TIMELINE_ON || chartData.length < 3) return [];
-    const nowOffsetIndex = (chartData as any).nowOffsetIndex ?? 0;
-    const formatTooltip = (point: any) => {
-      if (!point?.time) return 'N/A';
-      const pointDate = parseISO(point.time);
-      const nowDate = new Date();
-      const isSameDay = pointDate.toDateString() === nowDate.toDateString();
-      return isSameDay
-        ? format(pointDate, "'Today, 'HH:mm")
-        : format(pointDate, 'EEE d MMM, HH:mm');
-    };
-    const first = formatTooltip(chartData[0]);
-    const now = formatTooltip(chartData[nowOffsetIndex]);
-    const last = formatTooltip(chartData[chartData.length - 1]);
-
-    console.log('[Marine Timeline Tooltip Test]');
-    console.log(`  First (oldest):  ${first}`);
-    console.log(`  Now (index ${nowOffsetIndex}):  ${now}`);
-    console.log(`  Last (furthest): ${last}`);
-
-    return [first, now, last];
-  }, [chartData, MARINE_TIMELINE_ON]);
 
   const currentConditions = useMemo(() => {
     if (!weatherData?.current) return null;
@@ -1184,15 +1159,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           )}
         </div>
 
-        {/* DEBUG: Show tooltip test output for marine timeline */}
-        {MARINE_TIMELINE_ON && debugTooltipOutput.length > 0 && (
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(0,0,0,0.3)', padding: '6px 8px', borderRadius: '4px', marginBottom: '8px', fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.2)' }}>
-            <div>Tooltip Test (hover left/middle/right to verify dates advance):</div>
-            <div>• First: {debugTooltipOutput[0]}</div>
-            <div>• Now: {debugTooltipOutput[1]}</div>
-            <div>• Last: {debugTooltipOutput[2]}</div>
-          </div>
-        )}
 
         <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-[256px]' : 'h-64'}`}>
           {/* Tide tab: show empty state when sea_level_height_msl has no data (inland locations) */}
@@ -1203,22 +1169,18 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             </div>
           ) : MARINE_TIMELINE_ON ? (
             // Flag ON: 144h single-series chart with ReferenceArea muting past region
-            <div style={{ width: '100%', height: '100%', minHeight: 256, overflowX: 'auto' }} ref={scrollContainerRef}>
-              {(() => {
-                const nowOffsetIndex = (chartData as any).nowOffsetIndex ?? 0;
-                const nowDisplayTime = chartData[nowOffsetIndex]?.displayTime ?? '';
-                const pastEndTime = chartData[0]?.displayTime ?? '';
-                return (
-                  <ComposedChart data={chartData} width={Math.max(800, chartData.length * 20)} height={256}>
+            <div ref={scrollContainerRef} style={{ width: '100%', height: '100%', minHeight: 256 }}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ComposedChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                     <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} tick={(props) => <MarineXAxisTick {...props} data={chartData} />} interval={Math.max(0, Math.floor(chartData.length / 16) - 1)} />
                     <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
                     <Tooltip content={<MarineTimelineTooltip />} />
                     {/* ReferenceArea overlay: grey slate wash over past region for clear muting effect */}
-                    <ReferenceArea x1={pastEndTime} x2={nowDisplayTime} fill="rgba(100, 116, 139, 0.35)" fillOpacity={1} stroke="none" ifOverflow="extendDomain" />
+                    <ReferenceArea x1={chartData[0]?.displayTime ?? ''} x2={chartData[((chartData as any).nowOffsetIndex ?? 0)]?.displayTime ?? ''} fill="rgba(100, 116, 139, 0.35)" fillOpacity={1} stroke="none" ifOverflow="extendDomain" />
                     {/* "Now" marker: subtle vertical dashed line with "Now" label */}
-                    <ReferenceLine x={nowDisplayTime} stroke="rgba(255, 255, 255, 0.3)" strokeDasharray="4 4" label={{ value: 'Now', position: 'top', fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11 }} />
+                    <ReferenceLine x={chartData[((chartData as any).nowOffsetIndex ?? 0)]?.displayTime ?? ''} stroke="rgba(255, 255, 255, 0.3)" strokeDasharray="4 4" label={{ value: 'Now', position: 'top', fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11 }} />
                     {activeGraph === 'wave' ? (
                       <>
                         {/* Single series: vibrant blue throughout (ReferenceArea provides visual past dimming) */}
@@ -1232,9 +1194,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                         <Line yAxisId="right" type="monotone" dataKey="_swellPeriod" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod')} />
                       </>
                     )}
-                  </ComposedChart>
-                );
-              })()}
+                </ComposedChart>
+              </ResponsiveContainer>
             </div>
           ) : (
             // Flag OFF: Original 24h single-series chart (pixel-identical to prod)

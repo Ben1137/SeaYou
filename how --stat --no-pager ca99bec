@@ -1,0 +1,13 @@
+[33mcommit 9b7d70cccacea67a4c38f5049660c167cf08d72f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeat/marine-timeline[m[33m)[m
+Author: Ben1137 <ben.pazzz@gmail.com>
+Date:   Thu Aug 20 22:07:59 2026 +0300
+
+    feat(marine-timeline): expand chartData window and expose now offset
+    
+    - Flag OFF: chartData spans 24 hours from now (production behavior, unchanged)
+    - Flag ON:  chartData spans 144 hours: Math.max(0, currentHourIndex-72) to Math.min(currentHourIndex+72)
+    - New field: chartData.nowOffsetIndex = currentHourIndex - start (for Phase 2 past/future divider)
+    - All existing chart properties unchanged when flag OFF (zero-diff regression test)
+
+ packages/web/components/Dashboard.tsx | 26 [32m++++++++++++++++++++++[m[31m----[m
+ 1 file changed, 22 insertions(+), 4 deletions(-)
