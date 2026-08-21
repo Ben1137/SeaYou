@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey, beachgoerSafetyLabel } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line, ReferenceLine
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line, ReferenceLine, ReferenceArea
 } from 'recharts';
 import {
   Wind, Activity, Waves, ArrowUp, ArrowDown, Droplets,
@@ -1112,45 +1112,34 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <p className="text-xs text-center">{t('forecast.noTideData', 'No tide data available for this location')}</p>
             </div>
           ) : MARINE_TIMELINE_ON ? (
-            // Flag ON: 144h single-series chart with horizontal gradient (muted past → vibrant future)
+            // Flag ON: 144h single-series chart with ReferenceArea muting past region
             <div style={{ width: '100%', height: '100%', minHeight: 256, overflowX: 'auto' }} ref={scrollContainerRef}>
               {(() => {
                 const nowOffsetIndex = (chartData as any).nowOffsetIndex ?? 0;
-                const nowPct = chartData.length > 1 ? nowOffsetIndex / (chartData.length - 1) : 0;
                 const nowDisplayTime = chartData[nowOffsetIndex]?.displayTime ?? '';
+                const pastEndTime = chartData[0]?.displayTime ?? '';
                 return (
                   <ComposedChart data={chartData} width={Math.max(800, chartData.length * 20)} height={256}>
-                    <defs>
-                      {/* Horizontal gradient: muted from 0% to nowPct, vibrant from nowPct to 100% */}
-                      <linearGradient id="waveHistoryGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset={`${nowPct * 100}%`} stopColor="rgba(59, 130, 246, 0.5)" stopOpacity={0.4} />
-                        <stop offset={`${nowPct * 100}%`} stopColor="var(--chart-primary)" stopOpacity={0.8} />
-                        <stop offset="100%" stopColor="var(--chart-primary)" stopOpacity={0.8} />
-                      </linearGradient>
-                      <linearGradient id="periodHistoryGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset={`${nowPct * 100}%`} stopColor="rgba(250, 204, 21, 0.4)" stopOpacity={0.5} />
-                        <stop offset={`${nowPct * 100}%`} stopColor="#facc15" stopOpacity={1} />
-                        <stop offset="100%" stopColor="#facc15" stopOpacity={1} />
-                      </linearGradient>
-                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
                     <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
                     <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
                     <Tooltip content={<MarineTimelineTooltip />} />
+                    {/* ReferenceArea overlay: dims the past region (from first data point to now) with dark semi-transparent fill */}
+                    <ReferenceArea x1={pastEndTime} x2={nowDisplayTime} fill="rgba(15, 23, 42, 0.45)" fillOpacity={1} stroke="none" ifOverflow="extendDomain" />
                     {/* "Now" marker: subtle vertical dashed line with "Now" label */}
                     <ReferenceLine x={nowDisplayTime} stroke="rgba(255, 255, 255, 0.3)" strokeDasharray="4 4" label={{ value: 'Now', position: 'top', fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11 }} />
                     {activeGraph === 'wave' ? (
                       <>
-                        {/* Single series with gradient fill (muted past, vibrant future) */}
-                        <Area yAxisId="left" type="monotone" dataKey="_waveHeight" stroke="url(#waveHistoryGradient)" fill="url(#waveHistoryGradient)" fillOpacity={0.25} strokeWidth={2.5} connectNulls={false} name={t('weather.waveHeight')} />
-                        <Line yAxisId="right" type="monotone" dataKey="_wavePeriod" stroke="url(#periodHistoryGradient)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod')} />
+                        {/* Single series: vibrant blue throughout (ReferenceArea provides visual past dimming) */}
+                        <Area yAxisId="left" type="monotone" dataKey="_waveHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2.5} connectNulls={false} name={t('weather.waveHeight')} />
+                        <Line yAxisId="right" type="monotone" dataKey="_wavePeriod" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.wavePeriod')} />
                       </>
                     ) : (
                       <>
-                        {/* Single series with gradient fill (muted past, vibrant future) */}
-                        <Area yAxisId="left" type="monotone" dataKey="_swellHeight" stroke="url(#waveHistoryGradient)" fill="url(#waveHistoryGradient)" fillOpacity={0.25} strokeWidth={2.5} connectNulls={false} name={t('weather.swellHeight')} />
-                        <Line yAxisId="right" type="monotone" dataKey="_swellPeriod" stroke="url(#periodHistoryGradient)" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod')} />
+                        {/* Single series: vibrant blue throughout (ReferenceArea provides visual past dimming) */}
+                        <Area yAxisId="left" type="monotone" dataKey="_swellHeight" stroke="var(--chart-primary)" fill="var(--chart-primary)" fillOpacity={0.2} strokeWidth={2.5} connectNulls={false} name={t('weather.swellHeight')} />
+                        <Line yAxisId="right" type="monotone" dataKey="_swellPeriod" stroke="#facc15" strokeWidth={2} dot={false} connectNulls={false} name={t('weather.swellPeriod')} />
                       </>
                     )}
                   </ComposedChart>
