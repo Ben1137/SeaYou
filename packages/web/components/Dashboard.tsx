@@ -270,30 +270,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     }));
   }, [weatherData]);
 
-  // DEBUG: Test tooltip formatting on actual chartData (flag-ON marine chart only)
-  const debugTooltipOutput = useMemo(() => {
-    if (!MARINE_TIMELINE_ON || chartData.length < 3) return [];
-    const nowOffsetIndex = (chartData as any).nowOffsetIndex ?? 0;
-    const formatTooltip = (point: any) => {
-      if (!point?.time) return 'N/A';
-      const pointDate = parseISO(point.time);
-      const nowDate = new Date();
-      const isSameDay = pointDate.toDateString() === nowDate.toDateString();
-      return isSameDay
-        ? format(pointDate, "'Today, 'HH:mm")
-        : format(pointDate, 'EEE d MMM, HH:mm');
-    };
-    const first = formatTooltip(chartData[0]);
-    const now = formatTooltip(chartData[nowOffsetIndex]);
-    const last = formatTooltip(chartData[chartData.length - 1]);
-
-    console.log('[Marine Timeline Tooltip Test]');
-    console.log(`  First (oldest):  ${first}`);
-    console.log(`  Now (index ${nowOffsetIndex}):  ${now}`);
-    console.log(`  Last (furthest): ${last}`);
-
-    return [first, now, last];
-  }, [chartData, MARINE_TIMELINE_ON]);
 
   const currentConditions = useMemo(() => {
     if (!weatherData?.current) return null;
@@ -1184,15 +1160,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
           )}
         </div>
 
-        {/* DEBUG: Show tooltip test output for marine timeline */}
-        {MARINE_TIMELINE_ON && debugTooltipOutput.length > 0 && (
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(0,0,0,0.3)', padding: '6px 8px', borderRadius: '4px', marginBottom: '8px', fontFamily: 'monospace', border: '1px solid rgba(255,255,255,0.2)' }}>
-            <div>Tooltip Test (hover left/middle/right to verify dates advance):</div>
-            <div>• First: {debugTooltipOutput[0]}</div>
-            <div>• Now: {debugTooltipOutput[1]}</div>
-            <div>• Last: {debugTooltipOutput[2]}</div>
-          </div>
-        )}
 
         <div className={`w-full relative ${isChartExpanded ? 'flex-1 min-h-[256px]' : 'h-64'}`}>
           {/* Tide tab: show empty state when sea_level_height_msl has no data (inland locations) */}
