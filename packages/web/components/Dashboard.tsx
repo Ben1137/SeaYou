@@ -73,14 +73,22 @@ const getWeatherConditionKey = (code: number): string => {
   return codeMap[code] || 'unknown';
 };
 
-// Custom tooltip for marine timeline: shows absolute time (EEE HH:mm) instead of "(Past)"/"(Future)"
+// Custom tooltip for marine timeline: shows dated format + absolute measurements
 const MarineTimelineTooltip: React.FC<any> = ({ active, payload, label }) => {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
-  const absTime = point.time ? format(parseISO(point.time), 'EEE HH:mm') : '';
+  if (!point.time) return null;
+
+  const pointDate = parseISO(point.time);
+  const nowDate = new Date();
+  const isSameDay = pointDate.toDateString() === nowDate.toDateString();
+  const timeLabel = isSameDay
+    ? format(pointDate, "'Today, 'HH:mm")
+    : format(pointDate, 'EEE d MMM, HH:mm');
+
   return (
     <div style={{ backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', backdropFilter: 'blur(8px)', padding: '8px 12px' }}>
-      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{absTime}</p>
+      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>{timeLabel}</p>
       {payload.map((entry: any, i: number) => (
         entry.value !== null && (
           <p key={i} style={{ color: entry.color || '#fff', fontSize: '13px', margin: '4px 0 0 0' }}>
@@ -89,6 +97,40 @@ const MarineTimelineTooltip: React.FC<any> = ({ active, payload, label }) => {
         )
       ))}
     </div>
+  );
+};
+
+// Custom XAxis tick: show date label (e.g. "20 Aug") only at midnight (00:00), else just time
+const MarineXAxisTick: React.FC<any> = (props) => {
+  const { x, y, payload, data } = props;
+  if (!payload || typeof payload.value !== 'string') return null;
+
+  // Check if this tick's displayTime ends with 00:00
+  const isMidnight = payload.value.endsWith('00:00');
+  let label = '';
+
+  if (isMidnight && data && Array.isArray(data)) {
+    // Find the data point to extract the full time string
+    const dataPoint = data.find((d: any) => d.displayTime === payload.value);
+    if (dataPoint?.time) {
+      const dateObj = parseISO(dataPoint.time);
+      label = format(dateObj, 'd MMM');
+    }
+  } else {
+    label = payload.value; // Show time (HH:mm)
+  }
+
+  return (
+    <text
+      x={x}
+      y={y + 12}
+      textAnchor="middle"
+      fill="var(--chart-text)"
+      fontSize={9}
+      opacity={isMidnight ? 1 : 0.7}
+    >
+      {label}
+    </text>
   );
 };
 
@@ -488,13 +530,25 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     }
   }, [FORECAST_TABS, forecastTab]);
 
-  // Flag ON: scroll chart so "now" sits left-of-center on mount
+  // Flag ON: scroll chart so "now" sits left-of-center on mount (wait for layout to settle)
   useEffect(() => {
     if (!MARINE_TIMELINE_ON || !scrollContainerRef.current || chartData.length === 0) return;
     const nowOffsetIndex = (chartData as any).nowOffsetIndex ?? 0;
-    // Each hour is ~20px wide; scroll so ~6h (120px) of past is visible left of center
-    const scrollPos = Math.max(0, nowOffsetIndex * 20 - 120);
-    scrollContainerRef.current.scrollLeft = scrollPos;
+    const container = scrollContainerRef.current;
+
+    // Defer scroll: wait for layout to settle, then set scrollLeft
+    const scrollFn = () => {
+      if (container.scrollWidth > container.clientWidth) {
+        // Each hour is ~20px wide; scroll so ~6h (120px) of past is visible left of center
+        const scrollPos = Math.max(0, nowOffsetIndex * 20 - 120);
+        container.scrollLeft = scrollPos;
+      } else {
+        // Layout not ready yet, retry
+        requestAnimationFrame(scrollFn);
+      }
+    };
+
+    requestAnimationFrame(scrollFn);
   }, [MARINE_TIMELINE_ON, chartData]);
 
   const handleNextTab = () => {
@@ -1121,12 +1175,12 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 return (
                   <ComposedChart data={chartData} width={Math.max(800, chartData.length * 20)} height={256}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
-                    <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="displayTime" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} tick={(props) => <MarineXAxisTick {...props} data={chartData} />} interval={Math.max(0, Math.floor(chartData.length / 16) - 1)} />
                     <YAxis yAxisId="left" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'm', angle: -90, position: 'insideLeft', fill: 'var(--chart-text)' }} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--chart-text)" fontSize={10} tickLine={false} axisLine={false} domain={[0, 20]} label={{ value: 's', angle: 90, position: 'insideRight', fill: 'var(--chart-text)' }} />
                     <Tooltip content={<MarineTimelineTooltip />} />
-                    {/* ReferenceArea overlay: dims the past region (from first data point to now) with dark semi-transparent fill */}
-                    <ReferenceArea x1={pastEndTime} x2={nowDisplayTime} fill="rgba(15, 23, 42, 0.45)" fillOpacity={1} stroke="none" ifOverflow="extendDomain" />
+                    {/* ReferenceArea overlay: grey slate wash over past region for clear muting effect */}
+                    <ReferenceArea x1={pastEndTime} x2={nowDisplayTime} fill="rgba(100, 116, 139, 0.35)" fillOpacity={1} stroke="none" ifOverflow="extendDomain" />
                     {/* "Now" marker: subtle vertical dashed line with "Now" label */}
                     <ReferenceLine x={nowDisplayTime} stroke="rgba(255, 255, 255, 0.3)" strokeDasharray="4 4" label={{ value: 'Now', position: 'top', fill: 'rgba(255, 255, 255, 0.5)', fontSize: 11 }} />
                     {activeGraph === 'wave' ? (
