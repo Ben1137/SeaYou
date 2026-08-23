@@ -143,7 +143,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   // Marine timeline feature flag: when enabled, expands chart to show 72h past + 72h future
   const MARINE_TIMELINE_ON = import.meta.env.VITE_FEATURE_MARINE_TIMELINE === 'true';
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const chartInnerRef = useRef<HTMLDivElement>(null);
 
   const [showSettings, setShowSettings] = useState(false);
   type ForecastTab = 'mariner' | 'wave_surfer' | 'wind_surfer' | 'kite_surfer' | 'boogie_boarder' | 'diver' | 'beach';
@@ -555,11 +554,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   }, [MARINE_TIMELINE_ON, chartData]);
 
   // Flag ON: drag-to-pan on marine timeline scroll container (grab & swipe)
-  // Option B: toggle chart pointer-events during active drag to prevent frozen tooltip
   useEffect(() => {
-    if (!MARINE_TIMELINE_ON || !scrollContainerRef.current || !chartInnerRef.current) return;
+    if (!MARINE_TIMELINE_ON || !scrollContainerRef.current) return;
     const container = scrollContainerRef.current;
-    const chartInner = chartInnerRef.current;
 
     let isDragging = false;
     let startX = 0;
@@ -576,12 +573,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
     const onPointerMove = (e: PointerEvent) => {
       if (!isDragging && Math.abs(e.clientX - startX) < dragThreshold) {
-        return; // Below threshold, still a hover/click — keep chart interactive
+        return; // Below threshold, still a hover/click
       }
       if (!isDragging) {
         isDragging = true; // Threshold crossed, now dragging
-        // Disable chart pointer-events so drag events fall through to container
-        chartInner.style.pointerEvents = 'none';
       }
       const delta = e.clientX - startX;
       container.scrollLeft = startScrollLeft - delta;
@@ -590,14 +585,10 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     const onPointerEnd = () => {
       isDragging = false;
       container.style.cursor = 'grab';
-      // Re-enable chart pointer-events so tooltip works again
-      chartInner.style.pointerEvents = 'auto';
     };
 
     // Default cursor signals the container is draggable
     container.style.cursor = 'grab';
-    // Allow horizontal pan/scroll but let the drag handler control it
-    container.style.touchAction = 'pan-x';
 
     container.addEventListener('pointerdown', onPointerDown);
     container.addEventListener('pointermove', onPointerMove);
@@ -612,8 +603,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       container.removeEventListener('pointerleave', onPointerEnd);
       container.removeEventListener('pointercancel', onPointerEnd);
       container.style.cursor = 'auto';
-      container.style.touchAction = 'auto';
-      chartInner.style.pointerEvents = 'auto';
     };
   }, [MARINE_TIMELINE_ON]);
 
@@ -1241,7 +1230,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 const pastEndTime = chartData[0]?.time ?? '';
                 const nowRefTime = chartData[nowOffsetIndex]?.time ?? '';
                 return (
-                  <div style={{ width: `${Math.max(800, chartData.length * 20)}px`, height: 256 }} ref={chartInnerRef}>
+                  <div style={{ width: `${Math.max(800, chartData.length * 20)}px`, height: 256 }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" vertical={false} />
