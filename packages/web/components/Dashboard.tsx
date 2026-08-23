@@ -553,59 +553,6 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     requestAnimationFrame(scrollFn);
   }, [MARINE_TIMELINE_ON, chartData]);
 
-  // Flag ON: drag-to-pan on marine timeline scroll container (grab & swipe)
-  useEffect(() => {
-    if (!MARINE_TIMELINE_ON || !scrollContainerRef.current) return;
-    const container = scrollContainerRef.current;
-
-    let isDragging = false;
-    let startX = 0;
-    let startScrollLeft = 0;
-    const dragThreshold = 5; // px — distinguish click-hover from drag
-
-    const onPointerDown = (e: PointerEvent) => {
-      isDragging = false; // Not dragging yet; wait for threshold
-      startX = e.clientX;
-      startScrollLeft = container.scrollLeft;
-      container.setPointerCapture(e.pointerId);
-      container.style.cursor = 'grabbing';
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isDragging && Math.abs(e.clientX - startX) < dragThreshold) {
-        return; // Below threshold, still a hover/click
-      }
-      if (!isDragging) {
-        isDragging = true; // Threshold crossed, now dragging
-      }
-      const delta = e.clientX - startX;
-      container.scrollLeft = startScrollLeft - delta;
-    };
-
-    const onPointerEnd = () => {
-      isDragging = false;
-      container.style.cursor = 'grab';
-    };
-
-    // Default cursor signals the container is draggable
-    container.style.cursor = 'grab';
-
-    container.addEventListener('pointerdown', onPointerDown);
-    container.addEventListener('pointermove', onPointerMove);
-    container.addEventListener('pointerup', onPointerEnd);
-    container.addEventListener('pointerleave', onPointerEnd);
-    container.addEventListener('pointercancel', onPointerEnd);
-
-    return () => {
-      container.removeEventListener('pointerdown', onPointerDown);
-      container.removeEventListener('pointermove', onPointerMove);
-      container.removeEventListener('pointerup', onPointerEnd);
-      container.removeEventListener('pointerleave', onPointerEnd);
-      container.removeEventListener('pointercancel', onPointerEnd);
-      container.style.cursor = 'auto';
-    };
-  }, [MARINE_TIMELINE_ON]);
-
   const handleNextTab = () => {
     if (FORECAST_TABS.length === 0) return;
     const idx = FORECAST_TABS.indexOf(forecastTab);
