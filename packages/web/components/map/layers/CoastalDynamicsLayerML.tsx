@@ -443,8 +443,8 @@ export function CoastalDynamicsLayerML({
     };
 
     const mapZoom = currentMap.getZoom();
-    // tileZoom at z9-z10: GEBCO 15-arc-sec (~450 m) supports z9-z12 with real signal.
-    // z10 ≈ 150 m/px tile resolution, ~3 px per GEBCO cell — good for nearshore gradient.
+    // tileZoom capped at 10: Terrarium ocean tiles at z11 return ~0 nearshore depth
+    // (confirmed aa25968: 34.70E reads 0m@z11 vs +40m@z10). z10 ≈ 150m bathymetry.
     const tileZoom = mapZoom >= 8 ? 10 : 9;
 
     const token = { aborted: false };

@@ -40,7 +40,7 @@ const LAYER_ID  = 'bathymetry-debug-canvas-layer';
 const GRID_COLS = 64;
 const GRID_ROWS = 64;
 
-// Terrarium tile zoom — z9 gives ~305 m/px smooth interpolation, honest for GEBCO 15-arc-sec (~450 m).
+// Terrarium tile zoom — z9 gives ~300 m/px smooth interpolation, honest for ETOPO1.
 const TILE_ZOOM = 9;
 
 // Max depth for color ramp normalization (matches DEPTH_DEBUG_COLORS stops, ~6000 m).

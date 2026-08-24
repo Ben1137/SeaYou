@@ -1,14 +1,14 @@
 /**
  * TerrariumBathymetry.ts — Fetch and decode Terrarium-encoded DEM tiles into a numeric depth grid.
  *
- * Endpoint: https://tiles.opentopodata.org/gebco2023/{z}/{x}/{y}.png
+ * Endpoint: https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
  * Encoding: depth_m = -((R * 256 + G + B / 256) - 32768)   (negative = below sea level)
- * Source:   GEBCO 2023 (General Bathymetric Chart of the Oceans), 15-arc-second resolution (~450 m).
- * CORS:     Public endpoint, Access-Control-Allow-Origin: * (via OpenTopoData).
+ * Source:   ETOPO1 Bedrock for ocean tiles (confirmed via x-amz-meta-x-imagery-sources).
+ * CORS:     Public bucket, Access-Control-Allow-Origin: * confirmed via OPTIONS preflight.
  *
  * Resolution (tile pixel = metres at equator):
  *   z8  → ~610 m/px   z10 → ~152 m/px   z12 → ~38 m/px   z14 → ~9.5 m/px
- * GEBCO native: ~450 m/px, so effective depth fidelity caps at z10-z12 for ocean.
+ * ETOPO1 native: ~1.85 km/px, so effective depth fidelity caps at z8-z10 for ocean.
  * Higher zoom tiles interpolate — useful for smooth per-pixel sampling, not added accuracy.
  *
  * Usage:
@@ -17,7 +17,7 @@
  *   // grid[row][col] = depth in metres (positive = below sea level, negative = above)
  */
 
-const TERRARIUM_URL = 'https://tiles.opentopodata.org/gebco2023/{z}/{x}/{y}.png';
+const TERRARIUM_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 
 /** Decode a single Terrarium RGB pixel to elevation (metres, positive = above sea level). */
 export function decodeTerrariumElevation(r: number, g: number, b: number): number {
@@ -82,7 +82,7 @@ function sampleTileAtLonLat(
   const px = Math.max(0, Math.min(width - 1, u * width));
   const py = Math.max(0, Math.min(height - 1, v * height));
 
-  // Nearest-neighbour (sufficient given GEBCO ~450 m native resolution)
+  // Nearest-neighbour (sufficient given ETOPO1 ~1.85 km native resolution)
   const ix = Math.round(px);
   const iy = Math.round(py);
   const base = (iy * width + ix) * 4;
@@ -277,8 +277,8 @@ export async function fetchNearshoreDepth(lat: number, lon: number, zoom = 10): 
 // ─── Gradient constants — single source of truth ─────────────────────────────
 // Both the bearing guard (fetchNearshoreDepth) and the gradient output
 // (fetchNearshoreDepthWithGradient) use identical parameters. Defined once here.
-const GRADIENT_HALF_KM  = 6;   // ±6 km — clears the ~450 m GEBCO native cell
-const GRADIENT_ZOOM     = 10;  // honest fidelity ceiling; GEBCO supports z10-z12 with real signal
+const GRADIENT_HALF_KM  = 6;   // ±6 km — clears the ~1.85 km ETOPO native cell
+const GRADIENT_ZOOM     = 9;   // honest fidelity ceiling; z10 upsamples → false precision
 const GRADIENT_ROWS     = 5;
 const GRADIENT_COLS     = 5;
 
@@ -370,10 +370,10 @@ export interface DepthGridBounds {
  * @param bounds  - Geographic bounding box
  * @param cols    - Number of output columns (should match marine grid cols)
  * @param rows    - Number of output rows (should match marine grid rows)
- * @param zoom    - Terrarium tile zoom (9 = ~305 m/px; 10 = ~152 m/px, smooth; 12 = ~38 m/px, native GEBCO)
+ * @param zoom    - Terrarium tile zoom (8 = ~610 m/px, matches ETOPO1; 10 = ~152 m/px, smooth)
  * @returns grid[row][col] = depth in metres (positive = below sea level, negative = land/above)
  *
- * GEBCO native resolution is ~450 m, so zoom 10–12 is the honest fidelity ceiling.
+ * ETOPO1 native resolution is ~1.85 km, so zoom 8–9 is the honest fidelity ceiling.
  * We default to z9 for smooth interpolation across a typical viewport.
  */
 export async function fetchDepthGrid(
