@@ -15,6 +15,10 @@ export interface HourlyConditions {
   swellHeight: number;
   swellPeriod: number;
   swellDirection: number;
+  /** Secondary swell partition (model-dependent; undefined when unavailable) */
+  secondarySwellHeight?: number;
+  secondarySwellPeriod?: number;
+  secondarySwellDirection?: number;
   windSpeed: number;
   windGusts: number;
   windDirection: number;

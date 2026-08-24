@@ -34,7 +34,7 @@
 import React from 'react';
 import { Waves } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { surfPowerKwPerM } from '@seame/core';
+import { surfPowerKwPerM, combineSwellPartitions, type SwellPartition } from '@seame/core';
 import type { MarineWeatherData } from '@seame/core';
 // DEV-ONLY: build-time gated (import.meta.env.DEV) — tree-shaken from prod. See src/dev/devSwellOverride.ts.
 import { readDevSwellOverride } from '../src/dev/devSwellOverride';
@@ -95,6 +95,10 @@ export function SurfaceSwellExposureCard({ weatherData }: SurfaceSwellExposureCa
   // on coastalReading, which is null on most spots). Fallback below when absent.
   let swellHeight: number | null = weatherData.current?.swellHeight ?? null;
   let swellPeriod: number | null = weatherData.current?.swellPeriod ?? null;
+  let swellDirection: number | null = weatherData.current?.swellDirection ?? null;
+  let secondarySwellHeight: number | null = weatherData.current?.secondarySwellHeight ?? null;
+  let secondarySwellPeriod: number | null = weatherData.current?.secondarySwellPeriod ?? null;
+  let secondarySwellDirection: number | null = weatherData.current?.secondarySwellDirection ?? null;
 
   // DEV-only override for deterministic screenshots. `import.meta.env.DEV` is
   // statically false in prod → this branch is dead-code-eliminated and the
@@ -107,11 +111,25 @@ export function SurfaceSwellExposureCard({ weatherData }: SurfaceSwellExposureCa
     }
   }
 
-  const available =
-    swellHeight != null && swellHeight > 0 && swellPeriod != null && swellPeriod > 0;
+  // Build swell partitions (primary + secondary, nullable)
+  const primaryPartition: SwellPartition | null =
+    swellHeight != null && swellHeight > 0 && swellPeriod != null && swellPeriod > 0
+      ? { height: swellHeight, period: swellPeriod, directionDeg: swellDirection ?? undefined }
+      : null;
+
+  const secondaryPartition: SwellPartition | null =
+    secondarySwellHeight != null && secondarySwellHeight > 0 && secondarySwellPeriod != null && secondarySwellPeriod > 0
+      ? { height: secondarySwellHeight, period: secondarySwellPeriod, directionDeg: secondarySwellDirection ?? undefined }
+      : null;
+
+  // Combine partitions using energy superposition (not linear addition)
+  const { combinedHeight, dominant } = combineSwellPartitions([primaryPartition, secondaryPartition]);
+
+  const available = combinedHeight > 0 && dominant != null;
 
   // Period-weighted surface swell power (deep water Cg0 — longer period = more energy).
-  const pKw = available ? surfPowerKwPerM(swellHeight!, swellPeriod!, Infinity) : null;
+  // Use the DOMINANT partition for the power calculation, not the combined height.
+  const pKw = available ? surfPowerKwPerM(dominant!.height, dominant!.period, Infinity) : null;
   const band = pKw != null ? classifyExposure(pKw) : null;
   const barPct = pKw != null ? Math.min(100, (pKw / EXPOSURE_CEIL_KW) * 100) : 0;
 
@@ -150,12 +168,31 @@ export function SurfaceSwellExposureCard({ weatherData }: SurfaceSwellExposureCa
                 {levelLabel}
               </span>
               <span className="text-sm mb-0.5 font-medium tabular-nums text-slate-500 dark:text-white/50">
-                {t('surfaceExposure.basis', '{{height}} m · {{period}} s swell', {
-                  height: swellHeight!.toFixed(1),
-                  period: swellPeriod!.toFixed(1),
+                {t('surfaceExposure.combinedBasis', '{{combined}} m combined', {
+                  combined: combinedHeight.toFixed(1),
                 })}
               </span>
             </div>
+
+            {/* Partition breakdown (modal / indicative) */}
+            <div className="text-[9px] leading-snug text-slate-400 dark:text-white/35 mb-1.5 space-y-0.5">
+              {primaryPartition && (
+                <div>
+                  <span className="text-slate-500 dark:text-white/40">Primary:</span> {primaryPartition.height.toFixed(1)} m @ {primaryPartition.period.toFixed(1)} s
+                  {primaryPartition.directionDeg != null && <span className=" ml-1">↑ {Math.round(primaryPartition.directionDeg)}°</span>}
+                </div>
+              )}
+              {secondaryPartition && (
+                <div>
+                  <span className="text-slate-500 dark:text-white/40">Secondary:</span> {secondaryPartition.height.toFixed(1)} m @ {secondaryPartition.period.toFixed(1)} s
+                  {secondaryPartition.directionDeg != null && <span className=" ml-1">↑ {Math.round(secondaryPartition.directionDeg)}°</span>}
+                </div>
+              )}
+              <div className="text-[8px] italic text-white/25">
+                {t('surfaceExposure.partitionNote', 'Modal estimates (indicative only)', {})}
+              </div>
+            </div>
+
             <p className="text-[10px] leading-tight text-slate-500 dark:text-white/40 mb-2">
               {scopeNote}
             </p>

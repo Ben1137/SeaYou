@@ -48,15 +48,15 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
     // - Geolocation-based model selection for optimal accuracy
     // - 15-minute data for ocean currents when enabled
 
-    // Build hourly parameters
-    const hourlyParams = 'wave_height,wave_direction,wave_period,wave_peak_period,swell_wave_height,swell_wave_direction,swell_wave_period,swell_wave_peak_period,wind_wave_height,wind_wave_direction,wind_wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction,sea_level_height_msl';
+    // Build hourly parameters (includes secondary swell for multi-partition support)
+    const hourlyParams = 'wave_height,wave_direction,wave_period,wave_peak_period,swell_wave_height,swell_wave_direction,swell_wave_period,swell_wave_peak_period,secondary_swell_wave_height,secondary_swell_wave_direction,secondary_swell_wave_period,wind_wave_height,wind_wave_direction,wind_wave_period,sea_surface_temperature,ocean_current_velocity,ocean_current_direction,sea_level_height_msl';
 
     const marineParams = new URLSearchParams({
       latitude: lat.toString(),
       longitude: lng.toString(),
       hourly: hourlyParams,
       daily: 'wave_height_max,wave_direction_dominant,wave_period_max,swell_wave_height_max,swell_wave_direction_dominant,swell_wave_period_max,wind_wave_height_max,wind_wave_direction_dominant,wind_wave_period_max',
-      current: 'sea_surface_temperature,wave_height,wave_direction,wave_period,wave_peak_period,swell_wave_height,swell_wave_direction,swell_wave_period,wind_wave_height,wind_wave_direction,wind_wave_period,ocean_current_velocity,ocean_current_direction,sea_level_height_msl',
+      current: 'sea_surface_temperature,wave_height,wave_direction,wave_period,wave_peak_period,swell_wave_height,swell_wave_direction,swell_wave_period,secondary_swell_wave_height,secondary_swell_wave_direction,secondary_swell_wave_period,wind_wave_height,wind_wave_direction,wind_wave_period,ocean_current_velocity,ocean_current_direction,sea_level_height_msl',
       timezone: WEATHER_CONSTANTS.TIMEZONE,
       forecast_days: WEATHER_CONSTANTS.FORECAST_DAYS.toString(),
       models: marineModel,
@@ -340,6 +340,9 @@ export const fetchMarineWeather = async (lat: number, lng: number, userModel?: s
         swellHeight: marineData?.current?.swell_wave_height ?? 0,
         swellDirection: marineData?.current?.swell_wave_direction ?? 0,
         swellPeriod: marineData?.current?.swell_wave_period ?? 0,
+        secondarySwellHeight: marineData?.current?.secondary_swell_wave_height ?? undefined,
+        secondarySwellDirection: marineData?.current?.secondary_swell_wave_direction ?? undefined,
+        secondarySwellPeriod: marineData?.current?.secondary_swell_wave_period ?? undefined,
         pressure: current.surface_pressure || 0,
         visibility: current.visibility || 0,
         seaLevel: tides?.currentHeight ?? 0,
@@ -376,6 +379,8 @@ export const fetchPointForecast = async (lat: number, lng: number): Promise<Poin
         'wave_height', 'wave_period', 'wave_peak_period',
         // Swell data
         'swell_wave_height', 'swell_wave_direction', 'swell_wave_period',
+        // Secondary swell partition (model-dependent; nullable)
+        'secondary_swell_wave_height', 'secondary_swell_wave_direction', 'secondary_swell_wave_period',
         // Wind wave data
         'wind_wave_height', 'wind_wave_direction', 'wind_wave_period',
         // Ocean currents
@@ -469,7 +474,7 @@ export const fetchHourlyPointForecast = async (lat: number, lng: number, userMod
     const marineParams = new URLSearchParams({
       latitude: lat.toString(),
       longitude: lng.toString(),
-      hourly: 'wave_height,wave_period,swell_wave_height,swell_wave_period,ocean_current_velocity,ocean_current_direction,sea_level_height_msl',
+      hourly: 'wave_height,wave_period,swell_wave_height,swell_wave_period,secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,ocean_current_velocity,ocean_current_direction,sea_level_height_msl',
       timezone: WEATHER_CONSTANTS.TIMEZONE,
       forecast_days: '2',
       models: marineModel,

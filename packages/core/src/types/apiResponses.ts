@@ -71,6 +71,10 @@ export interface MarineApiCurrent {
   swell_wave_direction?: number;
   swell_wave_period?: number;
   swell_wave_peak_period?: number;
+  /** Secondary swell partition (model-dependent; nullable) */
+  secondary_swell_wave_height?: number;
+  secondary_swell_wave_direction?: number;
+  secondary_swell_wave_period?: number;
   ocean_current_velocity?: number;
   ocean_current_direction?: number;
   wind_wave_height?: number;

@@ -40,11 +40,15 @@ export interface MarineWeatherHourly {
   wave_period: number[];
   wind_speed_10m: number[];
   wind_direction_10m: number[];
-  wind_gusts_10m: number[]; 
+  wind_gusts_10m: number[];
   swell_wave_height: number[];
   swell_wave_direction: number[];
   swell_wave_period: number[];
-  pressure_msl?: number[]; 
+  /** Secondary swell partition (model-dependent; may be absent) */
+  secondary_swell_wave_height?: number[];
+  secondary_swell_wave_direction?: number[];
+  secondary_swell_wave_period?: number[];
+  pressure_msl?: number[];
   visibility?: number[];
   relative_humidity_2m?: number[];
   sea_surface_temperature?: number[];
@@ -152,6 +156,10 @@ export interface MarineWeatherData {
     swellHeight?: number;
     swellDirection?: number;
     swellPeriod?: number;
+    /** Secondary swell partition (model-dependent; nullable) */
+    secondarySwellHeight?: number;
+    secondarySwellDirection?: number;
+    secondarySwellPeriod?: number;
     pressure?: number;
     visibility?: number;
     seaLevel?: number;
