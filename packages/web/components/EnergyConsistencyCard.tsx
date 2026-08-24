@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import {
   surfPowerKwPerM,
   temporalSteadiness,
+  swellCleanliness,
   nearshoreTransform,
   type ConsistencyResult,
 } from '@seame/core';
@@ -204,6 +205,19 @@ export function EnergyConsistencyCard({
     }
   }
 
+  // ── Cleanliness (swell dominance at current hour) ───────────────────────────
+  let cleanlinessResult: ConsistencyResult | null = null;
+
+  if (hourly) {
+    const swellH = hourly.swell_wave_height?.[currentHourIndex] ?? 0;
+    const windWaveH = hourly.wind_wave_height?.[currentHourIndex];
+
+    // Only compute if windWaveHeight is available (graceful fallback if missing)
+    if (windWaveH !== undefined && (swellH > 0 || windWaveH > 0)) {
+      cleanlinessResult = swellCleanliness(swellH, windWaveH);
+    }
+  }
+
   // ── Energy tooltip ─────────────────────────────────────────────────────────
   const energyTooltip = t(
     'energyCard.energyTooltip',
@@ -258,9 +272,16 @@ export function EnergyConsistencyCard({
           </p>
         </div>
 
-        {/* Consistency bar */}
-        {consistencyResult ? (
-          <ConsistencyBar result={consistencyResult} />
+        {/* Consistency bars */}
+        {consistencyResult || cleanlinessResult ? (
+          <div className="space-y-2">
+            {consistencyResult && (
+              <ConsistencyBar result={consistencyResult} />
+            )}
+            {cleanlinessResult && (
+              <ConsistencyBar result={cleanlinessResult} />
+            )}
+          </div>
         ) : (
           <div className="text-[11px] text-white/30">
             {t('energyCard.noConsistencyData', 'Consistency unavailable')}
