@@ -19,6 +19,7 @@
     "i18next": "^25.7.3",
     "lucide-react": "^0.555.0",
     "maplibre-gl": "^5.0.0",
+    "pmtiles": "^4.5.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-error-boundary": "^6.0.0",

@@ -1,37 +1,39 @@
 /**
- * TerrariumBathymetry.ts — Fetch and decode Terrarium-encoded DEM tiles into a numeric depth grid.
+ * TerrariumBathymetry.ts — Fetch and decode GEBCO 2026 Mapbox Terrain-RGB DEM tiles into a numeric depth grid.
  *
- * Endpoint: https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
- * Encoding: depth_m = -((R * 256 + G + B / 256) - 32768)   (negative = below sea level)
- * Source:   ETOPO1 Bedrock for ocean tiles (confirmed via x-amz-meta-x-imagery-sources).
- * CORS:     Public bucket, Access-Control-Allow-Origin: * confirmed via OPTIONS preflight.
+ * Source:   GEBCO 2026 (Global Bathymetric and Topographic Data, 15 arc-second resolution)
+ * Archive:  R2 PMTiles at https://pub-9402052a478244fcba35637fe8298abe.r2.dev/gebco_2026_terrain_rgb.pmtiles
+ * Format:   PMTiles v3, z0–10 pyramid, WebP-encoded tiles (lossless)
+ * Encoding: **Mapbox Terrain-RGB** (NOT Terrarium)
+ *           elevation_m = −10000 + (R*65536 + G*256 + B) * 0.1
+ *           depth_m = −elevation_m (positive = below sea level)
+ * CORS:     Cloudflare R2 bucket allows Range requests, Access-Control-Allow-Origin: * confirmed.
  *
- * Resolution (tile pixel = metres at equator):
- *   z8  → ~610 m/px   z10 → ~152 m/px   z12 → ~38 m/px   z14 → ~9.5 m/px
- * ETOPO1 native: ~1.85 km/px, so effective depth fidelity caps at z8-z10 for ocean.
- * Higher zoom tiles interpolate — useful for smooth per-pixel sampling, not added accuracy.
+ * Resolution at equator:
+ *   z8  → ~610 m/px   z9  → ~305 m/px   z10 → ~152 m/px
+ * GEBCO native (15 arc-second) ≈ 450 m at equator — effective fidelity ceiling is z9–z10.
+ * Higher zoom tiles interpolate — smooth sampling, not added bathymetric truth.
  *
  * Usage:
- *   const bathy = new TerrariumBathymetrySource();
- *   const grid = await bathy.fetchDepthGrid(bounds, cols, rows);
+ *   const grid = await fetchDepthGrid(bounds, cols, rows, 9);
  *   // grid[row][col] = depth in metres (positive = below sea level, negative = above)
  */
 
-const TERRARIUM_URL = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+import { PMTiles } from 'pmtiles';
 
-/** Decode a single Terrarium RGB pixel to elevation (metres, positive = above sea level). */
-export function decodeTerrariumElevation(r: number, g: number, b: number): number {
-  return (r * 256 + g + b / 256) - 32768;
+const GEBCO_URL = 'https://pub-9402052a478244fcba35637fe8298abe.r2.dev/gebco_2026_terrain_rgb.pmtiles';
+const pmtiles = new PMTiles(GEBCO_URL);
+
+/** Decode a single GEBCO Mapbox Terrain-RGB pixel to elevation (metres, negative = underwater). */
+function decodeMapboxElevation(r: number, g: number, b: number): number {
+  return -10000 + (r * 65536 + g * 256 + b) * 0.1;
 }
 
-/** Convert elevation to ocean depth (positive = metres below sea level). */
-export function elevationToDepth(elevation: number): number {
-  return -elevation; // depth > 0 is underwater, < 0 is land/above sea level
-}
-
-/** Full decode: Terrarium RGB → ocean depth in metres (positive = underwater). */
+/** Full decode: GEBCO Mapbox Terrain-RGB → ocean depth in metres (positive = underwater).
+ *  Legacy name kept for callers; the implementation now uses Mapbox decoder.
+ */
 export function decodeTerrariumDepth(r: number, g: number, b: number): number {
-  return elevationToDepth(decodeTerrariumElevation(r, g, b));
+  return -decodeMapboxElevation(r, g, b); // Gordon (1,134,60) → +10 m
 }
 
 // ── Tile maths ─────────────────────────────────────────────────────────────
@@ -93,30 +95,28 @@ function sampleTileAtLonLat(
 
 const tileCache = new Map<string, Promise<ImageData | null>>();
 
-function loadTile(z: number, x: number, y: number): Promise<ImageData | null> {
+async function loadTile(z: number, x: number, y: number): Promise<ImageData | null> {
   const key = `${z}/${x}/${y}`;
   if (tileCache.has(key)) return tileCache.get(key)!;
 
-  const url = TERRARIUM_URL.replace('{z}', String(z)).replace('{x}', String(x)).replace('{y}', String(y));
-  const promise = new Promise<ImageData | null>((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
+  const promise = (async () => {
+    try {
+      const tileData = await pmtiles.getZxy(z, x, y);
+      if (!tileData) return null; // Tile missing (404)
+
+      // Decode WebP blob to ImageBitmap, then to ImageData
+      const bmp = await createImageBitmap(new Blob([tileData.data], { type: 'image/webp' }));
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = bmp.width;
+      canvas.height = bmp.height;
       const ctx = canvas.getContext('2d');
-      if (!ctx) { resolve(null); return; }
-      ctx.drawImage(img, 0, 0);
-      try {
-        resolve(ctx.getImageData(0, 0, img.width, img.height));
-      } catch {
-        resolve(null); // cross-origin read blocked
-      }
-    };
-    img.onerror = () => resolve(null);
-    img.src = url;
-  });
+      if (!ctx) return null;
+      ctx.drawImage(bmp, 0, 0);
+      return ctx.getImageData(0, 0, bmp.width, bmp.height);
+    } catch {
+      return null; // Decode error, network error, etc.
+    }
+  })();
 
   tileCache.set(key, promise);
   return promise;
@@ -370,10 +370,10 @@ export interface DepthGridBounds {
  * @param bounds  - Geographic bounding box
  * @param cols    - Number of output columns (should match marine grid cols)
  * @param rows    - Number of output rows (should match marine grid rows)
- * @param zoom    - Terrarium tile zoom (8 = ~610 m/px, matches ETOPO1; 10 = ~152 m/px, smooth)
+ * @param zoom    - GEBCO 2026 tile zoom (8 = ~610 m/px; 9 = ~305 m/px; 10 = ~152 m/px, smooth)
  * @returns grid[row][col] = depth in metres (positive = below sea level, negative = land/above)
  *
- * ETOPO1 native resolution is ~1.85 km, so zoom 8–9 is the honest fidelity ceiling.
+ * GEBCO 2026 native resolution is ~450 m (15 arc-second), so zoom 9–10 is the honest fidelity ceiling.
  * We default to z9 for smooth interpolation across a typical viewport.
  */
 export async function fetchDepthGrid(
