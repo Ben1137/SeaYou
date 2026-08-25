@@ -416,6 +416,7 @@
     "chopLevel": "Wellenkabbel",
     "gustDelta": "Böendifferenz",
     "currentHeatmap": "Strömungsgeschwindigkeit",
+    "breakingWaves": "Wellenhöhe beim Brechen",
     "coastalDynamicsSection": "Küstendynamik",
     "coastalDynamics": "Brechende Wellen",
     "model": "Modell",
@@ -731,8 +732,13 @@
     "doubleOverhead": "Doppelte Körperhöhe"
   },
   "coastalDynamics": {
+    "label": "Küstenbrecher",
     "methodKG": "Komar-Gaughan",
-    "methodShoaling": "Shoaling"
+    "methodShoaling": "Shoaling",
+    "methodFormula": "Brecherhöhe Hb = 0,39·g^0,2·(T·H₀²)^0,4",
+    "caveat": "Modelliert aus GEBCO-Bathymetrie (~450 m) + Dünung. Indikativ — keine standortkalibrierte Vorhersage.",
+    "caveatShort": "Modelliert · GEBCO ~450 m · keine Vorhersage",
+    "noData": "Keine Küstendaten"
   },
   "beach": {
     "safetyCalm": "Ruhig — sicheres Schwimmen",
