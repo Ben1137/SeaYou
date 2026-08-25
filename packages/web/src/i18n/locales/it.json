@@ -417,6 +417,7 @@
     "chopLevel": "Livello increspatura",
     "gustDelta": "Delta raffiche",
     "currentHeatmap": "Velocità corrente",
+    "breakingWaves": "Altezza onda frangente",
     "coastalDynamicsSection": "Dinamica Costiera",
     "coastalDynamics": "Onde Frangenti",
     "model": "Modello",
@@ -732,7 +733,12 @@
     "doubleOverhead": "Doppio overhead"
   },
   "coastalDynamics": {
+    "label": "Frangente costiero",
     "methodKG": "Komar-Gaughan",
+    "methodFormula": "altezza di frangenza Hb = 0,39·g^0,2·(T·H₀²)^0,4",
+    "caveat": "Modellato dalla batimetria GEBCO (~450 m) + mare lungo. Indicativo — non è una previsione calibrata sul sito.",
+    "caveatShort": "Modellato · GEBCO ~450 m · non una previsione",
+    "noData": "Nessun dato costiero",
     "methodShoaling": "Shoaling"
   },
   "beach": {
