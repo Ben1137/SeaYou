@@ -399,6 +399,7 @@
     "chopLevel": "Niveau de clapot",
     "gustDelta": "Delta de rafales",
     "currentHeatmap": "Vitesse du courant",
+    "breakingWaves": "Hauteur de vague déferlante",
     "coastalDynamicsSection": "Dynamique Côtière",
     "coastalDynamics": "Vagues Déferlantes",
     "model": "Modèle",
@@ -714,8 +715,13 @@
     "doubleOverhead": "Double overhead"
   },
   "coastalDynamics": {
+    "label": "Déferlante côtière",
     "methodKG": "Komar-Gaughan",
-    "methodShoaling": "Shoaling"
+    "methodShoaling": "Shoaling",
+    "methodFormula": "hauteur de déferlement Hb = 0,39·g^0,2·(T·H₀²)^0,4",
+    "caveat": "Modélisé à partir de la bathymétrie GEBCO (~450 m) + houle. Indicatif — pas une prévision calibrée pour le site.",
+    "caveatShort": "Modélisé · GEBCO ~450 m · pas une prévision",
+    "noData": "Pas de données côtières"
   },
   "beach": {
     "safetyCalm": "Calme — sûr pour nager",
