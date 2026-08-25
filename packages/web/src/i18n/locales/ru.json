@@ -417,6 +417,7 @@
     "chopLevel": "Уровень волнения",
     "gustDelta": "Разница порывов ветра",
     "currentHeatmap": "Скорость течения",
+    "breakingWaves": "Высота обрушения волны",
     "coastalDynamicsSection": "Прибрежная Динамика",
     "coastalDynamics": "Разбивающиеся Волны",
     "model": "Модель",
@@ -732,7 +733,12 @@
     "doubleOverhead": "Двойной оверхед"
   },
   "coastalDynamics": {
-    "methodKG": "Komar-Gaughan",
+    "label": "Прибойная волна",
+    "methodKG": "Комар-Гоган",
+    "methodFormula": "высота обрушения Hb = 0,39·g^0,2·(T·H₀²)^0,4",
+    "caveat": "Смоделировано по батиметрии GEBCO (~450 м) + зыбь. Ориентировочно — не откалибровано для конкретной точки.",
+    "caveatShort": "Модель · GEBCO ~450 м · не прогноз",
+    "noData": "Нет прибрежных данных",
     "methodShoaling": "Shoaling"
   },
   "beach": {
