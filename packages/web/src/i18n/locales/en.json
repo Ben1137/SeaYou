@@ -734,8 +734,13 @@
     "fetchError": "Could not fetch model data. Try again."
   },
   "coastalDynamics": {
+    "label": "Coastal Break",
     "methodKG": "Komar-Gaughan",
-    "methodShoaling": "Shoaling"
+    "methodShoaling": "Shoaling",
+    "methodFormula": "breaker height Hb = 0.39·g^0.2·(T·H₀²)^0.4",
+    "caveat": "Modelled from GEBCO bathymetry (~450 m) + swell. Indicative — not a spot-calibrated forecast.",
+    "caveatShort": "Modelled · GEBCO ~450 m · not a forecast",
+    "noData": "No nearshore data"
   },
   "beach": {
     "safetyCalm": "Calm — safe for swimming",
