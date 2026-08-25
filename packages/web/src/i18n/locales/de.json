@@ -416,7 +416,9 @@
     "chopLevel": "Wellenkabbel",
     "gustDelta": "Böendifferenz",
     "currentHeatmap": "Strömungsgeschwindigkeit",
-    "breakingWaves": "Wellenhöhe beim Brechen",
+    "legend": {
+      "breakingWaves": "Wellenhöhe beim Brechen"
+    },
     "coastalDynamicsSection": "Küstendynamik",
     "coastalDynamics": "Brechende Wellen",
     "model": "Modell",

@@ -417,7 +417,9 @@
     "chopLevel": "Уровень волнения",
     "gustDelta": "Разница порывов ветра",
     "currentHeatmap": "Скорость течения",
-    "breakingWaves": "Высота обрушения волны",
+    "legend": {
+      "breakingWaves": "Высота обрушения волны"
+    },
     "coastalDynamicsSection": "Прибрежная Динамика",
     "coastalDynamics": "Разбивающиеся Волны",
     "model": "Модель",

@@ -399,7 +399,9 @@
     "chopLevel": "Nivel de marejada",
     "gustDelta": "Delta de ráfagas",
     "currentHeatmap": "Velocidad de corriente",
-    "breakingWaves": "Altura de ola rompiente",
+    "legend": {
+      "breakingWaves": "Altura de ola rompiente"
+    },
     "coastalDynamicsSection": "Dinámica Costera",
     "coastalDynamics": "Olas Rompientes",
     "model": "Modelo",

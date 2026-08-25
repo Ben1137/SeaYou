@@ -417,7 +417,9 @@
     "chopLevel": "Livello increspatura",
     "gustDelta": "Delta raffiche",
     "currentHeatmap": "Velocità corrente",
-    "breakingWaves": "Altezza onda frangente",
+    "legend": {
+      "breakingWaves": "Altezza onda frangente"
+    },
     "coastalDynamicsSection": "Dinamica Costiera",
     "coastalDynamics": "Onde Frangenti",
     "model": "Modello",

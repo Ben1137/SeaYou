@@ -399,7 +399,9 @@
     "chopLevel": "Niveau de clapot",
     "gustDelta": "Delta de rafales",
     "currentHeatmap": "Vitesse du courant",
-    "breakingWaves": "Hauteur de vague déferlante",
+    "legend": {
+      "breakingWaves": "Hauteur de vague déferlante"
+    },
     "coastalDynamicsSection": "Dynamique Côtière",
     "coastalDynamics": "Vagues Déferlantes",
     "model": "Modèle",
