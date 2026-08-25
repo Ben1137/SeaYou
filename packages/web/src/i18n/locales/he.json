@@ -411,7 +411,8 @@
       "diveSuitability": "התאמה לצלילה",
       "chopLevel": "רמת סערה",
       "gustDelta": "הפרש משבי רוח",
-      "currentHeatmap": "מהירות זרם"
+      "currentHeatmap": "מהירות זרם",
+      "breakingWaves": "גובה גל שובר"
     },
     "advancedLayers": "שכבות מתקדמות",
     "windParticles": "חלקיקי רוח",
@@ -755,7 +756,12 @@
     "doubleOverhead": "Double overhead"
   },
   "coastalDynamics": {
-    "methodKG": "Komar-Gaughan",
+    "label": "גל שובר",
+    "methodKG": "קומאר-גוגן",
+    "methodFormula": "גובה גל שובר Hb = 0.39·g^0.2·(T·H₀²)^0.4",
+    "caveat": "מבוסס על בתימטריית GEBCO (~450 מ׳) + נתוני גלים. אינדיקטיבי — לא תחזית מכוילת לנקודה.",
+    "caveatShort": "מבוסס · GEBCO ~450 מ׳ · לא תחזית",
+    "noData": "אין נתונים חופיים",
     "methodShoaling": "Shoaling"
   },
   "beach": {
