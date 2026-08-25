@@ -399,6 +399,7 @@
     "chopLevel": "Nivel de marejada",
     "gustDelta": "Delta de ráfagas",
     "currentHeatmap": "Velocidad de corriente",
+    "breakingWaves": "Altura de ola rompiente",
     "coastalDynamicsSection": "Dinámica Costera",
     "coastalDynamics": "Olas Rompientes",
     "model": "Modelo",
@@ -714,8 +715,13 @@
     "doubleOverhead": "Doble overhead"
   },
   "coastalDynamics": {
+    "label": "Rompiente costera",
     "methodKG": "Komar-Gaughan",
-    "methodShoaling": "Shoaling"
+    "methodShoaling": "Shoaling",
+    "methodFormula": "altura de rompiente Hb = 0,39·g^0,2·(T·H₀²)^0,4",
+    "caveat": "Modelado con batimetría GEBCO (~450 m) + oleaje. Indicativo — no es un pronóstico calibrado para el lugar.",
+    "caveatShort": "Modelado · GEBCO ~450 m · no es un pronóstico",
+    "noData": "Sin datos de costa"
   },
   "beach": {
     "safetyCalm": "Tranquilo — seguro para nadar",
