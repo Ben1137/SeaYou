@@ -33,8 +33,10 @@ function decodeMapboxElevation(r: number, g: number, b: number): number {
  *  Legacy name kept for callers; the implementation now uses Mapbox decoder.
  */
 export function decodeTerrariumDepth(r: number, g: number, b: number): number {
+  if (r === 0 && g === 0 && b === 0) return NaN; // nodata sentinel → transparent, not +10000 m
   return -decodeMapboxElevation(r, g, b); // Gordon (1,134,60) → +10 m
 }
+
 
 // ── Tile maths ─────────────────────────────────────────────────────────────
 
