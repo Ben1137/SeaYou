@@ -785,15 +785,15 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
             const isBeachScale = cardPersona === ActivityPersona.BEACHGOER;
             const bodyScaleText: string | null = coastalReading
               ? isSurfScale
-                ? waveScaleLabel(coastalReading.HBreaker)
+                ? waveScaleLabel(coastalReading.HDisplay)
                 : isBeachScale
-                  ? beachgoerSafetyLabel(coastalReading.HBreaker)
+                  ? beachgoerSafetyLabel(coastalReading.HDisplay)
                   : null
               : null;
             // For surf labels: key via waveScaleI18nKey. For beach safety: key IS the label.
             const bodyScaleI18nKey: string | null = bodyScaleText
               ? isSurfScale
-                ? waveScaleI18nKey(waveScaleLabel(coastalReading!.HBreaker))
+                ? waveScaleI18nKey(waveScaleLabel(coastalReading!.HDisplay))
                 : bodyScaleText
               : null;
             return (
@@ -860,14 +860,14 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 const isBeachScale2 = cardPersona === ActivityPersona.BEACHGOER;
                 const bodyScale2Text: string | null = coastalReading
                   ? isSurfScale2
-                    ? waveScaleLabel(coastalReading.HBreaker)
+                    ? waveScaleLabel(coastalReading.HDisplay)
                     : isBeachScale2
-                      ? beachgoerSafetyLabel(coastalReading.HBreaker)
+                      ? beachgoerSafetyLabel(coastalReading.HDisplay)
                       : null
                   : null;
                 const bodyScale2Key: string | null = bodyScale2Text
                   ? isSurfScale2
-                    ? waveScaleI18nKey(waveScaleLabel(coastalReading!.HBreaker))
+                    ? waveScaleI18nKey(waveScaleLabel(coastalReading!.HDisplay))
                     : bodyScale2Text
                   : null;
                 return (
@@ -1020,7 +1020,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <>
                 <div className="flex items-end mb-1">
                   <span className="text-4xl font-bold leading-none tabular-nums text-teal-300">
-                    {coastalReading.HBreaker.toFixed(2)}
+                    {coastalReading.HDisplay.toFixed(2)}
                   </span>
                   <span className="text-lg ml-1 mb-1 font-medium">m</span>
                 </div>

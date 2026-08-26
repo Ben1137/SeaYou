@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections, combineSwellPartitions } from '@seame/core';
+import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections, combineSwellPartitions, breakerDisplayFactor } from '@seame/core';
 import { fetchNearshoreDepthWithGradient } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
@@ -58,10 +58,20 @@ export interface CoastalReading {
    * Requires no local depth — useful precisely when bathymetry cannot resolve the surf zone.
    * Caveats: empirical (gently-sloping plane beaches); no refraction or diffraction; Hb is
    * significant breaker height, NOT face height — face height is a separate decision.
-   * Use for the Coastal Break card display and waveScaleLabel.
+   * Kept for internal consistency and cross-checks; DO NOT display to users.
    * Computed from combined H0 (primary + secondary if available).
    */
   HBreaker: number;
+  /**
+   * Damped display height for the breaker (m).
+   * = HBreaker * breakerDisplayFactor({T})
+   * Applies ENG-6 correction: damps short-period wind-swell (T=4–8s) to realistic
+   * face heights, accounting for viscous dissipation, wind interaction, and chop.
+   * For T ≥ 14s (groundswell), factor ≈ 1.0 (no penalty).
+   * For T ≤ 4s (chop), factor ≈ 0.35 (severe penalty).
+   * USE THIS FOR ALL USER-FACING DISPLAYS — never display HBreaker directly.
+   */
+  HDisplay: number;
   /** Primary swell partition height (m). Part of the combined H0. */
   primaryHeight: number;
   /** Primary swell period (s). Used in transform (from dominant partition). */
@@ -232,6 +242,9 @@ export function useCoastalReading(
         const theta0Deg = incidentAngleFromDirections(conditions?.swellDirection ?? 0, shoreNormalDeg);
         const result  = nearshoreTransform(H0, T, effectiveDepth, theta0Deg, true);
         const HBreaker = komarGaughanBreakerHeight(H0, T);
+        // ENG-6: Apply damping factor to get display height
+        const dampeningFactor = breakerDisplayFactor({ T });
+        const HDisplay = HBreaker * dampeningFactor;
         // Log both heights so the divergence between shoaling and K-G is always visible.
         // Silence with ?coastalReadingDebug omitted; full output at ?coastalReadingDebug=1.
         if (dbg) {
@@ -240,6 +253,8 @@ export function useCoastalReading(
             H0: H0.toFixed(3), T: T.toFixed(1), rawDepth: centreDepth.toFixed(1), effectiveDepth: effectiveDepth.toFixed(1), tideOffset: tideOffset.toFixed(3),
             HShoaled:  result.H.toFixed(3),
             HBreaker:  HBreaker.toFixed(3),
+            HDisplay:  HDisplay.toFixed(3),
+            factor:    dampeningFactor.toFixed(3),
             Ks:        result.Ks.toFixed(4),
             'KG/Shoal': (HBreaker / result.H).toFixed(3),
             method:    'komar-gaughan',
@@ -248,6 +263,7 @@ export function useCoastalReading(
         setReading({
           HShoaled:    result.H,
           HBreaker,
+          HDisplay,
           method:      'komar-gaughan',
           HFinal:      result.H,  // backwards compat for map layer
           Ks:          result.Ks,
