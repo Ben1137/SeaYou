@@ -130,7 +130,7 @@ function _diagPixel(
   if (!isFinite(d) || d <= 0) return { ...nan, gate: 'land' };
   if (d >= _D_DEEP)           return { ...nan, gate: 'deep≥200m' };
 
-  const { H: H_final, Ks, breaking } = nearshoreTransform(H0, T, d);
+  const { H: H_final, Ks, Kr, breaking } = nearshoreTransform(H0, T, d, dir, true);  // Phase 4: enable refraction
   const eg  = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
   const nm  = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
   const bb  = breaking ? 0.2 * eg : 0;
@@ -268,7 +268,7 @@ function runCoastalDiag(
       const T   = TGrid[r]?.[c]    ?? NaN;
       const dir = DirGrid?.[r]?.[c] ?? 0;
       if (!isFinite(H0) || !isFinite(T) || H0 < _D_MIN_H0 || T < 1) continue;
-      const { breaking } = nearshoreTransform(H0, T, d);
+      const { breaking } = nearshoreTransform(H0, T, d, dir, true);  // Phase 4: enable refraction
       const eg = _ss(_D_H0_QUIET, _D_H0_FULL, H0);
       const nm = 1 - _ss(_D_NEARSHORE_FULL, _D_NEARSHORE_FADE, d);
       const bb = breaking ? 0.2 * eg : 0;

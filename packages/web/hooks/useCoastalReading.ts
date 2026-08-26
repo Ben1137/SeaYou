@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient } from '@seame/core';
+import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections } from '@seame/core';
 import { fetchNearshoreDepthWithGradient } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
@@ -174,7 +174,9 @@ export function useCoastalReading(
           setReading(null);
           return;
         }
-        const result  = nearshoreTransform(H0, T, effectiveDepth);
+        // Phase 4: Compute incident angle from swell direction + shore normal, enable refraction
+        const theta0Deg = incidentAngleFromDirections(conditions?.swellDirection ?? 0, shoreNormalDeg);
+        const result  = nearshoreTransform(H0, T, effectiveDepth, theta0Deg, true);
         const HBreaker = komarGaughanBreakerHeight(H0, T);
         // Log both heights so the divergence between shoaling and K-G is always visible.
         // Silence with ?coastalReadingDebug omitted; full output at ?coastalReadingDebug=1.

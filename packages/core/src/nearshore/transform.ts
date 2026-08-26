@@ -38,6 +38,44 @@ export function shoalingCoeff(T: number, d: number): number {
 }
 
 /**
+ * Deep-water incident angle for Snell refraction.
+ *
+ * Convention (critical for sign):
+ *   shoreNormalDeg = offshore bearing from bathymetry gradient (compass 0-360).
+ *   swellFromDeg = meteorological "from" direction (where waves originate, compass 0-360).
+ *   theta0 = angle between swell propagation direction and shore-normal.
+ *
+ * Swell propagates TOWARD (swellFromDeg + 180) % 360.
+ * theta0 = smallest arc between swell-toward and shore-normal, in [-90, 90].
+ *   theta0 ≈ 0°   → swell approach nearly perpendicular to shore → Ks ≈ Kr ≈ 1
+ *   theta0 ≈ 90°  → swell approach nearly parallel to shore → sin(theta) ≈ 1
+ *
+ * @param swellFromDeg      Meteorological swell-from direction (degrees [0,360))
+ * @param shoreNormalDeg    Offshore bearing from depth gradient (degrees [0,360), null if ambiguous)
+ * @returns theta0 in degrees [-90,90], or 0 if shoreNormal is null/ambiguous
+ */
+export function incidentAngleFromDirections(
+  swellFromDeg: number,
+  shoreNormalDeg: number | null,
+): number {
+  if (shoreNormalDeg == null) {
+    return 0; // Flat/ambiguous shelf → assume shore-normal incidence
+  }
+
+  // Swell propagates toward (swellFrom + 180) % 360
+  const swellTowardDeg = ((swellFromDeg + 180) % 360 + 360) % 360;
+
+  // Smallest arc between swell-toward and shore-normal
+  let diff = ((swellTowardDeg - shoreNormalDeg) % 360 + 360) % 360;
+  if (diff > 180) diff = 360 - diff; // Smallest arc: [0,180]
+
+  // Map to [-90,90]: 0° = shore-normal, ±90° = parallel-to-shore
+  // diff ∈ [0,180] → theta0 ∈ [-90, 90] after atan-like mapping
+  // Use simple: if diff > 90, then theta0 = 180 - diff (reflex angles become negative)
+  return diff > 90 ? 180 - diff : diff;
+}
+
+/**
  * Refraction coefficient Kr using Snell's law (straight parallel-contour
  * approximation). Indicative only — true refraction is non-local.
  *

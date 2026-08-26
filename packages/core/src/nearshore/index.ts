@@ -5,3 +5,4 @@ export * from './surfEnergy';
 export * from './consistency';
 export * from './waveScale';
 export * from './windQuality';
+export { incidentAngleFromDirections } from './transform';

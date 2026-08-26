@@ -102,6 +102,49 @@ float deepWaterWavelength(float T) {
   return (G * T * T) / TWO_PI;   // L0 = g·T²/2π
 }
 
+// ── Phase 4: Snell Refraction ──────────────────────────────────────────────
+// Refraction coefficient Kr = sqrt( cos(theta0) / cos(theta) ) using Snell's law
+// Straight-parallel-contour approximation; indicative only (effective at ~450m resolution).
+//
+// Inputs:
+//   T: wave period (s)
+//   d: effective depth (m)
+//   theta0_rad: deep-water incident angle (radians, from shore-normal)
+//   gradU, gradV: depth gradient sampled from u_depth texture (∂d/∂lon, ∂d/∂lat)
+//
+// Returns Kr ∈ [0, 2], clamped to avoid cos θ → 0 singularities at grazing incidence.
+float refractionCoeffSnell(float T, float d, float theta0_rad, float gradU, float gradV) {
+  // Compute angle between swell propagation and local depth gradient
+  // Swell propagates at angle theta0_rad from shore-normal (computed in caller).
+  // For now, use theta0_rad directly; CPU computes the conversion from directions.
+
+  // Deep-water phase speed
+  float C0 = (G * T) / TWO_PI;
+
+  // Local phase speed at depth d (via Fenton-McKee wavelength)
+  float L0 = deepWaterWavelength(T);
+  float omega = TWO_PI / T;
+  float x = (omega * omega * d) / G;
+  float xc = clamp(x, 0.0001, 500.0);
+  float tanhArg = pow(xc, 0.75);
+  float tanhVal = glsl_tanh(tanhArg);
+  float L = L0 * pow(tanhVal, 2.0 / 3.0);
+  float C = L / T;
+
+  // Snell's law: C / C0 = sin(theta) / sin(theta0)
+  float sinTheta = (C / C0) * sin(theta0_rad);
+  sinTheta = clamp(sinTheta, -1.0, 1.0);
+  float theta = asin(sinTheta);
+
+  float cosTheta0 = cos(theta0_rad);
+  float cosTheta = cos(theta);
+
+  // Guard against near-zero denominator (wave approaching along-shore)
+  if (abs(cosTheta) < 1e-6) return 1.0;
+
+  return clamp(sqrt(abs(cosTheta0) / cosTheta), 0.0, 2.0);
+}
+
 float fentonMcKeeWavelength(float T, float d) {
   float L0    = deepWaterWavelength(T);
   float omega = TWO_PI / T;
@@ -205,7 +248,33 @@ void main() {
   // Clamp Ks to physically plausible range [0.5, 3.0]
   Ks = clamp(Ks, 0.5, 3.0);
 
-  float H_shoaled   = H0 * Ks;           // Kr = 1.0 in Phase 3 (refraction Phase 4)
+  // Phase 4: Snell refraction from local depth gradient
+  // Sample depth gradient using central differences (same grid as depth texture).
+  // Note: this is a straight-parallel-contour APPROXIMATION, indicative only.
+  // True refraction is non-local and depends on the full bathymetry profile.
+  float pixelSize_m = 1.0 / 64.0;  // Viewport spans ~64 pixels; rough 450m per pixel at typical zoom
+  vec4 depthCW = texture2D(u_depth, uv + vec2(pixelSize_m, 0.0));
+  vec4 depthCCW = texture2D(u_depth, uv - vec2(pixelSize_m, 0.0));
+  vec4 depthN = texture2D(u_depth, uv - vec2(0.0, pixelSize_m));
+  vec4 depthS = texture2D(u_depth, uv + vec2(0.0, pixelSize_m));
+
+  float gradLon = 0.0, gradLat = 0.0;
+  if (depthCW.a > 0.1 && depthCCW.a > 0.1) {
+    gradLon = (depthCW.r - depthCCW.r) / (2.0 * pixelSize_m);
+  }
+  if (depthN.a > 0.1 && depthS.a > 0.1) {
+    gradLat = (depthS.r - depthN.r) / (2.0 * pixelSize_m);
+  }
+
+  // Convert swell "from" direction and offshore normal into incident angle
+  // Swell "from" = B channel normalized / 360; offshore normal derived from gradient.
+  // Simplified: use swell direction directly (B channel * 360) as incident angle proxy.
+  // Full version (CPU-side) computes: theta0 = angle(swell-toward, shore-normal).
+  float theta0_deg = dir_from_deg;
+  float theta0_rad = (theta0_deg * PI) / 180.0;
+  float Kr = refractionCoeffSnell(T, d_eff, theta0_rad, gradLon, gradLat);
+
+  float H_shoaled   = H0 * Ks * Kr;      // Phase 4: Kr now applied; Kr=1 at theta0=0
   float breakingCap = GAMMA * d_eff;
   bool  isBreaking  = H_shoaled > breakingCap;
   float H_final     = isBreaking ? breakingCap : H_shoaled;

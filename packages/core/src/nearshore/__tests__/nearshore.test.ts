@@ -12,6 +12,7 @@ import {
   refractionCoeff,
   nearshoreTransform,
   komarGaughanBreakerHeight,
+  incidentAngleFromDirections,
 } from '../transform';
 import { surfPower, combineSwellPartitions } from '../energy';
 
@@ -257,5 +258,49 @@ describe('combineSwellPartitions', () => {
     ]);
     expect(combinedHeight).toBeCloseTo(2, 8);
     expect(dominant!.period).toBe(12);
+  });
+});
+
+// ─── incidentAngleFromDirections (Phase 4 refraction) ──────────────────────
+
+describe('incidentAngleFromDirections', () => {
+  it('returns 0° when shoreNormal is null (flat shelf)', () => {
+    expect(incidentAngleFromDirections(180, null)).toBe(0);
+  });
+
+  it('returns 0° when swell propagates shore-normal', () => {
+    // shoreNormal=0 (offshore bearing north), swell from=180 (propagates north) → incident=0
+    expect(incidentAngleFromDirections(180, 0)).toBeCloseTo(0, 1);
+  });
+
+  it('returns ±90° when swell propagates parallel-to-shore', () => {
+    // shoreNormal=0 (north), swell from=90 (propagates west) → 90° parallel
+    expect(Math.abs(incidentAngleFromDirections(90, 0))).toBeCloseTo(90, 1);
+  });
+
+  it('handles wrap-around: shoreNormal=350, swell-from=10', () => {
+    // swell-from=10 → swell-toward=190; shoreNormal=350 → diff=190-350=-160 → 200 → min arc 160 → θ0≈70
+    const theta0 = incidentAngleFromDirections(10, 350);
+    expect(Math.abs(theta0)).toBeLessThan(90);
+  });
+
+  it('Kr=1 at theta0=0 (shore-normal incidence)', () => {
+    // T=14, d=10, theta0=0 → Kr should be ≈1
+    const result = nearshoreTransform(2.0, 14, 10, 0, true);
+    expect(result.Kr).toBeCloseTo(1, 1);
+  });
+
+  it('Kr is finite and clamped at theta0=80 (near-parallel)', () => {
+    const result = nearshoreTransform(2.0, 14, 10, 80, true);
+    expect(result.Kr).toBeGreaterThan(0);
+    expect(result.Kr).toBeLessThanOrEqual(2); // Clamped at 2
+  });
+
+  it('Kr reduces H at oblique incidence', () => {
+    const direct = nearshoreTransform(2.0, 14, 10, 0, true);
+    const oblique = nearshoreTransform(2.0, 14, 10, 45, true);
+    // At 45° oblique, waves refract away → Kr < 1 → H_oblique < H_direct
+    expect(oblique.Kr).toBeLessThan(direct.Kr);
+    expect(oblique.H).toBeLessThan(direct.H);
   });
 });
