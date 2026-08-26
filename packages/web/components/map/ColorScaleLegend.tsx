@@ -13,6 +13,7 @@ export interface ColorScaleLegendProps {
   title: string;
   position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
   className?: string;
+  caveat?: string;
 }
 
 const POSITION_CLASSES = {
@@ -28,6 +29,7 @@ export const ColorScaleLegend: React.FC<ColorScaleLegendProps> = ({
   title,
   position = 'bottomright',
   className = '',
+  caveat,
 }) => {
   const { i18n } = useTranslation();
   const isRTL = i18n.language === 'he';
@@ -67,6 +69,11 @@ export const ColorScaleLegend: React.FC<ColorScaleLegendProps> = ({
           <h3 className="text-[11px] font-bold text-white uppercase tracking-wide truncate text-center">
             {title}
           </h3>
+          {caveat && (
+            <div className="text-[10px] text-white/60 mt-1 leading-tight text-center font-normal">
+              {caveat}
+            </div>
+          )}
         </div>
 
         {/* Gradient Bar & Labels */}

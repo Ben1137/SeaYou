@@ -1703,6 +1703,7 @@ export function MapContainerML({ currentLocation, tsunamiRisks = [], favoriteLoc
           scale={COLOR_SCALES.breakingWaves}
           unit="m"
           title={t('map.legend.breakingWaves') || 'Breaking Wave Height'}
+          caveat={t('coastalDynamics.caveatShort', 'Modelled · GEBCO ~450 m · not a forecast')}
         />
       )}
 
