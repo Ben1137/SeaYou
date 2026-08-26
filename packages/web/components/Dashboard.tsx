@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey, beachgoerSafetyLabel } from '@seame/core';
+import { MarineWeatherData, ActivityPersona, scoreActivity, extractCurrentConditions, extractHourlyConditions, findBestWindow, type OnboardingPersona, WEATHER_MODELS, windQuality, waveScaleLabel, waveScaleI18nKey, beachgoerSafetyLabel, coastalSurfRating } from '@seame/core';
 import { useUserPreferences } from '../src/hooks/useUserPreferences';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, ComposedChart, Line, ReferenceLine, ReferenceArea
@@ -152,6 +152,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   const [activeGraph, setActiveGraph] = useState<'tide' | 'wave' | 'swell'>('wave');
   // Selected activity persona for the Explainable-UI breakdown modal
   const [breakdownPersona, setBreakdownPersona] = useState<ActivityPersona | null>(null);
+  // Coastal surf rating modal state (Phase 5.1)
+  const [showCoastalRatingBreakdown, setShowCoastalRatingBreakdown] = useState(false);
 
   // ─── CSS-based "fullscreen" state (works on iOS Safari — native
   // requestFullscreen() is disallowed for non-video elements there) ───
@@ -376,6 +378,22 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
       [ActivityPersona.BEACHGOER]:      scoreActivity(ActivityPersona.BEACHGOER, scoringConditions),
     };
   }, [scoringConditions]);
+
+  // ─── P5.1: Coastal Surf Rating (indicative) ───
+  const coastalSurfRatingResult = useMemo(() => {
+    if (!coastalReading || !currentConditions) return null;
+    return coastalSurfRating({
+      breakingHeight: coastalReading.HDisplay,  // Use damped display height for rating
+      period: coastalReading.T,
+      primaryHeight: coastalReading.primaryHeight,
+      secondaryHeight: coastalReading.secondaryHeight,
+      shoreNormalDeg: coastalReading.shoreNormalDeg,
+      windDirection: currentConditions.windDirection,
+      windSpeed: currentConditions.wind,
+      windWaveHeight: currentConditions.windWaveHeight ?? 0,
+      swellHeight: currentConditions.swell ?? 0,
+    });
+  }, [coastalReading, currentConditions]);
 
   const bestWindows = useMemo(() => {
     if (!weatherData?.hourly?.time?.length) return null;
@@ -965,6 +983,19 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
         );
       })()}
 
+      {/* Coastal rating breakdown modal (Phase 5.1, indicative) */}
+      {coastalSurfRatingResult && (
+        <ScoreBreakdownModal
+          isOpen={showCoastalRatingBreakdown}
+          onClose={() => setShowCoastalRatingBreakdown(false)}
+          activityLabel={t('coastalRating.title', 'Coastal Surf Rating')}
+          score={coastalSurfRatingResult}
+          weatherData={weatherData}
+          coastalReading={coastalReading}
+          currentHourIndex={currentHourIndex}
+        />
+      )}
+
       {/* ─── Conditions Grid ─── */}
       {/* Layout: 2 cols mobile/tablet → lg: 4+3 wrap (Coastal Break stays row-1) → xl: all 7 in one row */}
       <section className={`grid grid-cols-2 gap-4 ${showTide ? 'lg:grid-cols-4 xl:grid-cols-7' : 'lg:grid-cols-4 xl:grid-cols-6'}`}>
@@ -1020,7 +1051,7 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
               <>
                 <div className="flex items-end mb-1">
                   <span className="text-4xl font-bold leading-none tabular-nums text-teal-300">
-                    {coastalReading.HBreaker.toFixed(2)}
+                    {coastalReading.HDisplay.toFixed(2)}
                   </span>
                   <span className="text-lg ml-1 mb-1 font-medium">m</span>
                 </div>
@@ -1076,6 +1107,20 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                 </span>
               );
             })()}
+            {/* Coastal surf rating chip — Phase 5.1 (indicative) */}
+            {coastalSurfRatingResult && (
+              <button
+                onClick={() => setShowCoastalRatingBreakdown(true)}
+                className={`inline-flex items-center mt-2 px-2 py-0.5 rounded-full text-[10px] font-medium border cursor-pointer transition-colors ${
+                  coastalSurfRatingResult.overall >= 70 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/30' :
+                  coastalSurfRatingResult.overall >= 40 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30 hover:bg-yellow-500/30' :
+                  'bg-rose-500/20 text-rose-300 border-rose-500/30 hover:bg-rose-500/30'
+                }`}
+                title={t('coastalRating.title', 'Modelled coastal surf rating (indicative)')}
+              >
+                {coastalSurfRatingResult.label} · {coastalSurfRatingResult.overall}
+              </button>
+            )}
           </div>
           {/* Caveat: absolutely positioned so it never adds a third flex child (keeps baseline grid). */}
           <span
