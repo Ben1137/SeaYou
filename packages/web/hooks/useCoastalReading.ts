@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections, combineSwellPartitions } from '@seame/core';
+import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections, combineSwellPartitions, brekerDisplayFactor } from '@seame/core';
 import { fetchNearshoreDepthWithGradient } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
@@ -58,10 +58,16 @@ export interface CoastalReading {
    * Requires no local depth — useful precisely when bathymetry cannot resolve the surf zone.
    * Caveats: empirical (gently-sloping plane beaches); no refraction or diffraction; Hb is
    * significant breaker height, NOT face height — face height is a separate decision.
-   * Use for the Coastal Break card display and waveScaleLabel.
-   * Computed from combined H0 (primary + secondary if available).
+   * Raw value; use HDisplay for showing on UI. Computed from combined H0 (primary + secondary if available).
    */
   HBreaker: number;
+  /**
+   * Damped display breaker height (m) for short-period swell.
+   * = HBreaker * brekerDisplayFactor(T)
+   * Reflects losses from steepness-induced viscous dissipation + chop for short-period wind-swell.
+   * Use this for the Coastal Break card display; HBreaker stays raw in the data object.
+   */
+  HDisplay: number;
   /** Primary swell partition height (m). Part of the combined H0. */
   primaryHeight: number;
   /** Primary swell period (s). Used in transform (from dominant partition). */
@@ -232,6 +238,9 @@ export function useCoastalReading(
         const theta0Deg = incidentAngleFromDirections(conditions?.swellDirection ?? 0, shoreNormalDeg);
         const result  = nearshoreTransform(H0, T, effectiveDepth, theta0Deg, true);
         const HBreaker = komarGaughanBreakerHeight(H0, T);
+        // Damp the displayed height for short-period swell to reflect realistic face heights
+        const displayFactor = brekerDisplayFactor({ T });
+        const HDisplay = HBreaker * displayFactor;
         // Log both heights so the divergence between shoaling and K-G is always visible.
         // Silence with ?coastalReadingDebug omitted; full output at ?coastalReadingDebug=1.
         if (dbg) {
@@ -240,6 +249,8 @@ export function useCoastalReading(
             H0: H0.toFixed(3), T: T.toFixed(1), rawDepth: centreDepth.toFixed(1), effectiveDepth: effectiveDepth.toFixed(1), tideOffset: tideOffset.toFixed(3),
             HShoaled:  result.H.toFixed(3),
             HBreaker:  HBreaker.toFixed(3),
+            HDisplay:  HDisplay.toFixed(3),
+            displayFactor: displayFactor.toFixed(3),
             Ks:        result.Ks.toFixed(4),
             'KG/Shoal': (HBreaker / result.H).toFixed(3),
             method:    'komar-gaughan',
@@ -248,6 +259,7 @@ export function useCoastalReading(
         setReading({
           HShoaled:    result.H,
           HBreaker,
+          HDisplay,
           method:      'komar-gaughan',
           HFinal:      result.H,  // backwards compat for map layer
           Ks:          result.Ks,

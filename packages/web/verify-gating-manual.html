@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>E4 Verification - Coastal Dynamics Gating</title>
+  <style>
+    body {
+      font-family: monospace;
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #60a5fa;
+    }
+    h2 {
+      color: #34d399;
+      margin-top: 30px;
+      border-bottom: 2px solid #34d399;
+      padding-bottom: 10px;
+    }
+    .status {
+      padding: 15px;
+      margin: 10px 0;
+      border-left: 4px solid #34d399;
+      background: rgba(52, 211, 153, 0.05);
+    }
+    .status.warning {
+      border-left-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.05);
+    }
+    .status.error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.05);
+    }
+    .step {
+      background: #1e293b;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+    .step-number {
+      display: inline-block;
+      background: #60a5fa;
+      color: #0f172a;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    code {
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 3px;
+      color: #fbbf24;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: monospace;
+      margin: 5px 5px 5px 0;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .console {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .log-line {
+      margin: 3px 0;
+    }
+    .log-success {
+      color: #34d399;
+    }
+    .log-error {
+      color: #ef4444;
+    }
+    .log-info {
+      color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 E4 Verification: Coastal Dynamics Free-Tier Gating</h1>
+
+    <div class="step">
+      <span class="step-number">PREREQUISITE</span>
+      <strong>Make sure the SeaYou app is open in another tab at</strong> <code>http://localhost:5173</code>
+    </div>
+
+    <h2>Test 1: Set Free Tier & Monitor .pmtiles</h2>
+    <div class="step">
+      <p>This will:</p>
+      <ol>
+        <li>Set <code>subscriptionTier = 'free'</code> in localStorage</li>
+        <li>Set up .pmtiles request interception</li>
+        <li>Reload the app</li>
+      </ol>
+      <button onclick="setFreeTierAndMonitor()">▶ Step 1: Set Free Tier</button>
+    </div>
+
+    <h2>Test 2: Verify UI & Gating</h2>
+    <div class="step">
+      <p>Once free tier is set:</p>
+      <ol>
+        <li>Look for the Breaking Waves toggle with a 🔒 lock icon</li>
+        <li>Click the Breaking Waves button</li>
+        <li>Verify a paywall appears and the layer stays off</li>
+        <li>Check DevTools Network tab for .pmtiles requests (should be ZERO)</li>
+      </ol>
+      <button onclick="verifyFreeGating()">▶ Step 2: Verify Free Tier Gating</button>
+    </div>
+
+    <h2>Test 3: Switch to Premium & Compare</h2>
+    <div class="step">
+      <p>This will:</p>
+      <ol>
+        <li>Switch to <code>subscriptionTier = 'premium'</code></li>
+        <li>Reload the app</li>
+        <li>You should see NO lock icon and layer renders on click</li>
+        <li>.pmtiles requests should NOW fire</li>
+      </ol>
+      <button onclick="setPremiumTier()">▶ Step 3: Switch to Premium</button>
+    </div>
+
+    <h2>Instructions for Manual Verification</h2>
+    <div class="step">
+      <h3>Free Tier (after Step 1):</h3>
+      <ol>
+        <li><strong>UI Check:</strong> Look for Breaking Waves toggle in the left panel under "Coastal Dynamics"</li>
+        <li><strong>Lock Icon:</strong> Should show a 🔒 icon next to the button</li>
+        <li><strong>Click Test:</strong> Click "Breaking Waves" → should show "Premium Feature" paywall</li>
+        <li><strong>Network Check:</strong>
+          <ul>
+            <li>Open DevTools (F12)</li>
+            <li>Go to Network tab</li>
+            <li>Filter by "pmtiles"</li>
+            <li>Click Breaking Waves again</li>
+            <li>Should see <strong>ZERO</strong> requests (0 pmtiles downloaded)</li>
+          </ul>
+        </li>
+        <li><strong>Screenshot:</strong> Take a screenshot of:
+          <ul>
+            <li>The Breaking Waves button with lock icon</li>
+            <li>The Network panel showing zero .pmtiles requests</li>
+          </ul>
+        </li>
+      </ol>
+
+      <h3>Premium Tier (after Step 3):</h3>
+      <ol>
+        <li><strong>Lock Icon Gone:</strong> The 🔒 should disappear</li>
+        <li><strong>Click Test:</strong> Click "Breaking Waves" → layer renders, no paywall</li>
+        <li><strong>Network Check:</strong>
+          <ul>
+            <li>Open DevTools Network tab</li>
+            <li>Filter by "pmtiles"</li>
+            <li>Click Breaking Waves</li>
+            <li>Should see <strong>multiple</strong> .pmtiles requests firing</li>
+          </ul>
+        </li>
+        <li><strong>Screenshot:</strong> Take a screenshot of:
+          <ul>
+            <li>The Breaking Waves button WITHOUT lock icon</li>
+            <li>The rendered breaking wave heatmap on the map</li>
+            <li>The Network panel showing .pmtiles requests</li>
+          </ul>
+        </li>
+      </ol>
+    </div>
+
+    <h2>Output Log</h2>
+    <div class="console" id="log"></div>
+
+    <h2>Key URLs to Inspect</h2>
+    <div class="step">
+      <p>In DevTools Network tab, look for requests like:</p>
+      <code>https://tilesets.mapbox.com/v1/mapbox.mapbox-terrain-v2/...?access_token=...<br/>
+      ...or any URL containing .pmtiles</code>
+    </div>
+  </div>
+
+  <script>
+    function log(msg, type = 'info') {
+      const logEl = document.getElementById('log');
+      const line = document.createElement('div');
+      line.className = `log-line log-${type}`;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setFreeTierAndMonitor() {
+      log('📍 Opening SeaYou app in new tab...', 'info');
+
+      // Open the app in a new window/tab that we'll target
+      const appWindow = window.open('http://localhost:5173', 'seayou-test', 'width=1200,height=800');
+
+      setTimeout(() => {
+        if (!appWindow) {
+          log('❌ Failed to open app window. Please allow popups.', 'error');
+          return;
+        }
+
+        try {
+          // Set free tier in the app's localStorage
+          appWindow.localStorage.setItem('seayou_user_preferences', JSON.stringify({
+            subscriptionTier: 'free',
+            persona: null,
+            home: null,
+            units: 'metric',
+          }));
+
+          log('✓ Set subscriptionTier = "free" in localStorage', 'success');
+
+          // Set up network monitoring in the app window
+          appWindow.pmtilesRequests = [];
+          appWindow.addEventListener('beforeunload', () => {
+            // Preserve the array during reload
+            window.pmtilesRequestsBackup = appWindow.pmtilesRequests;
+          });
+
+          log('✓ Network monitor initialized', 'success');
+          log('📍 Reloading app with free tier...', 'info');
+
+          // Reload
+          appWindow.location.reload();
+
+          setTimeout(() => {
+            log('✓ App reloaded', 'success');
+            log('👉 Now look at the SeaYou app window:', 'info');
+            log('   1. Find "Breaking Waves" in left panel under Coastal Dynamics', 'info');
+            log('   2. Look for 🔒 lock icon', 'info');
+            log('   3. Click it and verify paywall appears', 'info');
+            log('   4. Open DevTools → Network tab → filter "pmtiles"', 'info');
+            log('   5. You should see ZERO .pmtiles requests', 'info');
+          }, 2000);
+        } catch (e) {
+          log(`❌ Error: ${e.message}`, 'error');
+        }
+      }, 500);
+    }
+
+    function verifyFreeGating() {
+      log('📋 Verification Checklist:', 'info');
+      log('☐ Breaking Waves button visible with 🔒 lock icon', 'info');
+      log('☐ Clicking it shows "Premium Feature" paywall', 'info');
+      log('☐ DevTools Network tab shows 0 .pmtiles requests', 'info');
+      log('☐ advancedLayer remains "NONE" (layer not enabled)', 'info');
+      log('', 'info');
+      log('👉 Perform these checks manually in the app tab and DevTools', 'info');
+      log('📸 Screenshot this when complete', 'info');
+    }
+
+    function setPremiumTier() {
+      log('📍 Opening SeaYou app (already open tab)...', 'info');
+
+      const appWindow = window.open('http://localhost:5173', 'seayou-test');
+
+      setTimeout(() => {
+        if (!appWindow) {
+          log('❌ App window not found', 'error');
+          return;
+        }
+
+        try {
+          // Set premium tier
+          appWindow.localStorage.setItem('seayou_user_preferences', JSON.stringify({
+            subscriptionTier: 'premium',
+            persona: null,
+            home: null,
+            units: 'metric',
+          }));
+
+          log('✓ Set subscriptionTier = "premium" in localStorage', 'success');
+          log('📍 Reloading with premium tier...', 'info');
+
+          appWindow.location.reload();
+
+          setTimeout(() => {
+            log('✓ App reloaded', 'success');
+            log('👉 Now look at the SeaYou app window:', 'info');
+            log('   1. 🔒 lock icon should be GONE', 'info');
+            log('   2. Click "Breaking Waves" → layer should render immediately', 'info');
+            log('   3. DevTools Network → filter "pmtiles"', 'info');
+            log('   4. You should see MULTIPLE .pmtiles requests', 'info');
+          }, 2000);
+        } catch (e) {
+          log(`❌ Error: ${e.message}`, 'error');
+        }
+      }, 500);
+    }
+
+    // Initial message
+    log('🎯 E4 Verification Tool Ready', 'success');
+    log('Make sure SeaYou is running at http://localhost:5173', 'info');
+  </script>
+</body>
+</html>

@@ -1,0 +1,3569 @@
+No projects matched the filters "C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)" in "C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)"
+
+> @seame/core@1.0.0 test C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core
+> vitest
+
+
+[7m[1m[34m DEV [39m[22m[27m [34mv1.6.1[39m [90mC:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame (2)/packages/core[39m
+
+ [32m✓[39m src/nearshore/__tests__/nearshore.test.ts [2m ([22m[2m39 tests[22m[2m)[22m[90m 17[2mms[22m[39m
+ [32m✓[39m src/nearshore/__tests__/p55.test.ts [2m ([22m[2m86 tests[22m[2m)[22m[90m 43[2mms[22m[39m
+ [32m✓[39m src/scoring/__tests__/scoring.test.ts [2m ([22m[2m37 tests[22m[2m)[22m[90m 32[2mms[22m[39m
+ [32m✓[39m src/nearshore/__tests__/windQuality.test.ts [2m ([22m[2m21 tests[22m[2m)[22m[90m 10[2mms[22m[39m
+ [32m✓[39m src/utils/__tests__/formatting.test.ts [2m ([22m[2m14 tests[22m[2m)[22m[90m 12[2mms[22m[39m
+ [32m✓[39m src/services/__tests__/cacheService.test.ts [2m ([22m[2m21 tests[22m[2m)[22m[33m 922[2mms[22m[39m
+ [33m❯[39m src/services/__tests__/weatherService.test.ts [2m ([22m[2m25 tests[22m [2m|[22m [31m10 failed[39m[2m)[22m[90m 99[2mms[22m[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchMarineWeather[2m > [22mshould include tide data[39m
+[31m     → expected undefined not to be undefined[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchMarineWeather[2m > [22mshould handle API errors gracefully[39m
+[31m     → promise resolved "{ latitude: 32.0853, …(7) }" instead of rejecting[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchMarineWeather[2m > [22mshould validate coordinates are included in request[39m
+[31m     → expected "spy" to be called at least once[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchPointForecast[2m > [22mshould handle errors and return default values[39m
+[31m     → expected 1.5 to be +0 // Object.is equality[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22msearchLocations[2m > [22mshould handle search errors gracefully[39m
+[31m     → expected [ { id: 1, name: 'Tel Aviv', …(4) } ] to deeply equal [][39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22msearchLocations[2m > [22mshould encode query parameters correctly[39m
+[31m     → expected "spy" to be called at least once[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mreverseGeocode[2m > [22mshould reverse geocode coordinates[39m
+[31m     → expected undefined to be 'Tel Aviv' // Object.is equality[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mreverseGeocode[2m > [22mshould include coordinates in request[39m
+[31m     → expected 'https://nominatim.openstreetmap.org/r…' to contain 'latitude=32.0853'[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mAPI integration[2m > [22mshould make parallel API calls for marine weather[39m
+[31m     → expected "spy" to be called 2 times, but got 0 times[39m
+[31m   [33m❯[31m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mAPI integration[2m > [22mshould request correct forecast days[39m
+[31m     → Cannot read properties of undefined (reading '0')[39m
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould fetch complete marine weather data[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Executing new request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Executing new request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould include hourly data[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould include current conditions[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould include general weather information[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould include tide data[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould include moon phase data[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould handle API errors gracefully[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchMarineWeather[2m > [22m[2mshould validate coordinates are included in request[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchPointForecast[2m > [22m[2mshould fetch point forecast data[22m[39m
+[RequestDeduplication] Executing new request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&current=wave_height%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_surface_temperature&timezone=auto&models=best_match&cell_selection=sea
+[RequestDeduplication] Executing new request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m&timezone=auto&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchPointForecast[2m > [22m[2mshould include weather conditions[22m[39m
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&current=wave_height%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_surface_temperature&timezone=auto&models=best_match&cell_selection=sea
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m&timezone=auto&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchPointForecast[2m > [22m[2mshould include wind and swell data[22m[39m
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&current=wave_height%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_surface_temperature&timezone=auto&models=best_match&cell_selection=sea
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m&timezone=auto&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mfetchPointForecast[2m > [22m[2mshould handle errors and return default values[22m[39m
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&current=wave_height%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_surface_temperature&timezone=auto&models=best_match&cell_selection=sea
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m&timezone=auto&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2msearchLocations[2m > [22m[2mshould search for locations[22m[39m
+[RequestDeduplication] Executing new request for: https://geocoding-api.open-meteo.com/v1/search?name=Tel%20Aviv&count=5&language=en&format=json
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2msearchLocations[2m > [22m[2mshould handle search errors gracefully[22m[39m
+[RequestDeduplication] Returning existing request for: https://geocoding-api.open-meteo.com/v1/search?name=Tel%20Aviv&count=5&language=en&format=json
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2msearchLocations[2m > [22m[2mshould encode query parameters correctly[22m[39m
+[RequestDeduplication] Returning existing request for: https://geocoding-api.open-meteo.com/v1/search?name=Tel%20Aviv&count=5&language=en&format=json
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2msearchLocations[2m > [22m[2mshould map API response to Location type[22m[39m
+[RequestDeduplication] Returning existing request for: https://geocoding-api.open-meteo.com/v1/search?name=Tel%20Aviv&count=5&language=en&format=json
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould reverse geocode coordinates[22m[39m
+[RequestDeduplication] Executing new request for: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+
+[90mstderr[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould reverse geocode coordinates[22m[39m
+[RequestDeduplication] Request failed after 1 attempt(s): https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json Unhandled request: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+Reverse geocode error Error: Unhandled request: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+    at [90mC:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\__tests__\weatherService.test.ts:150:27
+    at mockCall (file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/@vitest+spy@1.6.1/node_modules/[4m@vitest/spy[24m/dist/index.js:50:17)
+    at spy (file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/tinyspy@2.2.1/node_modules/[4mtinyspy[24m/dist/index.js:42:80)
+    at Module.fetchWithTimeout [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\fetchWithRetry.ts:76:28[90m)[39m
+    at RequestDeduplicationService.fetchWithRetry [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:363:32[90m)[39m
+    at RequestDeduplicationService.fetch [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:303:33[90m)[39m
+    at Module.deduplicatedFetch [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:497:38[90m)[39m
+    at Module.reverseGeocode [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\weatherService.ts:735:28[90m)[39m
+    at [90mC:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\__tests__\weatherService.test.ts:335:30
+    at file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest/runner[24m/dist/index.js:135:14
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould return null when no results found[22m[39m
+[RequestDeduplication] Executing new request for: https://nominatim.openstreetmap.org/reverse?lat=0&lon=0&format=json
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould handle errors gracefully[22m[39m
+[RequestDeduplication] Executing new request for: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+
+[90mstderr[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould handle errors gracefully[22m[39m
+[RequestDeduplication] Request failed after 1 attempt(s): https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json API Error
+Reverse geocode error Error: API Error
+    at [90mC:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\__tests__\weatherService.test.ts:357:49
+    at mockCall (file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/@vitest+spy@1.6.1/node_modules/[4m@vitest/spy[24m/dist/index.js:50:17)
+    at spy (file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/tinyspy@2.2.1/node_modules/[4mtinyspy[24m/dist/index.js:42:80)
+    at Module.fetchWithTimeout [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\fetchWithRetry.ts:76:28[90m)[39m
+    at RequestDeduplicationService.fetchWithRetry [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:363:32[90m)[39m
+    at RequestDeduplicationService.fetch [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:303:33[90m)[39m
+    at Module.deduplicatedFetch [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:497:38[90m)[39m
+    at Module.reverseGeocode [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\weatherService.ts:735:28[90m)[39m
+    at [90mC:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\__tests__\weatherService.test.ts:359:30
+    at file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest/runner[24m/dist/index.js:135:14
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould include coordinates in request[22m[39m
+[RequestDeduplication] Executing new request for: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+
+[90mstderr[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mreverseGeocode[2m > [22m[2mshould include coordinates in request[22m[39m
+[RequestDeduplication] Request failed after 1 attempt(s): https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json Unhandled request: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+Reverse geocode error Error: Unhandled request: https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json
+    at [90mC:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\__tests__\weatherService.test.ts:150:27
+    at mockCall (file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/@vitest+spy@1.6.1/node_modules/[4m@vitest/spy[24m/dist/index.js:50:17)
+    at spy (file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/tinyspy@2.2.1/node_modules/[4mtinyspy[24m/dist/index.js:42:80)
+    at Module.fetchWithTimeout [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\fetchWithRetry.ts:76:28[90m)[39m
+    at RequestDeduplicationService.fetchWithRetry [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:363:32[90m)[39m
+    at RequestDeduplicationService.fetch [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:303:33[90m)[39m
+    at Module.deduplicatedFetch [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\utils\requestDeduplication.ts:497:38[90m)[39m
+    at Module.reverseGeocode [90m(C:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\weatherService.ts:735:28[90m)[39m
+    at [90mC:\Users\user01\Desktop\Ben\Sea_Level_Dash_Open-Meteo\seame (2)\packages\core\[39msrc\services\__tests__\weatherService.test.ts:365:13
+    at file:///C:/Users/user01/Desktop/Ben/Sea_Level_Dash_Open-Meteo/seame%20(2)/node_modules/[4m.pnpm[24m/@vitest+runner@1.6.1/node_modules/[4m@vitest/runner[24m/dist/index.js:135:14
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mAPI integration[2m > [22m[2mshould make parallel API calls for marine weather[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mAPI integration[2m > [22m[2mshould include timezone in requests[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+[90mstdout[2m | src/services/__tests__/weatherService.test.ts[2m > [22m[2mweatherService[2m > [22m[2mAPI integration[2m > [22m[2mshould request correct forecast days[22m[39m
+[WeatherService] Location: 32.09, 34.78 | Region: global | Marine: best_match | Weather: best_match | Resolution: ~25km
+[RequestDeduplication] Returning existing request for: https://marine-api.open-meteo.com/v1/marine?latitude=32.0853&longitude=34.7818&hourly=wave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Cswell_wave_peak_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Csea_surface_temperature%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&daily=wave_height_max%2Cwave_direction_dominant%2Cwave_period_max%2Cswell_wave_height_max%2Cswell_wave_direction_dominant%2Cswell_wave_period_max%2Cwind_wave_height_max%2Cwind_wave_direction_dominant%2Cwind_wave_period_max&current=sea_surface_temperature%2Cwave_height%2Cwave_direction%2Cwave_period%2Cwave_peak_period%2Cswell_wave_height%2Cswell_wave_direction%2Cswell_wave_period%2Csecondary_swell_wave_height%2Csecondary_swell_wave_direction%2Csecondary_swell_wave_period%2Cwind_wave_height%2Cwind_wave_direction%2Cwind_wave_period%2Cocean_current_velocity%2Cocean_current_direction%2Csea_level_height_msl&timezone=auto&forecast_days=10&models=best_match&cell_selection=sea&minutely_15=ocean_current_velocity%2Cocean_current_direction
+[RequestDeduplication] Returning existing request for: https://api.open-meteo.com/v1/forecast?latitude=32.0853&longitude=34.7818&current=temperature_2m%2Crelative_humidity_2m%2Capparent_temperature%2Cis_day%2Cweather_code%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Csurface_pressure%2Cvisibility&daily=weather_code%2Ctemperature_2m_max%2Ctemperature_2m_min%2Csunrise%2Csunset%2Cuv_index_max%2Cprecipitation_sum%2Cprecipitation_probability_max%2Cwind_speed_10m_max%2Cwind_gusts_10m_max%2Cwind_direction_10m_dominant&hourly=temperature_2m%2Capparent_temperature%2Cis_day%2Cpressure_msl%2Cvisibility%2Crelative_humidity_2m%2Cwind_speed_10m%2Cwind_direction_10m%2Cwind_gusts_10m%2Cuv_index%2Cweather_code%2Cprecipitation_probability&timezone=auto&forecast_days=10&models=best_match&cell_selection=land
+
+ [33m❯[39m src/utils/__tests__/calculations.test.ts [2m ([22m[2m16 tests[22m [2m|[22m [31m2 failed[39m[2m)[22m[90m 46[2mms[22m[39m
+[31m   [33m❯[31m src/utils/__tests__/calculations.test.ts[2m > [22mgenerateTideData[2m > [22mshould have valid tide heights (positive values)[39m
+[31m     → expected -0.04 to be greater than 0[39m
+[31m   [33m❯[31m src/utils/__tests__/calculations.test.ts[2m > [22mgenerateTideData[2m > [22mshould have next high and low tide events[39m
+[31m     → expected -0.29 to be greater than 0[39m
+
+[31m⎯⎯⎯⎯⎯⎯[1m[7m Failed Tests 12 [27m[22m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchMarineWeather[2m > [22mshould include tide data
+[31m[1mAssertionError[22m: expected undefined not to be undefined[39m
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m203:26[22m[39m
+    [90m201| [39m      [35mconst[39m data [33m=[39m [35mawait[39m [34mfetchMarineWeather[39m([34m32.0853[39m[33m,[39m [34m34.7818[39m)[33m;[39m
+    [90m202| [39m
+    [90m203| [39m      [34mexpect[39m(data[33m.[39mtides)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m   | [39m                         [31m^[39m
+    [90m204| [39m      [34mexpect[39m(data[33m.[39mtides[33m.[39mcurrentHeight)[33m.[39m[34mtoBeGreaterThan[39m([34m0[39m)[33m;[39m
+    [90m205| [39m      [34mexpect[39m(data[33m.[39mtides[33m.[39mnextHigh)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchMarineWeather[2m > [22mshould handle API errors gracefully
+[31m[1mAssertionError[22m: promise resolved "{ latitude: 32.0853, …(7) }" instead of rejecting[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- [Error: rejected promise][39m
+[31m+ Object {[39m
+[31m+   "current": Object {[39m
+[31m+     "pressure": 1013,[39m
+[31m+     "seaLevel": 0,[39m
+[31m+     "seaTemperature": 23,[39m
+[31m+     "secondarySwellDirection": undefined,[39m
+[31m+     "secondarySwellHeight": undefined,[39m
+[31m+     "secondarySwellPeriod": undefined,[39m
+[31m+     "swellDirection": 260,[39m
+[31m+     "swellHeight": 1.2,[39m
+[31m+     "swellPeriod": 9,[39m
+[31m+     "uvIndex": 4.5,[39m
+[31m+     "visibility": 12000,[39m
+[31m+     "waveHeight": 1.5,[39m
+[31m+     "wavePeriod": 7,[39m
+[31m+     "windDirection": 275,[39m
+[31m+     "windGusts": 24,[39m
+[31m+     "windSpeed": 18,[39m
+[31m+   },[39m
+[31m+   "daily": Object {[39m
+[31m+     "sunrise": Array [[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+     ],[39m
+[31m+     "sunset": Array [[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+       "2026-08-26T15:11:13.504Z",[39m
+[31m+     ],[39m
+[31m+     "swell_wave_direction_dominant": Array [[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+     ],[39m
+[31m+     "swell_wave_height_max": Array [[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+     ],[39m
+[31m+     "time": Array [[39m
+[31m+       "2026-08-26",[39m
+[31m+       "2026-08-27",[39m
+[31m+       "2026-08-28",[39m
+[31m+       "2026-08-29",[39m
+[31m+       "2026-08-30",[39m
+[31m+       "2026-08-31",[39m
+[31m+       "2026-09-01",[39m
+[31m+     ],[39m
+[31m+     "wave_height_max": Array [[39m
+[31m+       2,[39m
+[31m+       2,[39m
+[31m+       2,[39m
+[31m+       2,[39m
+[31m+       2,[39m
+[31m+       2,[39m
+[31m+       2,[39m
+[31m+     ],[39m
+[31m+     "wave_period_max": Array [[39m
+[31m+       8,[39m
+[31m+       8,[39m
+[31m+       8,[39m
+[31m+       8,[39m
+[31m+       8,[39m
+[31m+       8,[39m
+[31m+       8,[39m
+[31m+     ],[39m
+[31m+     "wind_direction_10m_dominant": Array [],[39m
+[31m+     "wind_speed_10m_max": Array [],[39m
+[31m+   },[39m
+[31m+   "general": Object {[39m
+[31m+     "dailyForecast": Array [[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-08-26",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-08-27",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-08-28",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-08-29",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-08-30",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-08-31",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "code": 1,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "precipitationSum": 0,[39m
+[31m+         "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+         "tempMax": 28,[39m
+[31m+         "tempMin": 22,[39m
+[31m+         "time": "2026-09-01",[39m
+[31m+         "uvIndexMax": 6,[39m
+[31m+         "windSpeedMax": 0,[39m
+[31m+       },[39m
+[31m+     ],[39m
+[31m+     "dailyPast": Array [],[39m
+[31m+     "feelsLike": 26,[39m
+[31m+     "hourlyForecast": Array [[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-26T18:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-26T19:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-26T20:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-26T21:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-26T22:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-26T23:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T00:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T01:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T02:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T03:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T04:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T05:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T06:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T07:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T08:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T09:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T10:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T11:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T12:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T13:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T14:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T15:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T16:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T17:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T18:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+       Object {[39m
+[31m+         "isDay": false,[39m
+[31m+         "precipitationProbability": 0,[39m
+[31m+         "temperature": 0,[39m
+[31m+         "time": "2026-08-27T19:11:13.503Z",[39m
+[31m+         "weatherCode": 1,[39m
+[31m+         "windGusts": 0,[39m
+[31m+         "windSpeed": 18,[39m
+[31m+       },[39m
+[31m+     ],[39m
+[31m+     "humidity": 70,[39m
+[31m+     "isDay": true,[39m
+[31m+     "moonIllumination": 96,[39m
+[31m+     "moonPhase": "Waxing Gibbous",[39m
+[31m+     "moonrise": "2026-08-27T01:37:18.957Z",[39m
+[31m+     "moonset": "2026-08-27T14:02:18.957Z",[39m
+[31m+     "nextFullMoon": "2026-08-28T15:11:13.525Z",[39m
+[31m+     "pressure": 1013,[39m
+[31m+     "sunrise": "2026-08-26T15:11:13.504Z",[39m
+[31m+     "sunset": "2026-08-26T15:11:13.504Z",[39m
+[31m+     "temperature": 25,[39m
+[31m+     "uvIndex": 6,[39m
+[31m+     "visibility": 12000,[39m
+[31m+     "weatherCode": 1,[39m
+[31m+     "weatherDescription": "Mainly Clear",[39m
+[31m+   },[39m
+[31m+   "hourly": Object {[39m
+[31m+     "is_day": Array [],[39m
+[31m+     "precipitation_probability": Array [],[39m
+[31m+     "pressure_msl": Array [[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+       1013,[39m
+[31m+     ],[39m
+[31m+     "relative_humidity_2m": Array [[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+       70,[39m
+[31m+     ],[39m
+[31m+     "sea_surface_temperature": Array [[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+       23,[39m
+[31m+     ],[39m
+[31m+     "swell_wave_direction": Array [[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+       260,[39m
+[31m+     ],[39m
+[31m+     "swell_wave_height": Array [[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+       1.2,[39m
+[31m+     ],[39m
+[31m+     "swell_wave_period": Array [[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+       9,[39m
+[31m+     ],[39m
+[31m+     "time": Array [[39m
+[31m+       "2026-08-26T15:11:13.502Z",[39m
+[31m+       "2026-08-26T16:11:13.502Z",[39m
+[31m+       "2026-08-26T17:11:13.502Z",[39m
+[31m+       "2026-08-26T18:11:13.502Z",[39m
+[31m+       "2026-08-26T19:11:13.502Z",[39m
+[31m+       "2026-08-26T20:11:13.502Z",[39m
+[31m+       "2026-08-26T21:11:13.502Z",[39m
+[31m+       "2026-08-26T22:11:13.502Z",[39m
+[31m+       "2026-08-26T23:11:13.502Z",[39m
+[31m+       "2026-08-27T00:11:13.502Z",[39m
+[31m+       "2026-08-27T01:11:13.502Z",[39m
+[31m+       "2026-08-27T02:11:13.502Z",[39m
+[31m+       "2026-08-27T03:11:13.502Z",[39m
+[31m+       "2026-08-27T04:11:13.502Z",[39m
+[31m+       "2026-08-27T05:11:13.502Z",[39m
+[31m+       "2026-08-27T06:11:13.502Z",[39m
+[31m+       "2026-08-27T07:11:13.502Z",[39m
+[31m+       "2026-08-27T08:11:13.502Z",[39m
+[31m+       "2026-08-27T09:11:13.502Z",[39m
+[31m+       "2026-08-27T10:11:13.502Z",[39m
+[31m+       "2026-08-27T11:11:13.502Z",[39m
+[31m+       "2026-08-27T12:11:13.502Z",[39m
+[31m+       "2026-08-27T13:11:13.502Z",[39m
+[31m+       "2026-08-27T14:11:13.502Z",[39m
+[31m+       "2026-08-27T15:11:13.502Z",[39m
+[31m+       "2026-08-27T16:11:13.502Z",[39m
+[31m+       "2026-08-27T17:11:13.502Z",[39m
+[31m+       "2026-08-27T18:11:13.502Z",[39m
+[31m+       "2026-08-27T19:11:13.502Z",[39m
+[31m+       "2026-08-27T20:11:13.502Z",[39m
+[31m+       "2026-08-27T21:11:13.502Z",[39m
+[31m+       "2026-08-27T22:11:13.502Z",[39m
+[31m+       "2026-08-27T23:11:13.502Z",[39m
+[31m+       "2026-08-28T00:11:13.502Z",[39m
+[31m+       "2026-08-28T01:11:13.502Z",[39m
+[31m+       "2026-08-28T02:11:13.502Z",[39m
+[31m+       "2026-08-28T03:11:13.502Z",[39m
+[31m+       "2026-08-28T04:11:13.502Z",[39m
+[31m+       "2026-08-28T05:11:13.502Z",[39m
+[31m+       "2026-08-28T06:11:13.502Z",[39m
+[31m+       "2026-08-28T07:11:13.502Z",[39m
+[31m+       "2026-08-28T08:11:13.502Z",[39m
+[31m+       "2026-08-28T09:11:13.502Z",[39m
+[31m+       "2026-08-28T10:11:13.502Z",[39m
+[31m+       "2026-08-28T11:11:13.502Z",[39m
+[31m+       "2026-08-28T12:11:13.502Z",[39m
+[31m+       "2026-08-28T13:11:13.502Z",[39m
+[31m+       "2026-08-28T14:11:13.502Z",[39m
+[31m+       "2026-08-28T15:11:13.502Z",[39m
+[31m+       "2026-08-28T16:11:13.502Z",[39m
+[31m+       "2026-08-28T17:11:13.502Z",[39m
+[31m+       "2026-08-28T18:11:13.502Z",[39m
+[31m+       "2026-08-28T19:11:13.502Z",[39m
+[31m+       "2026-08-28T20:11:13.502Z",[39m
+[31m+       "2026-08-28T21:11:13.502Z",[39m
+[31m+       "2026-08-28T22:11:13.502Z",[39m
+[31m+       "2026-08-28T23:11:13.502Z",[39m
+[31m+       "2026-08-29T00:11:13.502Z",[39m
+[31m+       "2026-08-29T01:11:13.502Z",[39m
+[31m+       "2026-08-29T02:11:13.502Z",[39m
+[31m+       "2026-08-29T03:11:13.502Z",[39m
+[31m+       "2026-08-29T04:11:13.502Z",[39m
+[31m+       "2026-08-29T05:11:13.502Z",[39m
+[31m+       "2026-08-29T06:11:13.502Z",[39m
+[31m+       "2026-08-29T07:11:13.502Z",[39m
+[31m+       "2026-08-29T08:11:13.502Z",[39m
+[31m+       "2026-08-29T09:11:13.502Z",[39m
+[31m+       "2026-08-29T10:11:13.502Z",[39m
+[31m+       "2026-08-29T11:11:13.502Z",[39m
+[31m+       "2026-08-29T12:11:13.502Z",[39m
+[31m+       "2026-08-29T13:11:13.502Z",[39m
+[31m+       "2026-08-29T14:11:13.502Z",[39m
+[31m+       "2026-08-29T15:11:13.502Z",[39m
+[31m+       "2026-08-29T16:11:13.502Z",[39m
+[31m+       "2026-08-29T17:11:13.502Z",[39m
+[31m+       "2026-08-29T18:11:13.502Z",[39m
+[31m+       "2026-08-29T19:11:13.502Z",[39m
+[31m+       "2026-08-29T20:11:13.502Z",[39m
+[31m+       "2026-08-29T21:11:13.502Z",[39m
+[31m+       "2026-08-29T22:11:13.502Z",[39m
+[31m+       "2026-08-29T23:11:13.502Z",[39m
+[31m+       "2026-08-30T00:11:13.502Z",[39m
+[31m+       "2026-08-30T01:11:13.502Z",[39m
+[31m+       "2026-08-30T02:11:13.502Z",[39m
+[31m+       "2026-08-30T03:11:13.502Z",[39m
+[31m+       "2026-08-30T04:11:13.502Z",[39m
+[31m+       "2026-08-30T05:11:13.502Z",[39m
+[31m+       "2026-08-30T06:11:13.502Z",[39m
+[31m+       "2026-08-30T07:11:13.502Z",[39m
+[31m+       "2026-08-30T08:11:13.502Z",[39m
+[31m+       "2026-08-30T09:11:13.502Z",[39m
+[31m+       "2026-08-30T10:11:13.502Z",[39m
+[31m+       "2026-08-30T11:11:13.502Z",[39m
+[31m+       "2026-08-30T12:11:13.502Z",[39m
+[31m+       "2026-08-30T13:11:13.502Z",[39m
+[31m+       "2026-08-30T14:11:13.502Z",[39m
+[31m+       "2026-08-30T15:11:13.502Z",[39m
+[31m+       "2026-08-30T16:11:13.502Z",[39m
+[31m+       "2026-08-30T17:11:13.502Z",[39m
+[31m+       "2026-08-30T18:11:13.502Z",[39m
+[31m+       "2026-08-30T19:11:13.502Z",[39m
+[31m+       "2026-08-30T20:11:13.502Z",[39m
+[31m+       "2026-08-30T21:11:13.502Z",[39m
+[31m+       "2026-08-30T22:11:13.502Z",[39m
+[31m+       "2026-08-30T23:11:13.502Z",[39m
+[31m+       "2026-08-31T00:11:13.502Z",[39m
+[31m+       "2026-08-31T01:11:13.502Z",[39m
+[31m+       "2026-08-31T02:11:13.502Z",[39m
+[31m+       "2026-08-31T03:11:13.502Z",[39m
+[31m+       "2026-08-31T04:11:13.502Z",[39m
+[31m+       "2026-08-31T05:11:13.502Z",[39m
+[31m+       "2026-08-31T06:11:13.502Z",[39m
+[31m+       "2026-08-31T07:11:13.502Z",[39m
+[31m+       "2026-08-31T08:11:13.502Z",[39m
+[31m+       "2026-08-31T09:11:13.502Z",[39m
+[31m+       "2026-08-31T10:11:13.502Z",[39m
+[31m+       "2026-08-31T11:11:13.502Z",[39m
+[31m+       "2026-08-31T12:11:13.502Z",[39m
+[31m+       "2026-08-31T13:11:13.502Z",[39m
+[31m+       "2026-08-31T14:11:13.502Z",[39m
+[31m+       "2026-08-31T15:11:13.502Z",[39m
+[31m+       "2026-08-31T16:11:13.502Z",[39m
+[31m+       "2026-08-31T17:11:13.502Z",[39m
+[31m+       "2026-08-31T18:11:13.502Z",[39m
+[31m+       "2026-08-31T19:11:13.502Z",[39m
+[31m+       "2026-08-31T20:11:13.502Z",[39m
+[31m+       "2026-08-31T21:11:13.502Z",[39m
+[31m+       "2026-08-31T22:11:13.502Z",[39m
+[31m+       "2026-08-31T23:11:13.502Z",[39m
+[31m+       "2026-09-01T00:11:13.502Z",[39m
+[31m+       "2026-09-01T01:11:13.502Z",[39m
+[31m+       "2026-09-01T02:11:13.502Z",[39m
+[31m+       "2026-09-01T03:11:13.502Z",[39m
+[31m+       "2026-09-01T04:11:13.502Z",[39m
+[31m+       "2026-09-01T05:11:13.502Z",[39m
+[31m+       "2026-09-01T06:11:13.502Z",[39m
+[31m+       "2026-09-01T07:11:13.502Z",[39m
+[31m+       "2026-09-01T08:11:13.502Z",[39m
+[31m+       "2026-09-01T09:11:13.502Z",[39m
+[31m+       "2026-09-01T10:11:13.502Z",[39m
+[31m+       "2026-09-01T11:11:13.502Z",[39m
+[31m+       "2026-09-01T12:11:13.502Z",[39m
+[31m+       "2026-09-01T13:11:13.502Z",[39m
+[31m+       "2026-09-01T14:11:13.502Z",[39m
+[31m+       "2026-09-01T15:11:13.503Z",[39m
+[31m+       "2026-09-01T16:11:13.503Z",[39m
+[31m+       "2026-09-01T17:11:13.503Z",[39m
+[31m+       "2026-09-01T18:11:13.503Z",[39m
+[31m+       "2026-09-01T19:11:13.503Z",[39m
+[31m+       "2026-09-01T20:11:13.503Z",[39m
+[31m+       "2026-09-01T21:11:13.503Z",[39m
+[31m+       "2026-09-01T22:11:13.503Z",[39m
+[31m+       "2026-09-01T23:11:13.503Z",[39m
+[31m+       "2026-09-02T00:11:13.503Z",[39m
+[31m+       "2026-09-02T01:11:13.503Z",[39m
+[31m+       "2026-09-02T02:11:13.503Z",[39m
+[31m+       "2026-09-02T03:11:13.503Z",[39m
+[31m+       "2026-09-02T04:11:13.503Z",[39m
+[31m+       "2026-09-02T05:11:13.503Z",[39m
+[31m+       "2026-09-02T06:11:13.503Z",[39m
+[31m+       "2026-09-02T07:11:13.503Z",[39m
+[31m+       "2026-09-02T08:11:13.503Z",[39m
+[31m+       "2026-09-02T09:11:13.503Z",[39m
+[31m+       "2026-09-02T10:11:13.503Z",[39m
+[31m+       "2026-09-02T11:11:13.503Z",[39m
+[31m+       "2026-09-02T12:11:13.503Z",[39m
+[31m+       "2026-09-02T13:11:13.503Z",[39m
+[31m+       "2026-09-02T14:11:13.503Z",[39m
+[31m+     ],[39m
+[31m+     "uv_index": Array [[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+       4.5,[39m
+[31m+     ],[39m
+[31m+     "visibility": Array [[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+       12000,[39m
+[31m+     ],[39m
+[31m+     "wave_direction": Array [[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+       270,[39m
+[31m+     ],[39m
+[31m+     "wave_height": Array [[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+       1.5,[39m
+[31m+     ],[39m
+[31m+     "wave_period": Array [[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+       7,[39m
+[31m+     ],[39m
+[31m+     "weather_code": Array [[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+       1,[39m
+[31m+     ],[39m
+[31m+     "wind_direction_10m": Array [[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+       275,[39m
+[31m+     ],[39m
+[31m+     "wind_gusts_10m": Array [[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+       0,[39m
+[31m+     ],[39m
+[31m+     "wind_speed_10m": Array [[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+       18,[39m
+[31m+     ],[39m
+[31m+   },[39m
+[31m+   "hourly_units": Object {[39m
+[31m+     "swell_wave_height": "m",[39m
+[31m+     "wave_height": "m",[39m
+[31m+     "wind_speed_10m": "m/s",[39m
+[31m+   },[39m
+[31m+   "latitude": 32.0853,[39m
+[31m+   "longitude": 34.7818,[39m
+[31m+   "tides": undefined,[39m
+[31m+ }[39m
+
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m222:56[22m[39m
+    [90m220| [39m      global[33m.[39mfetch [33m=[39m vi[33m.[39m[34mfn[39m(() [33m=>[39m [33mPromise[39m[33m.[39m[34mreject[39m([35mnew[39m [33mError[39m([32m'Network err[39m…
+    [90m221| [39m
+    [90m222| [39m      [35mawait[39m [34mexpect[39m([34mfetchMarineWeather[39m([34m32.0853[39m[33m,[39m [34m34.7818[39m))[33m.[39mrejects[33m.[39m[34mtoThr[39m…
+    [90m   | [39m                                                       [31m^[39m
+    [90m223| [39m    })[33m;[39m
+    [90m224| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchMarineWeather[2m > [22mshould validate coordinates are included in request
+[31m[1mAssertionError[22m: expected "spy" to be called at least once[39m
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m228:28[22m[39m
+    [90m226| [39m      [35mawait[39m [34mfetchMarineWeather[39m([34m32.0853[39m[33m,[39m [34m34.7818[39m)[33m;[39m
+    [90m227| [39m
+    [90m228| [39m      [34mexpect[39m(global[33m.[39mfetch)[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m229| [39m      [35mconst[39m calls [33m=[39m (global[33m.[39mfetch [35mas[39m any)[33m.[39mmock[33m.[39mcalls[33m;[39m
+    [90m230| [39m      [35mconst[39m marineCall [33m=[39m calls[33m.[39m[34mfind[39m((call[33m:[39m any) [33m=>[39m call[[34m0[39m][33m.[39m[34mincludes[39m([32m'm[39m…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mfetchPointForecast[2m > [22mshould handle errors and return default values
+[31m[1mAssertionError[22m: expected 1.5 to be +0 // Object.is equality[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 0[39m
+[31m+ 1.5[39m
+
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m272:35[22m[39m
+    [90m270| [39m      [34mexpect[39m(forecast[33m.[39mlat)[33m.[39m[34mtoBe[39m([34m32.0853[39m)[33m;[39m
+    [90m271| [39m      [34mexpect[39m(forecast[33m.[39mlng)[33m.[39m[34mtoBe[39m([34m34.7818[39m)[33m;[39m
+    [90m272| [39m      [34mexpect[39m(forecast[33m.[39mwaveHeight)[33m.[39m[34mtoBe[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                                  [31m^[39m
+    [90m273| [39m      [34mexpect[39m(forecast[33m.[39mweatherDesc)[33m.[39m[34mtoBe[39m([32m'Unavailable'[39m)[33m;[39m
+    [90m274| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22msearchLocations[2m > [22mshould handle search errors gracefully
+[31m[1mAssertionError[22m: expected [ { id: 1, name: 'Tel Aviv', …(4) } ] to deeply equal [][39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- Array [][39m
+[31m+ Array [[39m
+[31m+   Object {[39m
+[31m+     "admin1": "Tel Aviv District",[39m
+[31m+     "country": "Israel",[39m
+[31m+     "id": 1,[39m
+[31m+     "lat": 32.0853,[39m
+[31m+     "lng": 34.7818,[39m
+[31m+     "name": "Tel Aviv",[39m
+[31m+   },[39m
+[31m+ ][39m
+
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m306:23[22m[39m
+    [90m304| [39m      [35mconst[39m results [33m=[39m [35mawait[39m [34msearchLocations[39m([32m'Tel Aviv'[39m)[33m;[39m
+    [90m305| [39m
+    [90m306| [39m      [34mexpect[39m(results)[33m.[39m[34mtoEqual[39m([])[33m;[39m
+    [90m   | [39m                      [31m^[39m
+    [90m307| [39m    })[33m;[39m
+    [90m308| [39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22msearchLocations[2m > [22mshould encode query parameters correctly
+[31m[1mAssertionError[22m: expected "spy" to be called at least once[39m
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m312:28[22m[39m
+    [90m310| [39m      [35mawait[39m [34msearchLocations[39m([32m'Tel Aviv'[39m)[33m;[39m
+    [90m311| [39m
+    [90m312| [39m      [34mexpect[39m(global[33m.[39mfetch)[33m.[39m[34mtoHaveBeenCalled[39m()[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m313| [39m      [35mconst[39m calls [33m=[39m (global[33m.[39mfetch [35mas[39m any)[33m.[39mmock[33m.[39mcalls[33m;[39m
+    [90m314| [39m      [35mconst[39m geocodingCall [33m=[39m calls[33m.[39m[34mfind[39m((call[33m:[39m any) [33m=>[39m call[[34m0[39m][33m.[39m[34mincludes[39m…
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mreverseGeocode[2m > [22mshould reverse geocode coordinates
+[31m[1mAssertionError[22m: expected undefined to be 'Tel Aviv' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"Tel Aviv"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m338:30[22m[39m
+    [90m336| [39m
+    [90m337| [39m      [34mexpect[39m(location)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m338| [39m      [34mexpect[39m(location[33m?.[39mname)[33m.[39m[34mtoBe[39m([32m'Tel Aviv'[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m339| [39m      [34mexpect[39m(location[33m?.[39mcountry)[33m.[39m[34mtoBe[39m([32m'Israel'[39m)[33m;[39m
+    [90m340| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mreverseGeocode[2m > [22mshould include coordinates in request
+[31m[1mAssertionError[22m: expected 'https://nominatim.openstreetmap.org/r…' to contain 'latitude=32.0853'[39m
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- latitude=32.0853[39m
+[31m+ https://nominatim.openstreetmap.org/reverse?lat=32.0853&lon=34.7818&format=json[39m
+
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m371:30[22m[39m
+    [90m369| [39m      [35mconst[39m reverseCall [33m=[39m calls[33m.[39m[34mfind[39m((call[33m:[39m any) [33m=>[39m call[[34m0[39m][33m.[39m[34mincludes[39m([32m'[39m…
+    [90m370| [39m      [34mexpect[39m(reverseCall)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m371| [39m      [34mexpect[39m(reverseCall[[34m0[39m])[33m.[39m[34mtoContain[39m([32m'latitude=32.0853'[39m)[33m;[39m
+    [90m   | [39m                             [31m^[39m
+    [90m372| [39m      [34mexpect[39m(reverseCall[[34m0[39m])[33m.[39m[34mtoContain[39m([32m'longitude=34.7818'[39m)[33m;[39m
+    [90m373| [39m    })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mAPI integration[2m > [22mshould make parallel API calls for marine weather
+[31m[1mAssertionError[22m: expected "spy" to be called 2 times, but got 0 times[39m
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m381:28[22m[39m
+    [90m379| [39m
+    [90m380| [39m      [90m// Should call both marine and forecast APIs[39m
+    [90m381| [39m      [34mexpect[39m(global[33m.[39mfetch)[33m.[39m[34mtoHaveBeenCalledTimes[39m([34m2[39m)[33m;[39m
+    [90m   | [39m                           [31m^[39m
+    [90m382| [39m
+    [90m383| [39m      [35mconst[39m calls [33m=[39m (global[33m.[39mfetch [35mas[39m any)[33m.[39mmock[33m.[39mcalls[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/services/__tests__/weatherService.test.ts[2m > [22mweatherService[2m > [22mAPI integration[2m > [22mshould request correct forecast days
+[31m[1mTypeError[22m: Cannot read properties of undefined (reading '0')[39m
+[36m [2m❯[22m src/services/__tests__/weatherService.test.ts:[2m407:14[22m[39m
+    [90m405| [39m      [35mconst[39m calls [33m=[39m (global[33m.[39mfetch [35mas[39m any)[33m.[39mmock[33m.[39mcalls[33m;[39m
+    [90m406| [39m      [35mconst[39m marineCall [33m=[39m calls[33m.[39m[34mfind[39m((call[33m:[39m any) [33m=>[39m call[[34m0[39m][33m.[39m[34mincludes[39m([32m'm[39m…
+    [90m407| [39m      [34mexpect[39m(marineCall[[34m0[39m])[33m.[39m[34mtoContain[39m([32m'forecast_days=7'[39m)[33m;[39m
+    [90m   | [39m             [31m^[39m
+    [90m408| [39m    })[33m;[39m
+    [90m409| [39m  })[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/utils/__tests__/calculations.test.ts[2m > [22mgenerateTideData[2m > [22mshould have valid tide heights (positive values)
+[31m[1mAssertionError[22m: expected -0.04 to be greater than 0[39m
+[36m [2m❯[22m src/utils/__tests__/calculations.test.ts:[2m98:27[22m[39m
+    [90m 96| [39m
+    [90m 97| [39m    tideData[33m.[39mhourly[33m.[39m[34mforEach[39m(tide [33m=>[39m {
+    [90m 98| [39m      [34mexpect[39m(tide[33m.[39mheight)[33m.[39m[34mtoBeGreaterThan[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                          [31m^[39m
+    [90m 99| [39m      [34mexpect[39m(tide[33m.[39mheight)[33m.[39m[34mtoBeLessThan[39m([34m5[39m)[33m;[39m [90m// Reasonable max tide heig[39m…
+    [90m100| [39m    })[33m;[39m
+[90m [2m❯[22m src/utils/__tests__/calculations.test.ts:[2m97:21[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯[22m[39m
+
+[31m[1m[7m FAIL [27m[22m[39m src/utils/__tests__/calculations.test.ts[2m > [22mgenerateTideData[2m > [22mshould have next high and low tide events
+[31m[1mAssertionError[22m: expected -0.29 to be greater than 0[39m
+[36m [2m❯[22m src/utils/__tests__/calculations.test.ts:[2m112:37[22m[39m
+    [90m110| [39m    [34mexpect[39m(tideData[33m.[39mnextLow)[33m.[39m[34mtoBeDefined[39m()[33m;[39m
+    [90m111| [39m    [34mexpect[39m(tideData[33m.[39mnextLow[33m.[39mtype)[33m.[39m[34mtoBe[39m([32m'LOW'[39m)[33m;[39m
+    [90m112| [39m    [34mexpect[39m(tideData[33m.[39mnextLow[33m.[39mheight)[33m.[39m[34mtoBeGreaterThan[39m([34m0[39m)[33m;[39m
+    [90m   | [39m                                    [31m^[39m
+    [90m113| [39m
+    [90m114| [39m    [90m// High tide should be higher than low tide[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯[22m[39m
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m6 passed[39m[22m[90m (8)[39m
+[2m      Tests [22m [1m[31m12 failed[39m[22m[2m | [22m[1m[32m247 passed[39m[22m[90m (259)[39m
+[2m   Start at [22m 18:11:08
+[2m   Duration [22m 5.89s[2m (transform 3.00s, setup 2ms, collect 9.74s, tests 1.18s, environment 3ms, prepare 4.95s)[22m
+
+
+[1m[7m[31m FAIL [39m[27m[22m[31m Tests failed. Watching for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+[3Jc
+[7m[1m[34m RERUN [39m[22m[27m[2m src/scoring/__tests__/coastalSurfRating.test.ts[22m [34mx1[39m
+
+ [32m✓[39m src/scoring/__tests__/coastalSurfRating.test.ts [2m ([22m[2m9 tests[22m[2m)[22m[90m 11[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m   Start at [22m 18:19:46
+[2m   Duration [22m 102ms
+
+
+[1m[7m[32m PASS [39m[27m[22m[32m Waiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+       [34mrerun x1[39m
+[2K[1A[2K[G       [90mrerun x1[39m
+[2K[1A[2K[G       [2m[90mrerun x1[39m[22m
+[2K[1A[2K[G[3Jc
+[7m[1m[34m RERUN [39m[22m[27m[2m src/nearshore/__tests__/displayHeight.test.ts[22m [34mx1[39m
+
+ [32m✓[39m src/nearshore/__tests__/displayHeight.test.ts [2m ([22m[2m9 tests[22m[2m)[22m[90m 18[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m1 passed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[32m9 passed[39m[22m[90m (9)[39m
+[2m   Start at [22m 21:29:07
+[2m   Duration [22m 173ms
+
+
+[1m[7m[32m PASS [39m[27m[22m[32m Waiting for file changes...[39m
+       [2mpress [22m[1mh[22m[2m to show help[22m[2m, [22m[2mpress [22m[1mq[22m[2m to quit[22m
+       [34mrerun x1[39m
+[2K[1A[2K[G       [90mrerun x1[39m
+[2K[1A[2K[G       [2m[90mrerun x1[39m[22m
+[2K[1A[2K[G
