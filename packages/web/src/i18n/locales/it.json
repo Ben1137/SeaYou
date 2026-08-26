@@ -746,6 +746,10 @@
     "upgradeToUnlock": "Esegui l'upgrade a Premium per esplorare punti costieri illimitati",
     "upgrade": "Esegui upgrade"
   },
+  "coastalRating": {
+    "title": "Valutazione Modellata del Surf Costiero",
+    "description": "Punteggio indicativo che fonde altezza di frangenza, periodo, allineamento del vento e esposizione. Non una previsione calibrata sul sito."
+  },
   "beach": {
     "safetyCalm": "Calmo — sicuro per nuotare",
     "safetyMild": "Lieve — condizioni di guado",

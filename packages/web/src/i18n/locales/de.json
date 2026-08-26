@@ -745,6 +745,10 @@
     "upgradeToUnlock": "Upgrade auf Premium, um unbegrenzte Küstenplätze zu erkunden",
     "upgrade": "Upgrade"
   },
+  "coastalRating": {
+    "title": "Modellierte Küsten-Surf-Bewertung",
+    "description": "Indikative Punktzahl, die Brecherhöhe, Periode, Windausrichtung und Exposition kombiniert. Keine standortkalibriierte Vorhersage."
+  },
   "beach": {
     "safetyCalm": "Ruhig — sicheres Schwimmen",
     "safetyMild": "Leicht — Watbedingungen",

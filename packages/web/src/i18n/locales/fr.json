@@ -728,6 +728,10 @@
     "upgradeToUnlock": "Passez à Premium pour explorer des points côtiers illimités",
     "upgrade": "Passer à Premium"
   },
+  "coastalRating": {
+    "title": "Évaluation Modelée du Surf Côtier",
+    "description": "Score indicatif fusionnant hauteur de déferlement, période, alignement du vent et exposition. Pas une prévision calibrée pour le site."
+  },
   "beach": {
     "safetyCalm": "Calme — sûr pour nager",
     "safetyMild": "Doux — pataugeage",

@@ -728,6 +728,10 @@
     "upgradeToUnlock": "Actualiza a Premium para explorar sitios costeros ilimitados",
     "upgrade": "Actualizar"
   },
+  "coastalRating": {
+    "title": "Calificación Modelada de Surf Costero",
+    "description": "Puntuación indicativa que fusiona altura de rompiente, período, alineación del viento y exposición. No es un pronóstico calibrado para el lugar."
+  },
   "beach": {
     "safetyCalm": "Tranquilo — seguro para nadar",
     "safetyMild": "Suave — condiciones para vadear",

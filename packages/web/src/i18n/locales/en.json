@@ -745,6 +745,10 @@
     "upgradeToUnlock": "Upgrade to Premium to explore unlimited coastal spots",
     "upgrade": "Upgrade"
   },
+  "coastalRating": {
+    "title": "Modelled Coastal Surf Rating",
+    "description": "Indicative score fusing breaking-wave height, period, wind alignment, and exposure. Not a spot-calibrated forecast."
+  },
   "beach": {
     "safetyCalm": "Calm — safe for swimming",
     "safetyMild": "Mild — wading conditions",
