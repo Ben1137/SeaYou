@@ -762,7 +762,10 @@
     "caveat": "מבוסס על בתימטריית GEBCO (~450 מ׳) + נתוני גלים. אינדיקטיבי — לא תחזית מכוילת לנקודה.",
     "caveatShort": "מבוסס · GEBCO ~450 מ׳ · לא תחזית",
     "noData": "אין נתונים חופיים",
-    "methodShoaling": "Shoaling"
+    "methodShoaling": "Shoaling",
+    "freeQuotaReached": "מכסת החינם הגיעה לסיום",
+    "upgradeToUnlock": "שדרג ל-Premium כדי לחקור אתרים חופיים ללא הגבלה",
+    "upgrade": "שדרג"
   },
   "beach": {
     "safetyCalm": "שקט — בטוח לשחייה",

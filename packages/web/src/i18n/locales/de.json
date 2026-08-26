@@ -740,7 +740,10 @@
     "methodFormula": "Brecherhöhe Hb = 0,39·g^0,2·(T·H₀²)^0,4",
     "caveat": "Modelliert aus GEBCO-Bathymetrie (~450 m) + Dünung. Indikativ — keine standortkalibrierte Vorhersage.",
     "caveatShort": "Modelliert · GEBCO ~450 m · keine Vorhersage",
-    "noData": "Keine Küstendaten"
+    "noData": "Keine Küstendaten",
+    "freeQuotaReached": "Kostenlos-Kontingent erreicht",
+    "upgradeToUnlock": "Upgrade auf Premium, um unbegrenzte Küstenplätze zu erkunden",
+    "upgrade": "Upgrade"
   },
   "beach": {
     "safetyCalm": "Ruhig — sicheres Schwimmen",

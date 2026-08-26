@@ -740,7 +740,10 @@
     "methodFormula": "breaker height Hb = 0.39·g^0.2·(T·H₀²)^0.4",
     "caveat": "Modelled from GEBCO bathymetry (~450 m) + swell. Indicative — not a spot-calibrated forecast.",
     "caveatShort": "Modelled · GEBCO ~450 m · not a forecast",
-    "noData": "No nearshore data"
+    "noData": "No nearshore data",
+    "freeQuotaReached": "Free-tier quota reached",
+    "upgradeToUnlock": "Upgrade to Premium to explore unlimited coastal spots",
+    "upgrade": "Upgrade"
   },
   "beach": {
     "safetyCalm": "Calm — safe for swimming",

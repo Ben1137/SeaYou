@@ -741,7 +741,10 @@
     "caveat": "Modellato dalla batimetria GEBCO (~450 m) + mare lungo. Indicativo — non è una previsione calibrata sul sito.",
     "caveatShort": "Modellato · GEBCO ~450 m · non una previsione",
     "noData": "Nessun dato costiero",
-    "methodShoaling": "Shoaling"
+    "methodShoaling": "Shoaling",
+    "freeQuotaReached": "Quota del livello gratuito raggiunta",
+    "upgradeToUnlock": "Esegui l'upgrade a Premium per esplorare punti costieri illimitati",
+    "upgrade": "Esegui upgrade"
   },
   "beach": {
     "safetyCalm": "Calmo — sicuro per nuotare",
