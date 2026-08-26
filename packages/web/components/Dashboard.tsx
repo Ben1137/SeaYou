@@ -19,7 +19,7 @@ import { AlertConfigModal } from './AlertConfigModal';
 import { useAlertConfig } from '../src/contexts/AlertContext';
 import { ActivityTimeline } from './ActivityTimeline';
 import { ScoreBreakdownModal } from './ScoreBreakdownModal';
-import { useCoastalReading } from '../hooks/useCoastalReading';
+import { useCoastalReadingGated } from '../hooks/useCoastalReadingGated';
 import { EnergyConsistencyCard } from './EnergyConsistencyCard';
 import { VoyageLogbookCard } from './VoyageLogbookCard';
 
@@ -342,7 +342,11 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     wavePeriod:    currentConditions.wavePeriod ?? 0,
     waveDirection: currentConditions.swellDirection ?? 0,
   } : null;
-  const coastalReading = useCoastalReading(currentLat, currentLng, coastalReadingConditions);
+  // Determine if current location is live GPS ("Current Location") vs. manually-selected spot
+  const isCurrentGeolocation = locationName === t('app.currentLocation');
+  const { reading: coastalReading, isBlocked: coastalReadingBlocked, isFree: isCoastalReadingFree } = useCoastalReadingGated(
+    currentLat, currentLng, coastalReadingConditions, isCurrentGeolocation
+  );
 
   // ─── Activity Scoring (powered by @seame/core scoring engine) ───
   const scoringConditions = useMemo(() => {
@@ -695,6 +699,25 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
 
       {/* ─── Alert Config Modal (standalone — uses AlertContext) ─── */}
       <AlertConfigModal isOpen={showSettings} onClose={() => setShowSettings(false)} currentLat={currentLat} currentLng={currentLng} />
+
+      {/* ─── Coastal Dynamics Free-Tier Upsell (blocked reads) ─── */}
+      {coastalReadingBlocked && isCoastalReadingFree && (
+        <div className="bg-gradient-to-r from-cyan-500/20 to-teal-500/20 border border-cyan-400/40 rounded-xl p-4 flex items-center gap-3">
+          <div className="shrink-0 w-10 h-10 rounded-full bg-cyan-400/30 flex items-center justify-center">
+            <Waves size={20} className="text-cyan-300" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-cyan-100">{t('coastal.freeQuotaReached', 'Free-tier quota reached')}</p>
+            <p className="text-xs text-cyan-200/80 mt-0.5">{t('coastal.upgradeToUnlock', 'Upgrade to Premium to explore unlimited coastal spots')}</p>
+          </div>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="shrink-0 px-3 py-1.5 bg-cyan-500/40 hover:bg-cyan-500/60 border border-cyan-300/40 rounded-lg text-xs font-semibold text-cyan-100 transition-colors"
+          >
+            {t('coastal.upgrade', 'Upgrade')}
+          </button>
+        </div>
+      )}
 
       {/* ─── Activity Report (Persona-filtered Grid with Scores) ─── */}
       <section id="tour-dashboard-scores">
