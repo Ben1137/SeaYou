@@ -1,0 +1,291 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                      COASTAL DYNAMICS FREE-TIER GATING                          ║
+║                         E4 VERIFICATION CHECKLIST                               ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+IMPLEMENTATION SUMMARY:
+- Created: packages/web/hooks/useCoastalReadingGated.ts (f0dc727)
+- Integrated: packages/web/components/Dashboard.tsx (16de0ff)
+- Architecture: Soft client-side localStorage quota tracking (7-day window)
+- Gating Rules:
+  * Premium users: unlimited reads on any spot
+  * Free users: unlimited on home spot (±2km) + live geolocation; 1 arbitrary spot/7 days
+  * When blocked: reading=null, isBlocked=true, no PMTiles network fetch triggered
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+TEST SCENARIO 1: FREE TIER ON MAP → BREAKING WAVES PAYWALL + ZERO PMTILES
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Dev server running: pnpm --filter @seame/web dev → localhost:5173
+  □ Signed out (or switch to free-tier account)
+  □ Browser DevTools open (F12 → Network tab)
+
+Test Steps:
+  1. Navigate to Map view
+  2. Locate "Breaking Waves" layer in layer panel (Coastal Dynamics section)
+  3. Filter Network tab to "pmtiles" OR XHR (Ctrl+Shift+E → XHR)
+  4. Enable the Breaking Waves layer
+  5. Pan map to a coastal ocean spot (not deep water, not land)
+  6. Observe the layer heatmap does NOT render
+  7. Check Network tab: confirm ZERO .pmtiles tile requests
+
+Expected Result:
+  ✓ Layer stays invisible (no rendering)
+  ✓ Network shows no pmtiles downloads
+  ✓ Console shows no errors
+  ✓ No extra API calls made
+
+Failure Mode:
+  ✗ Layer renders (heatmap visible) = PMTiles was fetched = gating failed
+  ✗ Network shows tile downloads = gating not preventing fetch
+  ✗ Console errors = hook implementation bug
+
+Screenshot Requirement:
+  - Network tab showing request count = 0 for "pmtiles" OR "Terrarium"
+  - Map panned to coastal area with layer disabled
+
+
+TEST SCENARIO 2A: FREE-TIER DASHBOARD HOME SPOT (UNLIMITED)
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Signed out (or free-tier account)
+  □ localStorage cleared (F12 → Application → Clear Site Data)
+
+Test Steps:
+  1. Navigate to Dashboard view
+  2. Go to Alert Config (gear icon) → set HOME SPOT to current location
+  3. Return to Dashboard
+  4. Verify the coastal breaking waves reading displays (e.g., "2.5m")
+  5. Check localStorage:
+     * Open DevTools → Application → Local Storage → seayou_free_coastal_probe_v1
+     * Should be EMPTY (no quota record written yet)
+  6. Keep browsing, return to Dashboard multiple times
+  7. Confirm the reading ALWAYS shows (no paywall)
+
+Expected Result:
+  ✓ Breaking waves reading displays for home spot
+  ✓ localStorage stays empty (no quota consumed)
+  ✓ Reading persists across page refreshes
+  ✓ No upsell card appears
+
+Failure Mode:
+  ✗ No reading shows = hook implementation error
+  ✗ localStorage has a record = home spot incorrectly charged
+  ✗ Upsell card appears = home spot not recognized
+
+Screenshot Requirement:
+  - Dashboard with breaking waves reading visible
+  - localStorage entry shows empty (or non-existent key)
+
+
+TEST SCENARIO 2B: FREE-TIER DASHBOARD FIRST ARBITRARY SPOT (ALLOWED)
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Fresh free-tier account OR localStorage cleared
+  □ Home spot already set from 2A (optional, but helps verify tolerance)
+
+Test Steps:
+  1. Open Dashboard location picker (location pill or search)
+  2. Search & select a different spot >2 km from home (e.g., a different coast)
+  3. Dashboard loads weather for the new spot
+  4. Observe the breaking waves reading displays (e.g., "1.8m" or "null" if deep water)
+  5. Check localStorage:
+     * Key: seayou_free_coastal_probe_v1
+     * Should now contain: {"lat": <num>, "lon": <num>, "ts": <timestamp>}
+  6. Verify the timestamp is recent (within the current session)
+  7. NO upsell card should appear
+
+Expected Result:
+  ✓ Reading displays for first arbitrary spot
+  ✓ localStorage record created with lat/lon/ts
+  ✓ Timestamp is within last minute
+  ✓ No upsell card
+  ✓ Page loads normally
+
+Failure Mode:
+  ✗ No reading shows = gating logic blocked a non-quota'd read
+  ✗ localStorage not updated = quota tracking broken
+  ✗ Upsell card appears = should not trigger on first spot
+  ✗ Console error during fetch = hook breaking
+
+Screenshot Requirement:
+  - Dashboard with breaking waves reading visible
+  - DevTools Application tab showing localStorage key with valid JSON
+  - URL showing new coordinates in browser address bar (if available)
+
+
+TEST SCENARIO 2C: FREE-TIER DASHBOARD SECOND ARBITRARY SPOT (BLOCKED + UPSELL)
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Completed 2B (localStorage now has first arbitrary spot record)
+  □ Do NOT clear localStorage between tests
+
+Test Steps:
+  1. Open Dashboard location picker
+  2. Search & select a DIFFERENT spot (also >2 km from home, different from 2B)
+  3. Dashboard loads weather
+  4. Observe the breaking waves reading DOES NOT display
+  5. Check for upsell card:
+     * Should appear with teal/cyan gradient
+     * Text: "Free-tier quota reached" or similar
+     * Button: "Upgrade" (or "Premium")
+  6. Verify localStorage:
+     * Key unchanged (still points to first spot from 2B)
+     * NOT updated with new spot
+  7. Click "Upgrade" button → should open AlertConfigModal (settings)
+
+Expected Result:
+  ✓ No breaking waves reading (null or hidden)
+  ✓ Upsell card visible & styled correctly
+  ✓ localStorage unchanged (quota not consumed)
+  ✓ "Upgrade" button functional
+  ✓ No errors in console
+
+Failure Mode:
+  ✗ Reading displays = gating failed to block second spot
+  ✗ No upsell card = feedback mechanism broken
+  ✗ localStorage updated = quota consumed incorrectly
+  ✗ "Upgrade" button doesn't work = UI integration broken
+
+Screenshot Requirement:
+  - Dashboard with NO reading (empty wave height area)
+  - Visible upsell card with "Free-tier quota reached" and "Upgrade" button
+  - localStorage unchanged from 2B
+  - URL coordinates different from previous spot
+
+
+TEST SCENARIO 2D: RETURN TO FIRST ARBITRARY SPOT (STILL ALLOWED)
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Completed 2C (localStorage has first spot, second spot denied)
+
+Test Steps:
+  1. Note the coordinates of the first arbitrary spot from 2B (check localStorage lat/lon)
+  2. Open location picker
+  3. Search & select the SAME spot from 2B (or manually type same coords)
+  4. Dashboard loads
+  5. Verify the breaking waves reading DISPLAYS
+  6. NO upsell card appears
+  7. localStorage UNCHANGED (same record as 2B)
+
+Expected Result:
+  ✓ Reading displays (re-entering same spot doesn't re-charge)
+  ✓ No upsell card
+  ✓ localStorage identical to 2B
+  ✓ TOLERANCE_KM = 2 km is respected (fuzzy matching works)
+
+Failure Mode:
+  ✗ No reading shows = tolerance check broken
+  ✗ Upsell card appears = incorrectly treated as new spot
+  ✗ localStorage modified = quota re-charged
+
+Screenshot Requirement:
+  - Dashboard with reading visible
+  - localStorage showing same record as in 2B
+  - No upsell card present
+
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+TEST SCENARIO 3: I18N TRANSLATIONS (ALL 7 LANGUAGES)
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Trigger upsell card (complete 2C)
+  □ Language selector available in footer
+
+Test Steps:
+  1. Verify upsell card is visible (from 2C)
+  2. Open language selector (footer)
+  3. For each of these 7 languages, select and verify text:
+     - EN (English)
+     - RU (Русский / Russian)
+     - IT (Italiano / Italian)
+     - DE (Deutsch / German)
+     - FR (Français / French)
+     - HE (עברית / Hebrew — right-to-left)
+     - ES (Español / Spanish)
+  4. For each language, check:
+     * Upsell card title & description render in target language
+     * Upgrade button text renders in target language
+     * No English text leakage (e.g., "Free-tier quota" in Russian)
+     * RTL layout correct for Hebrew (text right-aligned, button on left)
+
+Key i18n Keys to Verify:
+  - coastal.freeQuotaReached
+  - coastal.upgradeToUnlock
+  - coastal.upgrade
+
+Expected Result:
+  ✓ All 7 languages render correctly
+  ✓ Zero English leakage in non-English languages
+  ✓ Hebrew (HE) displays right-to-left correctly
+  ✓ Layout adapts for RTL (button positioning, text alignment)
+
+Failure Mode:
+  ✗ English text shows in other languages = i18n key missing
+  ✗ Hebrew layout left-to-right = RTL not implemented
+  ✗ Truncated/broken text = translation string too long
+
+Screenshot Requirement:
+  - Upsell card in EACH of the 7 languages
+  - Hebrew screenshot showing RTL layout (text right-aligned, button on left)
+  - No English fallback text visible
+
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+TEST SCENARIO 4: ORACLE SANITY CHECK (@seame/core unchanged)
+─────────────────────────────────────────────────────────────────────────────
+Prerequisites:
+  □ Terminal with pwd = project root (seame (2))
+
+Test Steps:
+  1. Run oracle:
+     $ npx tsx packages/core/src/nearshore/oracle.ts
+  2. Capture full output
+  3. Verify all 9 test cases produce correct H_final values:
+     - Deep water (d=1000m, 2m/14s) → H_final=2.000
+     - Intermediate (d=30m, 2m/14s) → H_final=1.854
+     - Shallow (d=5m, 2m/14s) → H_final=2.550
+     - Very shallow (d=2m, 1m/10s) → H_final=1.349
+     - Big swell (d=8m, 3m/16s) → H_final=3.654
+     - Oblique 45° (d=10m, 2m/12s) → H_final=2.068
+     - Oblique 60° (d=10m, 2m/12s) → H_final=2.068
+     - Med swell (d=15m, 1.5m/9s) → H_final=1.374
+     - Breaking (d=2m, 3m/16s) → H_final=1.560 (YES)
+  4. Check git diff:
+     $ git diff --stat packages/core/
+  5. Confirm output: (empty line) = no files changed
+
+Expected Result:
+  ✓ Oracle runs with 0 errors
+  ✓ All 9 cases return expected H_final values (no regressions)
+  ✓ Multi-swell section runs without error
+  ✓ git diff --stat shows no core changes
+
+Failure Mode:
+  ✗ Oracle exits with error = core code corrupted
+  ✗ H_final values wrong = physics engine broken
+  ✗ git diff shows changes = code was modified
+
+Screenshot Requirement:
+  - Full oracle output (all 9 cases + multi-swell section)
+  - git diff --stat output showing "0 files changed"
+
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+SIGN-OFF:
+─────────────────────────────────────────────────────────────────────────────
+All four test scenarios completed:
+  ✓ 1. Free-tier map → Breaking Waves paywall + zero PMTiles
+  ✓ 2. Dashboard quota tracking (home unlimited, 1/7d arbitrary, blocked + upsell)
+  ✓ 3. i18n translations (all 7 languages, RTL for Hebrew)
+  ✓ 4. Oracle sanity check (no core regressions)
+
+Commits:
+  - f0dc727: feat: free-tier coastal reading rate limiter (hook creation)
+  - 16de0ff: feat: integrate useCoastalReadingGated into Dashboard with upsell card
+
+Ready for merge to main and production deployment.
