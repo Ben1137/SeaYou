@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections } from '@seame/core';
+import { nearshoreTransform, komarGaughanBreakerHeight, shoreNormalFromDepthGradient, incidentAngleFromDirections, combineSwellPartitions } from '@seame/core';
 import { fetchNearshoreDepthWithGradient } from '../utils/bathymetry/TerrariumBathymetry';
 
 // Mirrors the map's constants (CoastalDynamicsLayerML.tsx)
@@ -31,13 +31,16 @@ const DEPTH_ZOOM   = 10;    // same as map at nearshore zoom
 
 export interface CoastalReadingInputs {
   /** Current wave/swell conditions — from weatherData.current */
-  swellHeight: number;       // m
-  swellPeriod: number;       // s
-  swellDirection: number;    // degrees (meteorological FROM)
-  waveHeight: number;        // m (fallback when swell negligible)
-  wavePeriod: number;        // s (fallback)
-  waveDirection?: number;    // degrees (fallback direction)
-  seaLevelHeight?: number;   // m (sea_level_height_msl from Open-Meteo; nullable)
+  swellHeight: number;           // m (primary swell)
+  swellPeriod: number;           // s (primary swell)
+  swellDirection: number;        // degrees (meteorological FROM, primary swell)
+  waveHeight: number;            // m (fallback when swell negligible)
+  wavePeriod: number;            // s (fallback)
+  waveDirection?: number;        // degrees (fallback direction)
+  seaLevelHeight?: number;       // m (sea_level_height_msl from Open-Meteo; nullable)
+  secondarySwellHeight?: number; // m (secondary partition, optional/nullable, model-dependent)
+  secondarySwellPeriod?: number; // s (secondary partition)
+  secondarySwellDirection?: number; // degrees (meteorological FROM, secondary partition)
 }
 
 export interface CoastalReading {
@@ -46,6 +49,7 @@ export interface CoastalReading {
    * = nearshoreTransform(H0, T, d).H
    * Useful for the heatmap layer and as a cross-check against HBreaker.
    * NOT the height at the actual break — Terrarium never resolves surf-zone depths.
+   * Combines primary + optional secondary swell via energy superposition.
    */
   HShoaled: number;
   /**
@@ -55,8 +59,17 @@ export interface CoastalReading {
    * Caveats: empirical (gently-sloping plane beaches); no refraction or diffraction; Hb is
    * significant breaker height, NOT face height — face height is a separate decision.
    * Use for the Coastal Break card display and waveScaleLabel.
+   * Computed from combined H0 (primary + secondary if available).
    */
   HBreaker: number;
+  /** Primary swell partition height (m). Part of the combined H0. */
+  primaryHeight: number;
+  /** Primary swell period (s). Used in transform (from dominant partition). */
+  primaryPeriod: number;
+  /** Secondary swell partition height (m), or null if absent/negligible. */
+  secondaryHeight: number | null;
+  /** Secondary swell period (s), or null if absent. */
+  secondaryPeriod: number | null;
   /**
    * Which method produced the primary displayed height.
    * 'komar-gaughan': HBreaker is the display value (depth resolved too deep to shoal).
@@ -108,13 +121,51 @@ export interface CoastalReading {
  * This comment does NOT change any behaviour. It documents a measurement result so it is visible
  * to product-facing code rather than buried in a gitignored calibration report.
  */
-export function deriveSwellInputs(c: CoastalReadingInputs): { H0: number; T: number } {
+/**
+ * Derive H0 (combined swell height) and T (dominant swell period).
+ *
+ * Policy:
+ *   1. Primary swell = swellHeight if swellHeight > SWELL_FLOOR, else waveHeight
+ *   2. If secondary swell is available, combine via energy: H0_combined = sqrt(H_primary² + H_secondary²)
+ *   3. Use dominant partition's period for transform (primary is usually dominant)
+ *   4. If primary is null/absent, fallback to waveHeight (regression-safe, byte-identical to Phase 3)
+ */
+export function deriveSwellInputs(c: CoastalReadingInputs): {
+  H0: number;
+  T: number;
+  primaryHeight: number;
+  primaryPeriod: number;
+  secondaryHeight: number | null;
+  secondaryPeriod: number | null;
+} {
   const swDominant = c.swellHeight > SWELL_FLOOR;
-  const H0 = swDominant ? c.swellHeight : c.waveHeight;
-  const T  = swDominant
+  const primaryHeight = swDominant ? c.swellHeight : c.waveHeight;
+  const primaryPeriod = swDominant
     ? (c.swellPeriod > 0 ? c.swellPeriod : c.wavePeriod)
     : c.wavePeriod;
-  return { H0, T };
+
+  // Optional secondary swell partition (nullable, model-dependent)
+  const secondaryHeight = (c.secondarySwellHeight ?? 0) > SWELL_FLOOR ? c.secondarySwellHeight : null;
+  const secondaryPeriod = secondaryHeight ? (c.secondarySwellPeriod ?? 0) : null;
+
+  // Combine via energy superposition: H0 = sqrt(H_primary² + H_secondary²)
+  let H0 = primaryHeight;
+  if (secondaryHeight && secondaryHeight > 0) {
+    const combined = combineSwellPartitions([
+      { height: primaryHeight, period: primaryPeriod, directionDeg: c.swellDirection },
+      { height: secondaryHeight, period: secondaryPeriod ?? primaryPeriod, directionDeg: c.secondarySwellDirection ?? c.swellDirection },
+    ]);
+    H0 = combined.combinedHeight;
+  }
+
+  return {
+    H0,
+    T: primaryPeriod,  // Use primary (usually dominant); secondary rarely exceeds primary
+    primaryHeight,
+    primaryPeriod,
+    secondaryHeight,
+    secondaryPeriod,
+  };
 }
 
 export function useCoastalReading(
@@ -126,7 +177,10 @@ export function useCoastalReading(
 
   // Extract primitive scalars so deps are stable numbers, not object identity.
   // When conditions is null (no data yet) → H0=0, T=0 → fails MIN checks → null path.
-  const { H0, T } = conditions ? deriveSwellInputs(conditions) : { H0: 0, T: 0 };
+  const swellInputs = conditions ? deriveSwellInputs(conditions) : {
+    H0: 0, T: 0, primaryHeight: 0, primaryPeriod: 0, secondaryHeight: null, secondaryPeriod: null
+  };
+  const { H0, T, primaryHeight, primaryPeriod, secondaryHeight, secondaryPeriod } = swellInputs;
 
   // Extract tide offset from conditions
   const tideOffset = conditions?.seaLevelHeight ?? 0;
@@ -204,6 +258,10 @@ export function useCoastalReading(
           T,
           d:           effectiveDepth,  // Store effective depth (includes tide)
           shoreNormalDeg,
+          primaryHeight,
+          primaryPeriod,
+          secondaryHeight,
+          secondaryPeriod,
         });
       })
       .catch(() => {

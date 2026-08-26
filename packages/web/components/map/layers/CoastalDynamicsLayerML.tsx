@@ -34,7 +34,7 @@ import { BREAKING_WAVE_COLORS } from '../../../webgl/ColorRamps';
 import { getMarineBeforeId } from '../../../utils/mapLayerUtils';
 import { fetchDepthGrid } from '../../../utils/bathymetry/TerrariumBathymetry';
 import type { MarineGridData } from '@seame/core';
-import { nearshoreTransform } from '@seame/core';
+import { nearshoreTransform, combineSwellPartitions } from '@seame/core';
 
 // ── Coastal diagnostics — flag-gated (?coastalDiag=1) ────────────────────────
 // CPU mirror of coastal-dynamics.frag.glsl. Zero render-path changes.
@@ -472,13 +472,26 @@ export function CoastalDynamicsLayerML({
         // Swell-primary H0 policy: use swell_wave_height where meaningful (open-ocean
         // swell carries shoaling/refraction structure); fall back to total wave_height
         // where swell≈0 (enclosed seas like Eastern Med in summer).
+        // When secondary swell is available, combine via energy: H0 = sqrt(H_primary² + H_secondary²)
         const SWELL_FLOOR = 0.1;
         const swH = pt.swellHeight ?? 0;
         const swP = pt.swellPeriod ?? 0;
         const swD = pt.swellDirection ?? pt.waveDirection ?? 0;
         const wD  = pt.waveDirection ?? 0;
-        const h0 = pt.isOcean ? ((swH > SWELL_FLOOR ? swH : (pt.waveHeight ?? 0)) || NaN) : NaN;
-        const t  = pt.isOcean ? ((swH > SWELL_FLOOR ? (swP > 0 ? swP : (pt.wavePeriod ?? 0)) : (pt.wavePeriod ?? 0)) || NaN) : NaN;
+        const primaryH = pt.isOcean ? ((swH > SWELL_FLOOR ? swH : (pt.waveHeight ?? 0)) || NaN) : NaN;
+        const primaryT = pt.isOcean ? ((swH > SWELL_FLOOR ? (swP > 0 ? swP : (pt.wavePeriod ?? 0)) : (pt.wavePeriod ?? 0)) || NaN) : NaN;
+
+        // Optional secondary swell partition (nullable, model-dependent)
+        let h0 = primaryH;
+        if (isFinite(primaryH) && (pt.secondarySwellHeight ?? 0) > SWELL_FLOOR) {
+          const combined = combineSwellPartitions([
+            { height: primaryH, period: primaryT, directionDeg: swD },
+            { height: pt.secondarySwellHeight ?? 0, period: pt.secondarySwellPeriod ?? primaryT, directionDeg: pt.secondarySwellDirection ?? swD },
+          ]);
+          h0 = combined.combinedHeight;
+        }
+
+        const t  = primaryT;
         const d  = pt.isOcean ? (swH > SWELL_FLOOR ? swD : wD) : 0;
         H0Map.set(key, h0);
         TMap.set(key,  t);

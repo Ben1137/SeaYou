@@ -344,6 +344,9 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     wavePeriod:     currentConditions.wavePeriod ?? 0,
     waveDirection:  currentConditions.swellDirection ?? 0,
     seaLevelHeight: currentConditions.seaLevel,  // sea_level_height_msl (m) — may be null or undefined
+    secondarySwellHeight:    currentConditions.secondarySwell ?? null,     // optional partition
+    secondarySwellPeriod:    currentConditions.secondarySwellPeriod ?? null,
+    secondarySwellDirection: currentConditions.secondarySwellDirection ?? null,
   } : null;
   const { reading: coastalReading, isBlocked: coastalReadingBlocked, isFree: isCoastalReadingFree } = useCoastalReadingGated(
     currentLat, currentLng, coastalReadingConditions, isCurrentGeolocation ?? false
@@ -1021,15 +1024,30 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
                   </span>
                   <span className="text-lg ml-1 mb-1 font-medium">m</span>
                 </div>
-                <p className="text-[11px] tabular-nums flex items-center gap-1 text-teal-400/80">
-                  <span className="text-white/60">{coastalReading.T.toFixed(1)}s</span>
-                  <span
-                    className="inline-flex cursor-help"
-                    title={`${t('coastalDynamics.methodKG', 'Komar-Gaughan')} — ${t('coastalDynamics.methodFormula', 'breaker height Hb = 0.39·g^0.2·(T·H₀²)^0.4')}`}
-                  >
-                    <Info size={11} className="text-white/30 shrink-0" />
-                  </span>
-                </p>
+                {/* Display both partitions if secondary is available; otherwise just primary */}
+                {coastalReading.secondaryHeight && coastalReading.secondaryHeight > 0 ? (
+                  <p className="text-[11px] tabular-nums flex items-center gap-1 text-teal-400/80">
+                    <span className="text-white/60">
+                      {coastalReading.primaryHeight.toFixed(2)}m@{coastalReading.primaryPeriod.toFixed(1)}s + {coastalReading.secondaryHeight.toFixed(2)}m@{coastalReading.secondaryPeriod?.toFixed(1) ?? coastalReading.primaryPeriod.toFixed(1)}s
+                    </span>
+                    <span
+                      className="inline-flex cursor-help"
+                      title={`Primary + secondary swell energy superposition: H₀ = √(H₁² + H₂²)`}
+                    >
+                      <Info size={11} className="text-white/30 shrink-0" />
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-[11px] tabular-nums flex items-center gap-1 text-teal-400/80">
+                    <span className="text-white/60">{coastalReading.T.toFixed(1)}s</span>
+                    <span
+                      className="inline-flex cursor-help"
+                      title={`${t('coastalDynamics.methodKG', 'Komar-Gaughan')} — ${t('coastalDynamics.methodFormula', 'breaker height Hb = 0.39·g^0.2·(T·H₀²)^0.4')}`}
+                    >
+                      <Info size={11} className="text-white/30 shrink-0" />
+                    </span>
+                  </p>
+                )}
               </>
             ) : (
               <>
