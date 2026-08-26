@@ -284,18 +284,21 @@ void main() {
   // Sample depth gradient using central differences (same grid as depth texture).
   // Note: this is a straight-parallel-contour APPROXIMATION, indicative only.
   // True refraction is non-local and depends on the full bathymetry profile.
-  float pixelSize_m = 1.0 / 64.0;  // Viewport spans ~64 pixels; rough 450m per pixel at typical zoom
-  vec4 depthCW = texture2D(u_depth, uv + vec2(pixelSize_m, 0.0));
-  vec4 depthCCW = texture2D(u_depth, uv - vec2(pixelSize_m, 0.0));
-  vec4 depthN = texture2D(u_depth, uv - vec2(0.0, pixelSize_m));
-  vec4 depthS = texture2D(u_depth, uv + vec2(0.0, pixelSize_m));
+  // pixelStepUV is a UV step (1/64 of viewport), NOT metres. Lon/lat steps are scale-
+  // invariant for bearing via atan2, but the derived shore-normal is INDICATIVE,
+  // not metric — affected by Mercator distortion and aspect ratio at zoom level.
+  float pixelStepUV = 1.0 / 64.0;  // UV step: 1/64 of viewport width/height
+  vec4 depthCW = texture2D(u_depth, uv + vec2(pixelStepUV, 0.0));
+  vec4 depthCCW = texture2D(u_depth, uv - vec2(pixelStepUV, 0.0));
+  vec4 depthN = texture2D(u_depth, uv - vec2(0.0, pixelStepUV));
+  vec4 depthS = texture2D(u_depth, uv + vec2(0.0, pixelStepUV));
 
   float gradLon = 0.0, gradLat = 0.0;
   if (depthCW.a > 0.1 && depthCCW.a > 0.1) {
-    gradLon = (depthCW.r - depthCCW.r) / (2.0 * pixelSize_m);
+    gradLon = (depthCW.r - depthCCW.r) / (2.0 * pixelStepUV);
   }
   if (depthN.a > 0.1 && depthS.a > 0.1) {
-    gradLat = (depthS.r - depthN.r) / (2.0 * pixelSize_m);
+    gradLat = (depthS.r - depthN.r) / (2.0 * pixelStepUV);
   }
 
   // Derive shore-normal bearing from depth gradient; if degenerate, assume shore-normal incidence
