@@ -102,6 +102,39 @@ float deepWaterWavelength(float T) {
   return (G * T * T) / TWO_PI;   // L0 = g·T²/2π
 }
 
+// ── Phase 4: Derive shore-normal bearing from depth gradient ────────────────
+// The offshore normal points toward deeper water (downslope).
+// Shore normal = downslope direction in compass bearing.
+// Flat/degenerate gradient → return 0 (no orientation).
+//
+// @param gradLon ∂d/∂lon (positive = depth increases eastward)
+// @param gradLat ∂d/∂lat (positive = depth increases northward)
+// @returns Compass bearing [0,360) pointing toward deeper water, or -1 if degenerate
+float shoreNormalFromGradient(float gradLon, float gradLat) {
+  float mag = sqrt(gradLon * gradLon + gradLat * gradLat);
+  if (mag < 1e-6) return -1.0;  // Flat/ambiguous shelf
+
+  // Bearing = atan2(eastComponent, northComponent)
+  // gradLon is east gradient; gradLat is north gradient (depth increases toward deeper)
+  float bearingRad = atan(gradLon, gradLat);  // atan2(x,y) maps to [-π,π]
+  float bearingDeg = (bearingRad * 180.0 / PI + 360.0);  // Convert to [0,360)
+  return mod(bearingDeg, 360.0);
+}
+
+// ── Compute incident angle from swell direction + shore normal ────────────────
+// Convention: swell propagates TOWARD = (swellFromDeg + 180) % 360
+// theta0 = smallest arc between swell-toward and shore-normal, folded to [0,90]
+float incidentAngleFromDirections(float swellFromDeg, float shoreNormalDeg) {
+  if (shoreNormalDeg < 0.0) return 0.0;  // Flat/ambiguous → shore-normal incidence
+
+  float swellTowardDeg = mod(swellFromDeg + 180.0, 360.0);
+  float diff = mod(swellTowardDeg - shoreNormalDeg + 360.0, 360.0);
+  if (diff > 180.0) diff = 360.0 - diff;  // Smallest arc: [0,180]
+
+  // Map to [0,90]: 0° = shore-normal, 90° = parallel-to-shore
+  return diff > 90.0 ? 180.0 - diff : diff;
+}
+
 // ── Phase 4: Snell Refraction ──────────────────────────────────────────────
 // Refraction coefficient Kr = sqrt( cos(theta0) / cos(theta) ) using Snell's law
 // Straight-parallel-contour approximation; indicative only (effective at ~450m resolution).
@@ -110,10 +143,9 @@ float deepWaterWavelength(float T) {
 //   T: wave period (s)
 //   d: effective depth (m)
 //   theta0_rad: deep-water incident angle (radians, from shore-normal)
-//   gradU, gradV: depth gradient sampled from u_depth texture (∂d/∂lon, ∂d/∂lat)
 //
 // Returns Kr ∈ [0, 2], clamped to avoid cos θ → 0 singularities at grazing incidence.
-float refractionCoeffSnell(float T, float d, float theta0_rad, float gradU, float gradV) {
+float refractionCoeffSnell(float T, float d, float theta0_rad) {
   // Compute angle between swell propagation and local depth gradient
   // Swell propagates at angle theta0_rad from shore-normal (computed in caller).
   // For now, use theta0_rad directly; CPU computes the conversion from directions.
@@ -266,13 +298,14 @@ void main() {
     gradLat = (depthS.r - depthN.r) / (2.0 * pixelSize_m);
   }
 
-  // Convert swell "from" direction and offshore normal into incident angle
-  // Swell "from" = B channel normalized / 360; offshore normal derived from gradient.
-  // Simplified: use swell direction directly (B channel * 360) as incident angle proxy.
-  // Full version (CPU-side) computes: theta0 = angle(swell-toward, shore-normal).
-  float theta0_deg = dir_from_deg;
+  // Derive shore-normal bearing from depth gradient; if degenerate, assume shore-normal incidence
+  float shoreNormalDeg = shoreNormalFromGradient(gradLon, gradLat);
+
+  // Compute incident angle: angle between swell-toward and shore-normal, folded to [0,90]
+  // Swell "from" = B channel normalized / 360, converted to compass degrees
+  float theta0_deg = incidentAngleFromDirections(dir_from_deg, shoreNormalDeg);
   float theta0_rad = (theta0_deg * PI) / 180.0;
-  float Kr = refractionCoeffSnell(T, d_eff, theta0_rad, gradLon, gradLat);
+  float Kr = refractionCoeffSnell(T, d_eff, theta0_rad);
 
   float H_shoaled   = H0 * Ks * Kr;      // Phase 4: Kr now applied; Kr=1 at theta0=0
   float breakingCap = GAMMA * d_eff;

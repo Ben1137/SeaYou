@@ -69,6 +69,28 @@ function dispersionForVerify(T: number, d: number): { C: number } {
   return { C: L / T };
 }
 
+// ── GLSL mirrors for gradient → shore normal → incident angle ──────────────────
+
+function shoreNormalFromGradient(gradLon: number, gradLat: number): number {
+  const mag = Math.sqrt(gradLon * gradLon + gradLat * gradLat);
+  if (mag < 1e-6) return -1.0;  // Flat/ambiguous
+
+  // Bearing = atan2(east, north)
+  const bearingRad = Math.atan2(gradLon, gradLat);
+  const bearingDeg = (bearingRad * 180 / Math.PI + 360) % 360;
+  return bearingDeg;
+}
+
+function incidentAngleFromDirectionsGLSL(swellFromDeg: number, shoreNormalDeg: number): number {
+  if (shoreNormalDeg < 0) return 0;  // Flat/ambiguous
+
+  const swellTowardDeg = (swellFromDeg + 180) % 360;
+  let diff = ((swellTowardDeg - shoreNormalDeg) % 360 + 360) % 360;
+  if (diff > 180) diff = 360 - diff;
+
+  return diff > 90 ? 180 - diff : diff;
+}
+
 function shaderBreakingHeight(H0: number, T: number, d: number, theta0Deg: number = 0): number {
   if (d <= 0.5) return 0;           // MIN_DEPTH
   if (d >= 200) return H0;          // deep water
@@ -88,6 +110,10 @@ interface VerifyCase {
   T: number;
   d: number;
   theta0?: number;  // Phase 4: incident angle for Snell refraction (° from shore-normal)
+  // End-to-end angle derivation cases:
+  swellFromDeg?: number;  // Meteorological swell-from direction
+  gradLon?: number;       // ∂d/∂lon (depth gradient eastward)
+  gradLat?: number;       // ∂d/∂lat (depth gradient northward)
 }
 
 const CASES: VerifyCase[] = [
@@ -98,17 +124,21 @@ const CASES: VerifyCase[] = [
   { label: 'Big swell (d=8m, 3m/16s, θ=0°)',    H0: 3.0, T: 16, d: 8,    theta0: 0 },
   { label: 'Med swell (d=15m, 1.5m/9s, θ=0°)',  H0: 1.5, T: 9,  d: 15,   theta0: 0 },
   { label: 'Breaking: d=2m, 3m/16s, θ=0°',      H0: 3.0, T: 16, d: 2,    theta0: 0 },
-  // Phase 4: oblique refraction cases
+  // Phase 4: oblique refraction cases — coefficient only
   { label: 'Oblique 45° (d=10m, 2m/12s)',       H0: 2.0, T: 12, d: 10,   theta0: 45 },
   { label: 'Parallel 80° (d=10m, 2m/12s)',      H0: 2.0, T: 12, d: 10,   theta0: 80 },
+  // END-TO-END: derive theta0 from directions + gradient (maps to angle-only cases above)
+  { label: 'End-to-end: S swell, N-facing beach (θ→0°)', H0: 2.0, T: 12, d: 10, swellFromDeg: 180, gradLon: 0, gradLat: 0.001 },
+  { label: 'End-to-end: W swell, W-facing beach (θ→0°)', H0: 2.0, T: 12, d: 10, swellFromDeg: 270, gradLon: -0.001, gradLat: 0 },
+  { label: 'End-to-end: N swell, E-facing beach (θ→45°)', H0: 2.0, T: 12, d: 10, swellFromDeg: 0, gradLon: 0.001, gradLat: 0.001 },
 ];
 
 const TOLERANCE = 0.05; // 5%
 
-console.log('\n=== Shader vs @seame/core Numeric Verification (Phase 4: Snell Refraction) ===\n');
+console.log('\n=== Shader vs @seame/core Numeric Verification (Phase 4: Snell Refraction + Angle Derivation) ===\n');
 console.log(
   'Case'.padEnd(40),
-  'θ'.padStart(2),
+  'θ(°)'.padStart(5),
   'Core_H'.padEnd(9),
   'Shader_H'.padEnd(10),
   'Ks'.padEnd(7),
@@ -121,7 +151,15 @@ console.log('-'.repeat(120));
 let allPassed = true;
 
 for (const c of CASES) {
-  const theta0Deg = c.theta0 ?? 0;
+  // For end-to-end cases, derive theta0 from swell direction + gradient
+  let theta0Deg: number;
+  if (c.swellFromDeg !== undefined && c.gradLon !== undefined && c.gradLat !== undefined) {
+    const shoreNormalDeg = shoreNormalFromGradient(c.gradLon, c.gradLat);
+    theta0Deg = incidentAngleFromDirectionsGLSL(c.swellFromDeg, shoreNormalDeg);
+  } else {
+    theta0Deg = c.theta0 ?? 0;
+  }
+
   const coreResult  = nearshoreTransform(c.H0, c.T, c.d, theta0Deg, true);  // Phase 4: applyRefraction=true
   const shaderH     = shaderBreakingHeight(c.H0, c.T, c.d, theta0Deg);
   const shaderKs    = c.d >= 200 ? 1.0 : Math.max(0.5, Math.min(3.0, shoalingCoeffShader(c.T, c.d)));
@@ -134,7 +172,7 @@ for (const c of CASES) {
 
   console.log(
     c.label.padEnd(40),
-    theta0Deg.toString().padStart(2),
+    theta0Deg.toFixed(1).padStart(5),
     refH.toFixed(4).padEnd(9),
     shaderH.toFixed(4).padEnd(10),
     coreResult.Ks.toFixed(4).padEnd(7),

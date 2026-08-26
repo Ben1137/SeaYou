@@ -9,7 +9,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "verify": "tsx src/nearshore/shader-verify.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

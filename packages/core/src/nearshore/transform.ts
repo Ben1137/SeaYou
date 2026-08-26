@@ -46,13 +46,13 @@ export function shoalingCoeff(T: number, d: number): number {
  *   theta0 = angle between swell propagation direction and shore-normal.
  *
  * Swell propagates TOWARD (swellFromDeg + 180) % 360.
- * theta0 = smallest arc between swell-toward and shore-normal, in [-90, 90].
+ * theta0 = smallest arc between swell-toward and shore-normal, in [0, 90].
  *   theta0 ≈ 0°   → swell approach nearly perpendicular to shore → Ks ≈ Kr ≈ 1
  *   theta0 ≈ 90°  → swell approach nearly parallel to shore → sin(theta) ≈ 1
  *
  * @param swellFromDeg      Meteorological swell-from direction (degrees [0,360))
  * @param shoreNormalDeg    Offshore bearing from depth gradient (degrees [0,360), null if ambiguous)
- * @returns theta0 in degrees [-90,90], or 0 if shoreNormal is null/ambiguous
+ * @returns theta0 in degrees [0, 90] (unsigned), or 0 if shoreNormal is null/ambiguous
  */
 export function incidentAngleFromDirections(
   swellFromDeg: number,
