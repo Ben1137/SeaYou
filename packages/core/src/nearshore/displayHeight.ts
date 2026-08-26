@@ -52,7 +52,7 @@ export interface BreakerdHeightDisplayFactorParams {
  * Does NOT model onshore wind (that is a separate QUALITY decision); only
  * models intrinsic losses from steepness and chop.
  */
-export function brekerDisplayFactor(params: BreakerdHeightDisplayFactorParams): number {
+export function breakerDisplayFactor(params: BreakerdHeightDisplayFactorParams): number {
   const { T, H0, exposureFactor } = params;
 
   if (!isFinite(T) || T <= 0) return 1.0;
