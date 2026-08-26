@@ -958,7 +958,7 @@ const AppContent: React.FC = () => {
                   console.error('Dashboard error:', error, errorInfo);
                 }}
               >
-                <Dashboard weatherData={weatherData} loading={isLoading} error={error} isOfflineFallback={isOfflineFallback} lastUpdated={lastUpdated} locationName={currentLocation.name} currentLat={currentLocation.lat} currentLng={currentLocation.lng} onRetry={refetch} onLocationClick={() => setShowLocationModal(true)} />
+                <Dashboard weatherData={weatherData} loading={isLoading} error={error} isOfflineFallback={isOfflineFallback} lastUpdated={lastUpdated} locationName={currentLocation.name} currentLat={currentLocation.lat} currentLng={currentLocation.lng} isCurrentGeolocation={currentLocation.id === -1} onRetry={refetch} onLocationClick={() => setShowLocationModal(true)} />
               </ErrorBoundary>
             )}
             {view === ViewState.MAP && (

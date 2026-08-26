@@ -32,6 +32,8 @@ interface DashboardProps {
    *  so it can seed `home_lat`/`home_lon` when the user enables pushes. */
   currentLat?: number;
   currentLng?: number;
+  /** True when current location is live geolocation (currentLocation.id === -1) */
+  isCurrentGeolocation?: boolean;
   onRetry?: () => void;
   onLocationClick?: () => void;
   isOfflineFallback?: boolean;
@@ -135,7 +137,7 @@ const MarineXAxisTick: React.FC<any> = (props) => {
   );
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, onRetry, onLocationClick, isOfflineFallback, lastUpdated }) => {
+const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, locationName, currentLat, currentLng, isCurrentGeolocation, onRetry, onLocationClick, isOfflineFallback, lastUpdated }) => {
   const { t } = useTranslation();
   const { thresholds, isDismissed, dismiss, resetDismiss, persona, selectedActivities } = useAlertConfig();
   const { preferences } = useUserPreferences();
@@ -342,10 +344,8 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
     wavePeriod:    currentConditions.wavePeriod ?? 0,
     waveDirection: currentConditions.swellDirection ?? 0,
   } : null;
-  // Determine if current location is live GPS ("Current Location") vs. manually-selected spot
-  const isCurrentGeolocation = locationName === t('app.currentLocation');
   const { reading: coastalReading, isBlocked: coastalReadingBlocked, isFree: isCoastalReadingFree } = useCoastalReadingGated(
-    currentLat, currentLng, coastalReadingConditions, isCurrentGeolocation
+    currentLat, currentLng, coastalReadingConditions, isCurrentGeolocation ?? false
   );
 
   // ─── Activity Scoring (powered by @seame/core scoring engine) ───
