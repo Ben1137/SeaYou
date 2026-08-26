@@ -337,12 +337,13 @@ const Dashboard: React.FC<DashboardProps> = ({ weatherData, loading, error, loca
   // coastalReading is null when the spot is on land, deep water, or data unavailable.
   // Must be declared before scoringConditions/bestWindows so shoreNormalDeg is available.
   const coastalReadingConditions = currentConditions ? {
-    swellHeight:   currentConditions.swell    ?? 0,
-    swellPeriod:   currentConditions.swellPeriod ?? 0,
-    swellDirection:currentConditions.swellDirection ?? 0,
-    waveHeight:    currentConditions.wave      ?? 0,
-    wavePeriod:    currentConditions.wavePeriod ?? 0,
-    waveDirection: currentConditions.swellDirection ?? 0,
+    swellHeight:    currentConditions.swell    ?? 0,
+    swellPeriod:    currentConditions.swellPeriod ?? 0,
+    swellDirection: currentConditions.swellDirection ?? 0,
+    waveHeight:     currentConditions.wave      ?? 0,
+    wavePeriod:     currentConditions.wavePeriod ?? 0,
+    waveDirection:  currentConditions.swellDirection ?? 0,
+    seaLevelHeight: currentConditions.seaLevel,  // sea_level_height_msl (m) — may be null or undefined
   } : null;
   const { reading: coastalReading, isBlocked: coastalReadingBlocked, isFree: isCoastalReadingFree } = useCoastalReadingGated(
     currentLat, currentLng, coastalReadingConditions, isCurrentGeolocation ?? false

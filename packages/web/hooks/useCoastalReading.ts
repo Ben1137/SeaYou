@@ -37,6 +37,7 @@ export interface CoastalReadingInputs {
   waveHeight: number;        // m (fallback when swell negligible)
   wavePeriod: number;        // s (fallback)
   waveDirection?: number;    // degrees (fallback direction)
+  seaLevelHeight?: number;   // m (sea_level_height_msl from Open-Meteo; nullable)
 }
 
 export interface CoastalReading {
@@ -127,6 +128,9 @@ export function useCoastalReading(
   // When conditions is null (no data yet) → H0=0, T=0 → fails MIN checks → null path.
   const { H0, T } = conditions ? deriveSwellInputs(conditions) : { H0: 0, T: 0 };
 
+  // Extract tide offset from conditions
+  const tideOffset = conditions?.seaLevelHeight ?? 0;
+
   useEffect(() => {
     if (spotLat == null || spotLon == null ||
         !isFinite(H0) || H0 < MIN_H0 ||
@@ -160,18 +164,24 @@ export function useCoastalReading(
             note: !isFinite(centreDepth) ? 'NaN/no-tile' : centreDepth <= 0 ? 'land' : centreDepth >= DEEP_CUTOFF ? 'deep' : 'surf-zone',
           });
         }
-        if (!isFinite(centreDepth) || centreDepth <= 0 || centreDepth >= DEEP_CUTOFF) {
+
+        // Apply tide offset to depth (same as map layer does)
+        // GEBCO depth is positive-down; sea_level_height_msl is MSL deviation.
+        // Higher water → deeper → d_eff = d + tide.
+        const effectiveDepth = centreDepth + tideOffset;
+
+        if (!isFinite(effectiveDepth) || effectiveDepth <= 0 || effectiveDepth >= DEEP_CUTOFF) {
           setReading(null);
           return;
         }
-        const result  = nearshoreTransform(H0, T, centreDepth);
+        const result  = nearshoreTransform(H0, T, effectiveDepth);
         const HBreaker = komarGaughanBreakerHeight(H0, T);
         // Log both heights so the divergence between shoaling and K-G is always visible.
         // Silence with ?coastalReadingDebug omitted; full output at ?coastalReadingDebug=1.
         if (dbg) {
           console.log('[CoastalReading][heights]', {
             location: `${spotLat.toFixed(4)},${spotLon.toFixed(4)}`,
-            H0: H0.toFixed(3), T: T.toFixed(1), d: centreDepth.toFixed(1),
+            H0: H0.toFixed(3), T: T.toFixed(1), rawDepth: centreDepth.toFixed(1), effectiveDepth: effectiveDepth.toFixed(1), tideOffset: tideOffset.toFixed(3),
             HShoaled:  result.H.toFixed(3),
             HBreaker:  HBreaker.toFixed(3),
             Ks:        result.Ks.toFixed(4),
@@ -190,7 +200,7 @@ export function useCoastalReading(
           breakingCap: result.breakingCap,
           H0,
           T,
-          d:           centreDepth,
+          d:           effectiveDepth,  // Store effective depth (includes tide)
           shoreNormalDeg,
         });
       })
@@ -199,7 +209,7 @@ export function useCoastalReading(
       });
 
     return () => { ignore = true; };
-  }, [spotLat, spotLon, H0, T]);  // primitive deps — no object-identity churn
+  }, [spotLat, spotLon, H0, T, tideOffset]);  // include tideOffset in deps
 
   return reading;
 }
